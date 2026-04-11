@@ -232,48 +232,10 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     // Early exit if no ship
     if (!currentShip) return
 
-    // Ship-Token collisions - Collect tokens, don't destroy ship!
+    // Ship-Token collisions
     tokens.forEach((token) => {
       if (state.checkCollision(currentShip, token)) {
-        console.log('Token collision detected:', {
-          tokenId: token.id,
-          currentTokens: useInventoryStore.getState().items.tokens,
-          sessionId: useGameData.getState().currentSessionId,
-        })
-
-        // Record token collection in session before destroying
-        useGameData
-          .getState()
-          .updateSessionTokens({
-            symbol: 'ASTRDS',
-            amount: 1,
-            verified: false,
-          })
-          .then(() => {
-            console.log('Token session update success:', {
-              tokenId: token.id,
-              sessionTokens: useGameData.getState().sessionTokens.length,
-            })
-          })
-          .catch((error) => {
-            console.error('Token session update failed:', {
-              tokenId: token.id,
-              error: error.message,
-              sessionState: useGameData.getState().sessionState,
-            })
-          })
-
-        // Add token to inventory
-        const inventoryStore = useInventoryStore.getState()
-        const beforeCount = inventoryStore.items.tokens
-        inventoryStore.addItem('tokens', 1)
-        console.log('Inventory updated:', {
-          tokenId: token.id,
-          beforeCount,
-          afterCount: inventoryStore.items.tokens,
-        })
-
-        // Destroy token
+        useInventoryStore.getState().addItem('tokens', 1)
         token.destroy()
         audioService.playSound('collect')
       }

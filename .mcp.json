@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "pemguin": {
+      "args": [
+        "mcp",
+        "serve"
+      ],
+      "command": "pm"
+    }
+  }
+}

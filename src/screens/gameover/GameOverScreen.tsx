@@ -15,15 +15,11 @@ const GameOverScreen: React.FC = () => {
   const score = useGameData((state) => state.score)
   const lastGameStats = useGameData((state) => state.lastGameStats)
   const tokens = useInventoryStore((state) => state.items.tokens)
-
-  // Tracking game sessions:
   const endGameSession = useGameData((state) => state.endGameSession)
 
   useEffect(() => {
     endGameSession().catch(console.error)
   }, [endGameSession])
-
-  // end: Tracking game sessions
 
   const startTransition = useStateMachine(state => state.startTransition)
 

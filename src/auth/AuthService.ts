@@ -1,4 +1,3 @@
-// src/auth/AuthService.ts
 import {
   Connection,
   PublicKey,
@@ -13,6 +12,8 @@ import {
   getMint,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
+import { convex } from '@/lib/convex'
+import { api } from '../../convex/_generated/api'
 
 const RECIPIENT_WALLET = new PublicKey(
   'AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE'
@@ -22,11 +23,9 @@ const SOL_COST = 0.05
 const TOKEN_COST = 1000
 
 class AuthService {
-  private verifiedSessions: Set<string>
   private connection: Connection
 
   constructor() {
-    this.verifiedSessions = new Set()
     this.connection = new Connection(import.meta.env.VITE_SOLANA_RPC_ENDPOINT)
   }
 
@@ -34,9 +33,8 @@ class AuthService {
     try {
       const mintInfo = await getMint(this.connection, TOKEN_MINT)
       return mintInfo.decimals
-    } catch (error) {
-      console.error('Error getting mint info:', error)
-      return 6 // Default to 6 decimals if we can't fetch
+    } catch {
+      return 6
     }
   }
 
@@ -53,21 +51,10 @@ class AuthService {
       TOKEN_MINT,
       isSource ? walletPubkey : RECIPIENT_WALLET
     )
-
     try {
       await getAccount(this.connection, tokenAddress)
-      console.log(
-        `Token account found for ${
-          isSource ? 'sender' : 'recipient'
-        }: ${tokenAddress.toString()}`
-      )
       return tokenAddress
-    } catch (error) {
-      console.log(
-        `Token account not found for ${
-          isSource ? 'sender' : 'recipient'
-        }, creating...`
-      )
+    } catch {
       return null
     }
   }
@@ -88,60 +75,28 @@ class AuthService {
       )
     } else if (paymentType === 'ASTRDS') {
       const tokenAmount = await this.getTokenAmount(TOKEN_COST)
-      console.log(`Converting ${TOKEN_COST} ASTRDS to ${tokenAmount} raw units`)
+      const fromTokenAddress = await getAssociatedTokenAddress(TOKEN_MINT, walletPubkey)
+      const toTokenAddress = await getAssociatedTokenAddress(TOKEN_MINT, RECIPIENT_WALLET)
+      const fromAccountExists = await this.ensureTokenAccount(walletPubkey, true)
+      const toAccountExists = await this.ensureTokenAccount(RECIPIENT_WALLET, false)
 
-      // Get token account addresses
-      const fromTokenAddress = await getAssociatedTokenAddress(
-        TOKEN_MINT,
-        walletPubkey
-      )
-      const toTokenAddress = await getAssociatedTokenAddress(
-        TOKEN_MINT,
-        RECIPIENT_WALLET
-      )
-
-      // Check if accounts exist
-      const fromAccountExists = await this.ensureTokenAccount(
-        walletPubkey,
-        true
-      )
-      const toAccountExists = await this.ensureTokenAccount(
-        RECIPIENT_WALLET,
-        false
-      )
-
-      // Create accounts if needed
       if (!fromAccountExists) {
         transaction.add(
           createAssociatedTokenAccountInstruction(
-            walletPubkey,
-            fromTokenAddress,
-            walletPubkey,
-            TOKEN_MINT
+            walletPubkey, fromTokenAddress, walletPubkey, TOKEN_MINT
           )
         )
       }
-
       if (!toAccountExists) {
         transaction.add(
           createAssociatedTokenAccountInstruction(
-            walletPubkey,
-            toTokenAddress,
-            RECIPIENT_WALLET,
-            TOKEN_MINT
+            walletPubkey, toTokenAddress, RECIPIENT_WALLET, TOKEN_MINT
           )
         )
       }
-
-      // Add transfer instruction using the resolved addresses
       transaction.add(
         createTransferInstruction(
-          fromTokenAddress,
-          toTokenAddress,
-          walletPubkey,
-          tokenAmount,
-          [],
-          TOKEN_PROGRAM_ID
+          fromTokenAddress, toTokenAddress, walletPubkey, tokenAmount, [], TOKEN_PROGRAM_ID
         )
       )
     }
@@ -151,92 +106,56 @@ class AuthService {
 
   async getTokenBalance(walletPubkey: PublicKey): Promise<number> {
     try {
-      const tokenAccount = await getAssociatedTokenAddress(
-        TOKEN_MINT,
-        walletPubkey
-      )
-      console.log(
-        `Token account found for ${walletPubkey}: ${tokenAccount.toString()}`
-      )
-      const accountInfo = await this.connection.getTokenAccountBalance(
-        tokenAccount
-      )
+      const tokenAccount = await getAssociatedTokenAddress(TOKEN_MINT, walletPubkey)
+      const accountInfo = await this.connection.getTokenAccountBalance(tokenAccount)
       return accountInfo.value.uiAmount || 0
     } catch {
-      console.log('No token account found, balance is 0')
       return 0
     }
   }
 
-  clearSession(publicKey: PublicKey): void {
-    this.verifiedSessions.delete(publicKey.toString())
-  }
-
-  async verifyWalletSignature(
-    wallet: any,
-    paymentType = 'SOL'
-  ): Promise<boolean> {
+  async verifyWalletSignature(wallet: any, paymentType = 'SOL'): Promise<boolean> {
     if (!wallet.publicKey) throw new Error('No wallet connected')
 
-    const sessionKey = wallet.publicKey.toString()
-    if (this.verifiedSessions.has(sessionKey)) {
-      return true
-    }
-
-    try {
-      if (paymentType === 'ASTRDS') {
-        const tokenBalance = await this.getTokenBalance(wallet.publicKey)
-        console.log(`Current token balance: ${tokenBalance} ASTRDS`)
-        if (tokenBalance < TOKEN_COST) {
-          throw new Error(
-            `Insufficient ASTRDS balance. Required: ${TOKEN_COST} ASTRDS`
-          )
-        }
-      } else {
-        const solBalance = await this.connection.getBalance(wallet.publicKey)
-        if (solBalance < SOL_COST * 1e9) {
-          throw new Error(`Insufficient SOL balance. Required: ${SOL_COST} SOL`)
-        }
+    if (paymentType === 'ASTRDS') {
+      const tokenBalance = await this.getTokenBalance(wallet.publicKey)
+      if (tokenBalance < TOKEN_COST) {
+        throw new Error(`Insufficient ASTRDS balance. Required: ${TOKEN_COST} ASTRDS`)
       }
-
-      console.log(
-        `Creating ${paymentType} payment transaction for ${wallet.publicKey.toString()}`
-      )
-      const transaction = await this.createPaymentTransaction(
-        wallet.publicKey,
-        paymentType
-      )
-
-      const { blockhash, lastValidBlockHeight } =
-        await this.connection.getLatestBlockhash()
-      transaction.recentBlockhash = blockhash
-      transaction.feePayer = wallet.publicKey
-
-      const signedTx = await wallet.signTransaction(transaction)
-      const signature = await this.connection.sendRawTransaction(
-        signedTx.serialize(),
-        {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        }
-      )
-
-      await this.connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      })
-
-      this.verifiedSessions.add(sessionKey)
-      return true
-    } catch (error) {
-      console.error('Verification failed:', error)
-      throw error
+    } else {
+      const solBalance = await this.connection.getBalance(wallet.publicKey)
+      if (solBalance < SOL_COST * 1e9) {
+        throw new Error(`Insufficient SOL balance. Required: ${SOL_COST} SOL`)
+      }
     }
+
+    const transaction = await this.createPaymentTransaction(wallet.publicKey, paymentType)
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash()
+    transaction.recentBlockhash = blockhash
+    transaction.feePayer = wallet.publicKey
+
+    const signedTx = await wallet.signTransaction(transaction)
+    const txSignature = await this.connection.sendRawTransaction(
+      signedTx.serialize(),
+      { skipPreflight: false, preflightCommitment: 'confirmed' }
+    )
+
+    await this.connection.confirmTransaction({ signature: txSignature, blockhash, lastValidBlockHeight })
+
+    // Verify server-side via Convex action
+    await convex.action(api.verifyPayment.verifyPayment, {
+      txSignature,
+      walletAddress: wallet.publicKey.toString(),
+      paymentType: paymentType as 'SOL' | 'ASTRDS',
+    })
+
+    return true
   }
 
-  public isVerified(publicKey: string): boolean {
-    return this.verifiedSessions.has(publicKey)
+  async clearSession(publicKey: PublicKey): Promise<void> {
+    await convex.mutation(api.sessions.clearSession, {
+      walletAddress: publicKey.toString(),
+    })
   }
 }
 

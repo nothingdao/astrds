@@ -1,0 +1,47 @@
+import { mutation, query } from './_generated/server'
+import { v } from 'convex/values'
+
+export const create = mutation({
+  args: { walletAddress: v.string() },
+  handler: async (ctx, { walletAddress }) => {
+    return await ctx.db.insert('gameSessions', {
+      walletAddress,
+      score: 0,
+      levelReached: 1,
+      sessionStart: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      status: 'active',
+    })
+  },
+})
+
+export const update = mutation({
+  args: {
+    sessionId: v.id('gameSessions'),
+    score: v.optional(v.number()),
+    levelReached: v.optional(v.number()),
+    status: v.optional(
+      v.union(v.literal('active'), v.literal('ending'), v.literal('ended'))
+    ),
+  },
+  handler: async (ctx, { sessionId, ...fields }) => {
+    const session = await ctx.db.get(sessionId)
+    if (!session) throw new Error('Session not found')
+
+    const updates: Record<string, unknown> = { lastUpdated: new Date().toISOString() }
+    if (fields.score !== undefined) updates.score = fields.score
+    if (fields.levelReached !== undefined) updates.levelReached = fields.levelReached
+    if (fields.status !== undefined) {
+      updates.status = fields.status
+      if (fields.status === 'ended') updates.sessionEnd = new Date().toISOString()
+    }
+
+    await ctx.db.patch(sessionId, updates)
+    return await ctx.db.get(sessionId)
+  },
+})
+
+export const get = query({
+  args: { sessionId: v.id('gameSessions') },
+  handler: async (ctx, { sessionId }) => ctx.db.get(sessionId),
+})

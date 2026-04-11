@@ -9,19 +9,16 @@
   },
   "scripts": {
     "dev": "netlify dev",
-    "start": "vite",
-    "build": "vite build",
-    "serve": "vite preview",
-    "lint": "eslint src --fix",
+    "start": "vp dev",
+    "build": "vp build",
+    "serve": "vp preview",
+    "check": "vp check",
+    "fmt": "vp fmt",
+    "test": "vp test",
     "clean": "rm -rf node_modules dist .vite",
-    "test:functions": "netlify functions:invoke getScores && netlify functions:invoke postScore --payload '{\"score\": 1000, \"walletAddress\": \"TEST_WALLET\"}'",
-    "test:blob": "curl -X GET '/.netlify/functions/getScores'"
+    "convex:dev": "npx convex dev"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.29.0",
-    "@netlify/blobs": "^8.1.0",
-    "@netlify/functions": "^2.8.2",
-    "@project-serum/anchor": "^0.26.0",
     "@solana/spl-token": "^0.4.9",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
@@ -31,9 +28,8 @@
     "bigint-buffer": "^1.1.5",
     "bn.js": "^4.12.1",
     "bs58": "^4.0.1",
+    "convex": "^1.35.1",
     "lucide-react": "^0.456.0",
-    "pusher": "^5.2.0",
-    "pusher-js": "8.4.0-rc2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^5.0.1"
@@ -43,15 +39,12 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.15.0",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^5.0.0",
     "postcss": "^8.4.48",
     "rimraf": "^5.0.5",
     "rollup-plugin-visualizer": "^5.12.0",
     "tailwindcss": "^3.4.14",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vite-plus": "^0.1.16"
   },
   "pnpm": {
     "overrides": {

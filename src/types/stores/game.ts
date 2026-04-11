@@ -1,5 +1,4 @@
-// src/types/stores/game.ts
-import { Score } from '../core' // Add this import at the top
+import { Score } from '../core'
 
 export interface GameSessionState {
   status: 'active' | 'ending' | 'ended' | null
@@ -19,23 +18,6 @@ export interface GameStats {
   totalPlayers: number
 }
 
-export interface TokenEarned {
-  symbol: string
-  amount: number
-  verified: boolean
-}
-
-export interface GameSession {
-  id: string
-  walletAddress: string
-  score: number
-  tokensEarned: TokenEarned[]
-  levelReached: number
-  sessionStart: string
-  sessionEnd?: string
-  lastUpdated: string
-}
-
 export interface GameStoreState {
   isProcessing: boolean
   score: number
@@ -43,7 +25,6 @@ export interface GameStoreState {
   lastGameStats: GameStats | null
   error: GameError | null
   currentSessionId: string | null
-  sessionTokens: TokenEarned[]
   sessionState: GameSessionState
 }
 
@@ -54,7 +35,5 @@ export interface GameStore extends GameStoreState {
   resetGame: () => void
   clearError: () => void
   startGameSession: (walletAddress: string) => Promise<string>
-  updateSessionTokens: (newToken: TokenEarned) => Promise<void>
   endGameSession: () => Promise<void>
-  verifyTokensForMinting: () => Promise<number> // Change return type from boolean to number
 }

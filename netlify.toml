@@ -1,23 +1,9 @@
 [build]
 command = "npx pnpm install && npx pnpm build"
 publish = "dist"
-functions = "netlify/functions"
-
-[functions]
-node_bundler = "esbuild"
-external_node_modules = ["@netlify/blobs", "pusher", "bigint-buffer"]
-
-[functions.mintTokens]
-external_node_modules = ["@solana/web3.js", "@solana/spl-token"]
 
 [build.environment]
-NODE_VERSION = "18.19.0"
-NPM_FLAGS = "--shamefully-hoist"
-
-[[redirects]]
-from = "/api/*"
-to = "/.netlify/functions/:splat"
-status = 200
+NODE_VERSION = "22"
 
 [dev]
 command = "pnpm start"
