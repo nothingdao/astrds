@@ -4,13 +4,13 @@
   "description": "Asteroids game with Solana wallet integration",
   "type": "module",
   "engines": {
-    "node": "18.19.0",
+    "node": ">=22.0.0",
     "pnpm": ">=8.0.0"
   },
   "scripts": {
     "dev": "netlify dev",
     "start": "vp dev",
-    "build": "vp build",
+    "build": "vite build",
     "serve": "vp preview",
     "check": "vp check",
     "fmt": "vp fmt",
