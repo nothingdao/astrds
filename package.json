@@ -8,13 +8,10 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
-    "dev": "netlify dev",
-    "start": "vp dev",
+    "dev": "concurrently \"vite\" \"npx convex dev\" --names \"vite,convex\" --prefix-colors \"cyan,yellow\"",
+    "start": "vite",
     "build": "vite build",
-    "serve": "vp preview",
-    "check": "vp check",
-    "fmt": "vp fmt",
-    "test": "vp test",
+    "serve": "vite preview",
     "clean": "rm -rf node_modules dist .vite",
     "convex:dev": "npx convex dev"
   },
@@ -39,6 +36,7 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
     "postcss": "^8.4.48",
     "rimraf": "^5.0.5",
     "rollup-plugin-visualizer": "^5.12.0",

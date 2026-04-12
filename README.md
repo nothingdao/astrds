@@ -16,8 +16,7 @@ Live at [astrds.ndao.computer](https://astrds.ndao.computer)
 
 ```bash
 pnpm install
-pnpm start          # Vite dev server (frontend only)
-pnpm convex:dev     # Convex dev server (run in parallel)
+pnpm dev       # runs Vite + Convex concurrently
 ```
 
 Required env vars in `.env.local`:
@@ -26,6 +25,8 @@ Required env vars in `.env.local`:
 VITE_CONVEX_URL=https://your-deployment.convex.cloud
 VITE_SOLANA_RPC_ENDPOINT=https://...
 ```
+
+`pnpm start` runs Vite only (no Convex) — useful if you're working on frontend-only changes.
 
 ## Token
 
