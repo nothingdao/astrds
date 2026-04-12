@@ -1,7 +1,6 @@
 import React, { memo, useCallback } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useStateMachine } from '@/stores/stateMachine'
-import { useEngineStore } from '@/stores/engineStore'
 import ScreenContainer from '@/components/common/ScreenContainer'
 import GameTitle from '@/components/common/GameTitle'
 import ActionButtons from '@/components/common/ActionButtons'
@@ -44,26 +43,6 @@ const TitleScreen: React.FC = () => {
     }
   }, [verifyWallet, handleQuarterInsert, selectedPaymentOption]);
 
-  const handleDirectStart = useCallback(async () => {
-    try {
-      // Reset engine state first
-      resetEngine()
-
-      // Override normal state transition rules for dev testing
-      useStateMachine.setState({
-        currentState: MachineState.PLAYING,
-        previousState: MachineState.INITIAL,
-        isTransitioning: false,
-        isPaused: false,
-        error: null,
-        transitionHistory: []
-      })
-
-    } catch (error) {
-      console.error('Failed to start game directly:', error)
-    }
-  }, [resetEngine])
-
   return (
     <ScreenContainer>
       <GameTitle />
@@ -73,12 +52,6 @@ const TitleScreen: React.FC = () => {
           disabled={!wallet.connected || isVerifying}
           loading={isVerifying}
         />
-        <p
-          className="text-xs text-gray-500 hover:text-gray-400 mt-2 cursor-pointer"
-          onClick={handleDirectStart}
-        >
-          Dev Direct Connect
-        </p>
       </ActionButtons>
 
       {!wallet.connected && (
