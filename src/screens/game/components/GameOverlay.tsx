@@ -1,6 +1,6 @@
 // src/screens/game/components/GameOverlay.tsx
 import React from 'react'
-import { useGameData } from '@/stores/gameStore'
+import { useGameData } from '@/stores/gameData'
 
 const GameOverlay = () => {
   const score = useGameData((state) => state.score)

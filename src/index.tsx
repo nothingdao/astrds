@@ -7,7 +7,7 @@ import App from './App'
 import './styles/style.css'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
-const container = document.getElementById('root')
+const container = document.getElementById('root')!
 const root = createRoot(container)
 
 root.render(

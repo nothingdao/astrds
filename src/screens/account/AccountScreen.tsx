@@ -12,8 +12,11 @@ import {
   Award,
   Coins,
 } from 'lucide-react'
-import { getHighScores } from '../../api/scores'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { getTokenBalances } from '@/utils/tokenBalances'
+
+const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
 
 const MetricCard = ({ icon: Icon, label, value, sublabel }) => (
   <div className='bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors group'>
@@ -64,18 +67,18 @@ const TokenBalance = ({ label, balance, symbol, address, loading }) => (
 
 const AccountScreen = ({ onClose }) => {
   const wallet = useWallet()
-  const [scores, setScores] = React.useState([])
+  const allScores = useQuery(api.scores.getScores) ?? []
   const [loading, setLoading] = React.useState(true)
-  const [tokenBalances, setTokenBalances] = React.useState({
+  const [scores, setScores] = React.useState<Array<{ score: number; walletAddress: string; date?: string }>>([])
+  const [tokenBalances, setTokenBalances] = React.useState<Record<string, number>>({
     SOL: 0,
-    '8a73Nvt2dAo67Mg5YnjhFNxqj4p1JpBuVGKnhvzbZDJP': 0, // $ASTRDS Devnet
-    TEROIDS: 420, // Hardcoded temporary value
+    [MINT_ADDRESS]: 0,
   })
   const [stats, setStats] = React.useState({
     totalGames: 0,
     averageScore: 0,
     bestScore: 0,
-    bestRank: null,
+    bestRank: null as number | null,
     accuracy: 0,
     totalPlayTime: 0,
     favoriteLevel: 1,
@@ -83,19 +86,16 @@ const AccountScreen = ({ onClose }) => {
 
   React.useEffect(() => {
     const loadStats = async () => {
-      if (!wallet.publicKey) return
+      if (!wallet.publicKey || allScores.length === 0) return
 
       try {
-        const allScores = await getHighScores()
         const walletAddress = wallet.publicKey.toString()
         const userScores = allScores.filter(
           (s) => s.walletAddress === walletAddress
         )
 
         // Load token balances
-        const balances = await getTokenBalances(walletAddress, [
-          '8a73Nvt2dAo67Mg5YnjhFNxqj4p1JpBuVGKnhvzbZDJP', // Your token
-        ])
+        const balances = await getTokenBalances(walletAddress, [MINT_ADDRESS])
         setTokenBalances(balances)
 
         if (userScores.length > 0) {
@@ -159,13 +159,9 @@ const AccountScreen = ({ onClose }) => {
                 />
                 <TokenBalance
                   label='ASTRDS Balance'
-                  balance={
-                    tokenBalances[
-                    '8a73Nvt2dAo67Mg5YnjhFNxqj4p1JpBuVGKnhvzbZDJP'
-                    ]
-                  }
-                  symbol='AST'
-                  address='8a73Nvt2dAo67Mg5YnjhFNxqj4p1JpBuVGKnhvzbZDJP'
+                  balance={tokenBalances[MINT_ADDRESS]}
+                  symbol='ASTRDS'
+                  address={MINT_ADDRESS}
                   loading={loading}
                 />
               </div>

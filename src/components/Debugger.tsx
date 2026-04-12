@@ -4,6 +4,7 @@ import { useStateMachine } from '@/stores/stateMachine';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { useEngineStore } from '@/stores/engineStore';
 import { useGameData } from '@/stores/gameData';
+import { useInventoryStore } from '@/stores/inventoryStore';
 import { Overlay } from '@/types/overlay';
 import { MachineState } from '@/types/machine';
 
@@ -13,7 +14,8 @@ const Debugger: React.FC = () => {
   const activeOverlay = useOverlayStore((state) => state.activeOverlay);
   const entities = useEngineStore((state) => state.entities);
   const isEngineInitialized = useEngineStore((state) => state.context !== null);
-  const { currentSessionId, sessionTokens } = useGameData();
+  const currentSessionId = useGameData((state) => state.currentSessionId);
+  const tokens = useInventoryStore((state) => state.items.tokens);
 
   return (
     <div className="fixed bottom-4 right-4 p-4 bg-black/75 text-white rounded-md z-50">
@@ -38,17 +40,8 @@ const Debugger: React.FC = () => {
           <strong>Session ID:</strong> {currentSessionId || 'None'}
         </div>
         <div>
-          <strong>Tokens Collected:</strong> {sessionTokens.length}
+          <strong>Tokens Collected:</strong> {tokens}
         </div>
-        {sessionTokens.length > 0 && (
-          <div className="text-xs mt-1">
-            {sessionTokens.map((token, i) => (
-              <div key={i} className="text-gray-300">
-                {token.symbol}: {token.amount} {token.verified ? '✓' : ''}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="mt-4 border-t border-white/20 pt-2">

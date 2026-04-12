@@ -1,29 +1,28 @@
 // src/components/chat/ChatBase.tsx
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { gameChannel } from '@/api/pusher'
-import { getChatMessages, postChatMessage } from '@/api/chat'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 
-const shortenAddress = (address) => {
+const shortenAddress = (address: string) => {
   if (!address || address === 'Anonymous') return 'Anonymous'
   return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
 export const useChatLogic = () => {
-  const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
-  const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(false)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 
-  const messagesEndRef = useRef(null)
-  const messagesContainerRef = useRef(null)
-  const pendingMessageRef = useRef(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const wallet = useWallet()
 
-  // Scroll logic
+  const messages = useQuery(api.chat.getMessages) ?? []
+  const sendMessage = useMutation(api.chat.sendMessage)
+
   const scrollToBottom = useCallback(
     (force = false) => {
       if (messagesEndRef.current && (shouldAutoScroll || force)) {
@@ -35,95 +34,29 @@ export const useChatLogic = () => {
     [shouldAutoScroll]
   )
 
-  // Message handling
-  const handleNewMessage = useCallback(
-    (message) => {
-      setMessages((prev) => {
-        const newMessages = [...prev, message].slice(-100)
-        return Array.from(
-          new Map(newMessages.map((msg) => [msg.id, msg])).values()
-        )
-      })
-
-      const container = messagesContainerRef.current
-      if (container) {
-        const { scrollTop, scrollHeight, clientHeight } = container
-        const distanceFromBottom = scrollHeight - (scrollTop + clientHeight)
-
-        if (message.walletAddress === wallet.publicKey?.toString()) {
-          setShouldAutoScroll(true)
-          scrollToBottom(true)
-        } else if (distanceFromBottom > 100) {
-          setUnreadMessages(true)
-        } else {
-          scrollToBottom()
-        }
-      }
-    },
-    [wallet.publicKey, scrollToBottom]
-  )
-
-  // Initialize chat
-  useEffect(() => {
-    let mounted = true
-
-    const loadInitialMessages = async () => {
-      try {
-        setError(null)
-        const data = await getChatMessages()
-        if (mounted) {
-          setMessages(data)
-          setLoading(false)
-          scrollToBottom(true)
-        }
-      } catch (err) {
-        console.error('Failed to load messages:', err)
-        if (mounted) {
-          setError('Failed to load messages. Please try again later.')
-          setLoading(false)
-        }
-      }
-    }
-
-    loadInitialMessages()
-    gameChannel?.bind('new-message', handleNewMessage)
-
-    return () => {
-      mounted = false
-      gameChannel?.unbind('new-message', handleNewMessage)
-    }
-  }, [handleNewMessage, scrollToBottom])
-
-  // Handle message submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !wallet.connected || sendingMessage) return
+    if (!newMessage.trim() || !wallet.connected || sendingMessage || !wallet.publicKey) return
 
     const messageText = newMessage.trim()
-    const tempId = Date.now().toString()
-    pendingMessageRef.current = tempId
-
     setNewMessage('')
     setSendingMessage(true)
     setShouldAutoScroll(true)
 
     try {
-      await postChatMessage(wallet.publicKey.toString(), messageText)
+      await sendMessage({ walletAddress: wallet.publicKey.toString(), message: messageText })
       setSendingMessage(false)
-      pendingMessageRef.current = null
-    } catch (error) {
-      console.error('Error sending message:', error)
+    } catch (err) {
+      console.error('Error sending message:', err)
       setError('Failed to send message. Please try again.')
       setNewMessage(messageText)
       setSendingMessage(false)
-      pendingMessageRef.current = null
     }
   }
 
   return {
     messages,
     newMessage,
-    loading,
     sendingMessage,
     error,
     unreadMessages,
@@ -138,32 +71,33 @@ export const useChatLogic = () => {
   }
 }
 
-// Common message components
 export const MessagesList = ({
   messages,
   messagesContainerRef,
   messagesEndRef,
+}: {
+  messages: Array<{ _id: string; walletAddress: string; message: string; timestamp: number }>
+  messagesContainerRef: React.RefObject<HTMLDivElement>
+  messagesEndRef: React.RefObject<HTMLDivElement>
 }) => (
-  <div className='space-y-4'>
+  <div className='space-y-4' ref={messagesContainerRef}>
     {messages.map((msg) => (
-      <Message
-        key={msg.id}
-        message={msg}
-      />
+      <Message key={msg._id} message={msg} />
     ))}
     <div ref={messagesEndRef} />
   </div>
 )
 
-export const Message = ({ message }) => {
+export const Message = ({
+  message,
+}: {
+  message: { _id: string; walletAddress: string; message: string; timestamp: number }
+}) => {
   const wallet = useWallet()
   const isOwnMessage = message.walletAddress === wallet.publicKey?.toString()
 
   return (
-    <div
-      className={`space-y-1 px-2 ${isOwnMessage ? 'opacity-100' : 'opacity-80'
-        }`}
-    >
+    <div className={`space-y-1 px-2 ${isOwnMessage ? 'opacity-100' : 'opacity-80'}`}>
       <div className='flex items-baseline gap-2'>
         <span className='text-game-blue font-bold flex items-center gap-1'>
           {shortenAddress(message.walletAddress)}
@@ -191,20 +125,21 @@ export const ChatInput = ({
   handleSubmit,
   sendingMessage,
   wallet,
+}: {
+  newMessage: string
+  setNewMessage: (v: string) => void
+  handleSubmit: (e: React.FormEvent) => void
+  sendingMessage: boolean
+  wallet: { connected: boolean }
 }) => (
-  <form
-    onSubmit={handleSubmit}
-    className='flex gap-2'
-  >
+  <form onSubmit={handleSubmit} className='flex gap-2'>
     <input
       type='text'
       value={newMessage}
       onChange={(e) => setNewMessage(e.target.value)}
-      placeholder={
-        wallet.connected ? 'Type a message...' : 'Connect wallet to chat'
-      }
+      placeholder={wallet.connected ? 'Type a message...' : 'Connect wallet to chat'}
       disabled={!wallet.connected || sendingMessage}
-      className='flex-1 bg-transparent border border-game-blue p-2 text-white 
+      className='flex-1 bg-transparent border border-game-blue p-2 text-white
                  placeholder:text-gray-500 focus:outline-none focus:border-white
                  disabled:opacity-50 disabled:cursor-not-allowed'
       maxLength={280}
@@ -212,7 +147,7 @@ export const ChatInput = ({
     <button
       type='submit'
       disabled={!wallet.connected || !newMessage.trim() || sendingMessage}
-      className='bg-game-blue text-black px-4 py-2 hover:bg-white 
+      className='bg-game-blue text-black px-4 py-2 hover:bg-white
                  transition-colors disabled:bg-gray-700 disabled:text-gray-500
                  min-w-[80px] flex items-center justify-center'
     >

@@ -1,7 +1,8 @@
 // src/screens/leaderboard/LeaderboardScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { getHighScores } from '../../api/scores';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import LeaderboardTable from './LeaderboardTable';
 import { useGameData } from '../../stores/gameData';
 import { LeaderboardScreenProps } from '@/types/components/leaderboard';
@@ -18,10 +19,9 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   const topScore = useGameData((state) => state.topScore);
   const selectMachineState = useStateMachine((state) => state.setState);
 
+  const highScores = useQuery(api.scores.getScores) ?? [];
+  const loading = highScores === undefined;
 
-  const [scores, setScores] = useState<Score[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [playerStats, setPlayerStats] = useState<{
     topScore: number;
     rank: number | null;
@@ -30,59 +30,24 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
     rank: null,
   });
 
-
-
   useEffect(() => {
-    const fetchScores = async () => {
-      try {
-        setLoading(true);
-        const highScores = await getHighScores();
+    if (!wallet.publicKey || highScores.length === 0) return;
 
-        if (!Array.isArray(highScores)) {
-          console.error('Invalid scores data:', highScores);
-          throw new Error('Invalid scores data received');
-        }
+    const walletAddress = wallet.publicKey.toString();
+    const playerScores = highScores.filter((s) => s.walletAddress === walletAddress);
 
-        setScores(highScores);
+    if (playerScores.length > 0) {
+      const bestScore = Math.max(...playerScores.map((s) => s.score));
+      const bestRank = highScores.findIndex(
+        (s) => s.walletAddress === walletAddress && s.score === bestScore
+      ) + 1;
 
-        if (wallet.publicKey) {
-          const walletAddress = wallet.publicKey.toString();
-          const playerScores = highScores.filter(
-            (s) => s.walletAddress === walletAddress
-          );
-
-          if (playerScores.length > 0) {
-            const bestScore = Math.max(...playerScores.map((s) => s.score));
-            const bestRank =
-              highScores.findIndex(
-                (s) =>
-                  s.walletAddress === walletAddress && s.score === bestScore
-              ) + 1;
-
-            setPlayerStats({
-              topScore: bestScore,
-              rank: bestRank > 0 ? bestRank : null,
-            });
-
-            if (bestScore > topScore) {
-              useGameStore.getState().updateScore(bestScore);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch scores:', err);
-        setError('Failed to load high scores');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchScores();
-  }, [wallet.publicKey, topScore]);
-
-  const handlePlayAgain = () => {
-    selectMachineState(MachineState.READY_TO_PLAY);
-  };
+      setPlayerStats({
+        topScore: bestScore,
+        rank: bestRank > 0 ? bestRank : null,
+      });
+    }
+  }, [wallet.publicKey, highScores]);
 
   const handleLocalPlayAgain = () => {
     if (onPlayAgain) {
@@ -97,21 +62,13 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
     const lastDigit = rank % 10;
     const lastTwoDigits = rank % 100;
     let suffix = 'th';
-
     if (lastTwoDigits < 11 || lastTwoDigits > 13) {
       switch (lastDigit) {
-        case 1:
-          suffix = 'st';
-          break;
-        case 2:
-          suffix = 'nd';
-          break;
-        case 3:
-          suffix = 'rd';
-          break;
+        case 1: suffix = 'st'; break;
+        case 2: suffix = 'nd'; break;
+        case 3: suffix = 'rd'; break;
       }
     }
-
     return `${rank}${suffix}`;
   };
 
@@ -168,25 +125,13 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
             <div className='bg-black/50 border border-white/10 rounded-lg p-6 max-h-[70vh] overflow-y-auto'>
               <h2 className='text-xl text-game-blue mb-4'>
                 Global Leaderboard{' '}
-                {scores.length > 0 && `(Top ${scores.length})`}
+                {highScores.length > 0 && `(Top ${highScores.length})`}
               </h2>
-              {error ? (
-                <div className='text-red-400 text-center py-4 bg-red-400/10 rounded border border-red-400/20'>
-                  {error}
-                  <button
-                    onClick={handleLocalPlayAgain}
-                    className='block mx-auto mt-2 text-sm text-red-400 hover:text-red-300'
-                  >
-                    Play Again
-                  </button>
-                </div>
-              ) : (
-                <LeaderboardTable
-                  scores={scores}
-                  loading={loading}
-                  playerWallet={wallet.publicKey?.toString()}
-                />
-              )}
+              <LeaderboardTable
+                scores={highScores as Score[]}
+                loading={loading}
+                playerWallet={wallet.publicKey?.toString()}
+              />
             </div>
           </div>
         </div>
