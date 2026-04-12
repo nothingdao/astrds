@@ -18,7 +18,7 @@ import { api } from '../../convex/_generated/api'
 const RECIPIENT_WALLET = new PublicKey(
   'AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE'
 )
-const TOKEN_MINT = new PublicKey('8a73Nvt2dAo67Mg5YnjhFNxqj4p1JpBuVGKnhvzbZDJP')
+const TOKEN_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const SOL_COST = 0.05
 const TOKEN_COST = 1000
 
