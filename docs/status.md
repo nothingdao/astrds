@@ -1,5 +1,5 @@
 ---
-status: complete
+status: current
 updated: 2026-04-11
 ---
 
@@ -12,28 +12,31 @@ updated: 2026-04-11
 - State machine with validated transitions across all five states
 - Screen flow: title → ready → game → gameover → leaderboard/account/tokenomics
 - Audio system with per-channel volume, keyboard shortcuts (M, 1-5)
-- Netlify Functions deployed: scores, game sessions, chat, token mint/burn
-- Real-time chat via Pusher
-- Top-10 leaderboard via Netlify Blobs
+- Convex backend: scores, game sessions, chat, token minting
+- Reactive chat via Convex (no Pusher)
+- Top-10 leaderboard via Convex
+- Token-2022 ASTRDS mint on devnet with native metadata
+- Token claim flow on game over screen (ASTRDSMinting component)
+- Deployed to astrds.ndao.computer via Netlify (static host only)
 
 ## Partial / Rough
 
-- Token minting — function exists and targets devnet Anchor program, but flow from game session → verified token count → mint is fragile (console.log-heavy, timing hacks with `setTimeout`)
-- Game session tracking — `postGame`/`updateGame`/`getGame` exists but session state not visibly surfaced in UI
-- Loading screen — progress bar wired to audio init only; `loadingProgress` state is never incremented (stuck at 0%)
-- `Debugger.tsx` — commented out in `App.tsx`
+- Auth flow — `verifyPayment` Convex action wired but untested end-to-end in production
+- Game session tracking — `gameSessions` create/update exists but session state not surfaced in HUD
+- Loading screen — progress bar wired to audio init only; stuck at 0%
+- AccountScreen — uses Convex scores reactively but `getTokenBalances` util is a stub
 
 ## Known Gaps
 
-- Local dev requires `netlify dev` for functions; plain `pnpm start` skips backend
-- `SITE_ID` must be set manually in env; not auto-injected in local context
 - No error boundary or user-facing error UI for failed score submission or mint
-- `burnTokens` function exists but no UI path triggers it
-- Chat messages not paginated; no persistence limit visible
+- Pre-existing TypeScript strict mode errors in game entities and UI components (implicit any)
+- Large bundle (~500KB+) — no code splitting yet
+- `eval` warning from a dependency in the build (rollup/rolldown flagged it)
 
-## Next
+## Next (game focus)
 
-- Refactoring pass (in progress)
-- Stabilize token mint/burn flow
-- Surface session state in game HUD or account screen
+- End-to-end test: wallet connect → insert quarter → play → game over → claim tokens
 - Fix loading progress indicator
+- Surface token count in game HUD
+- "Launch to space" token economy — send any SPL token to space wallet, spawns as collectible
+- Mainnet migration when economy design is settled

@@ -1,5 +1,5 @@
 ---
-status: complete
+status: current
 updated: 2026-04-11
 ---
 
@@ -7,21 +7,21 @@ updated: 2026-04-11
 
 ## Overview
 
-Solana Asteroids is a browser-based canvas game built with React/Vite. It integrates Solana wallet auth, an on-chain token (ASTRDS), real-time chat, and a serverless backend on Netlify.
+ASTRDS is a browser-based canvas game built with React/Vite. Players connect a Phantom wallet, pay to play via wallet signature, collect $ASTRDS tokens during gameplay, and claim them on game over via on-chain SPL mint. Backend runs entirely on Convex — reactive DB, serverless actions, real-time queries.
 
 ## Layers
 
 ### Frontend (src/)
 
-- **Game engine** — canvas-based, runs in `GameScreen.tsx`. Entity classes: `Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`. Systems: `BulletSystem`, `ParticleSystem`, `InventoryManager`.
+- **Game engine** — canvas-based, driven by `engineStore.ts`. Entity classes: `Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`. Systems: `ParticleSystem`, collision detection in engine store.
 - **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
-- **State** — 9 Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `walletStore`, `powerupStore`, `settingsPanelStore`.
-- **Blockchain** — Solana wallet-adapter (Phantom), `@coral-xyz/anchor` for the ASTRDS token program. Wallet connection handled in `usePhantom` hook; auth state in `authStore`.
-- **Chat** — Pusher-backed real-time chat. `ChatSystem.tsx` wraps `ChatBase`, `FullChat`, `OverlayChat`. Frontend service in `src/services/chat.ts`.
+- **State** — 9 Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`.
+- **Blockchain** — Solana wallet-adapter (Phantom). Auth via wallet signature verified server-side in Convex. Token minting via Convex action calling SPL `mintTo`.
+- **Chat** — Reactive via Convex `useQuery(api.chat.getMessages)`. No Pusher.
 
 ### State Machine
 
-Five states with validated transitions (enforced at runtime):
+Five states with validated transitions:
 
 ```
 INITIAL → READY_TO_PLAY → PLAYING ↔ PAUSED
@@ -29,39 +29,48 @@ INITIAL → READY_TO_PLAY → PLAYING ↔ PAUSED
                                GAME_OVER → READY_TO_PLAY | INITIAL
 ```
 
-### Backend (netlify/functions/)
+### Backend (convex/)
 
-Eight serverless functions, all returning JSON with CORS headers. Persistence via Netlify Blobs (`@netlify/blobs`).
+All backend logic runs in Convex. No Netlify Functions.
 
-| Function | Purpose |
+| File | Purpose |
 |---|---|
-| `getScores` / `postScore` | Top-10 leaderboard in `high-scores` blob store |
-| `getGame` / `postGame` / `updateGame` | Game session lifecycle in `game-sessions` blob store |
-| `mintTokens` / `burnTokens` | ASTRDS token minting/burning via Anchor program on devnet |
-| `getChatMessages` / `postChatMessage` | Chat persistence + Pusher broadcast |
+| `sessions.ts` | Verified wallet sessions (internalMutation + query) |
+| `verifyPayment.ts` | "use node" action — verifies Solana tx on-chain, creates session |
+| `scores.ts` | Top-10 leaderboard (getScores query, submitScore mutation) |
+| `gameSessions.ts` | Game session lifecycle (create, update, get) |
+| `chat.ts` | Reactive chat — last 100 messages, reactive via useQuery |
+| `tokens.ts` | "use node" action — SPL mintTo via authority keypair |
 
-Frontend calls functions via `/api/*` → `/.netlify/functions/:splat` (redirect in `netlify.toml`).
+### Token
+
+- Mint: `5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB`
+- Program: Token-2022 (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`)
+- Authority: `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF`
+- Metadata: name=ASTRDS, symbol=ASTRDS, URI=https://astrds.ndao.computer/token.json
+- 9 decimals, 1 token collected in-game = 1 $ASTRDS minted
 
 ## Data Flow (typical game)
 
 1. Wallet connects → `authStore` updates → title screen unlocks
-2. "Insert Quarter" wallet signature → `INITIAL → READY_TO_PLAY`
-3. Game start → `postGame` creates session → `READY_TO_PLAY → PLAYING`
-4. Gameplay → score increments in `gameData` store; tokens earned logged to session via `updateGame`
-5. Death → `PLAYING → GAME_OVER` → `postScore` submits to leaderboard; `mintTokens` called if tokens earned
-6. Leaderboard/account screens pull from blob store and on-chain token balance
+2. "Insert Quarter" → wallet signs tx → `verifyPayment` action verifies on-chain → session stored in Convex → `INITIAL → READY_TO_PLAY`
+3. Game starts → `gameSessions.create` → `READY_TO_PLAY → PLAYING`
+4. Gameplay → score increments in `gameData`; tokens collected increment `inventoryStore`
+5. Death → `PLAYING → GAME_OVER` → `endGameSession` submits score; `ASTRDSMinting` component lets player claim tokens
+6. Claim → `mintTokens` Convex action calls SPL `mintTo` → tokens land in player wallet
 
 ## Key Config
 
-- `netlify.toml` — build, function bundler (esbuild), `/api/*` redirect, Node 18
-- `vite.config.js` — Vite/React build
-- `VITE_SOLANA_RPC_ENDPOINT` — Solana RPC (mainnet-beta adapter configured, devnet used for tokens)
-- `BLOB_READ_WRITE_TOKEN`, `SITE_ID` — Netlify Blobs access
-- `PROGRAM_AUTHORITY_PRIVATE_KEY` — Anchor program authority for minting
+- `netlify.toml` — static build only, no functions
+- `vite.config.ts` — Vite/React build
+- `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages
+- `VITE_CONVEX_URL` — Convex deployment URL (frontend)
+- `PROGRAM_AUTHORITY_PRIVATE_KEY` — SPL mint authority keypair (Convex env, not frontend)
+- `VITE_SOLANA_RPC_ENDPOINT` — Solana RPC
 
 ## Out of Scope (currently)
 
 - Mobile controls
-- Global leaderboard beyond top-10
-- Mainnet token deployment
+- Mainnet deployment
+- "Launch to space" token economy (designed, not built)
 - Achievement system
