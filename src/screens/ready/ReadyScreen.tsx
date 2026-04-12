@@ -9,6 +9,7 @@ import { useGameData } from '@/stores/gameData' // Add this
 import { SOUND_TYPES, MUSIC_TRACKS } from '../../services/audio/AudioTypes'
 import ScreenContainer from '@/components/common/ScreenContainer'
 import GameTitle from '@/components/common/GameTitle'
+import { Button } from '@/components/ui/button'
 import { MachineState } from '@/types/machine'
 
 const QUARTER_INSERT_DURATION = 1200
@@ -117,12 +118,9 @@ const ReadyScreen: React.FC = () => {
           <GameTitle />
           <div className='text-game-red text-xl mb-6'>Failed to start game</div>
           <p className='text-gray-400 mb-4'>{verificationError}</p>
-          <button
-            onClick={handleReturnToTitle}
-            className='text-game-blue hover:text-white transition-colors'
-          >
+          <Button variant='link' onClick={handleReturnToTitle}>
             Return to Title
-          </button>
+          </Button>
         </div>
       </ScreenContainer>
     )

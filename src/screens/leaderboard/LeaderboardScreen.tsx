@@ -9,6 +9,7 @@ import { LeaderboardScreenProps } from '@/types/components/leaderboard';
 import { Score } from '@/types/core';
 import { useStateMachine } from '@/stores/stateMachine';
 import { MachineState } from '@/types/machine'
+import { Separator } from '@/components/ui/separator'
 
 const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   isOverlay = false,

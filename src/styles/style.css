@@ -9,8 +9,8 @@
 
 @layer base {
   body {
-    @apply font-arcade overflow-hidden m-0 p-0 bg-background text-foreground;
-        font-family: 'JetBrains Mono', monospace;
+    @apply overflow-hidden m-0 p-0 bg-black text-white;
+    font-family: 'JetBrains Mono', monospace;
   }
   .theme {
     --font-heading: var(--font-sans);
@@ -39,10 +39,7 @@
     --radius: 0rem;             /* sharp edges — arcade */
   }
   * {
-    @apply border-border outline-ring/50;
-  }
-  html {
-    @apply font-sans;
+    border-color: var(--border);
   }
 }
 

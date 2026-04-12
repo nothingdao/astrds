@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
   const { publicKey } = useWallet()
@@ -18,10 +20,7 @@ const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
     if (!publicKey) return
     setStatus({ loading: true, error: null, signature: null })
     try {
-      const result = await mintTokens({
-        playerPublicKey: publicKey.toString(),
-        tokenCount,
-      })
+      const result = await mintTokens({ playerPublicKey: publicKey.toString(), tokenCount })
       setStatus({ loading: false, error: null, signature: result.signature })
     } catch (err) {
       setStatus({
@@ -33,19 +32,20 @@ const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
   }
 
   return (
-    <div className='mb-8 space-y-4'>
-      <div className='text-lg'>
-        <span className='text-game-blue'>Tokens collected:</span> {tokenCount} $ASTRD
+    <div className='space-y-4'>
+      <div className='flex items-center justify-center gap-3'>
+        <span className='text-gray-400 text-sm'>Tokens collected</span>
+        <Badge className='bg-game-blue/10 text-game-blue border-game-blue/40 font-mono text-base px-3 py-1'>
+          {tokenCount} $ASTRDS
+        </Badge>
       </div>
 
-      <button
+      <Button
+        variant={status.signature ? 'ghost' : 'quarter'}
+        size='lg'
         onClick={handleClaim}
         disabled={status.loading || !publicKey || !!status.signature}
-        className={`w-full px-4 py-2 bg-game-blue text-black
-          ${status.loading || !publicKey || status.signature
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:bg-white'
-          }`}
+        className='w-full'
       >
         {!publicKey
           ? 'Connect wallet to claim'
@@ -53,24 +53,22 @@ const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
             ? 'Minting...'
             : status.signature
               ? 'Claimed!'
-              : `Claim ${tokenCount} $ASTRD`}
-      </button>
+              : `Claim ${tokenCount} $ASTRDS`}
+      </Button>
 
       {status.error && (
-        <div className='text-red-500 text-sm'>{status.error}</div>
+        <p className='text-game-red text-sm text-center'>{status.error}</p>
       )}
 
       {status.signature && (
-        <div className='text-green-500 text-sm'>
-          <a
-            href={`https://explorer.solana.com/tx/${status.signature}?cluster=devnet`}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-game-blue hover:underline'
-          >
-            View on Solana Explorer
-          </a>
-        </div>
+        <a
+          href={`https://explorer.solana.com/tx/${status.signature}?cluster=devnet`}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='block text-center text-xs text-game-blue hover:underline'
+        >
+          View on Solana Explorer ⇗
+        </a>
       )}
     </div>
   )

@@ -15,6 +15,7 @@ import {
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { getTokenBalances } from '@/utils/tokenBalances'
+import { Button } from '@/components/ui/button'
 
 const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
 
@@ -327,12 +328,14 @@ const AccountScreen = ({ onClose }) => {
         </div>
 
         {/* Close Button */}
-        <button
+        <Button
+          variant='ghost'
+          size='icon'
           onClick={onClose}
-          className='fixed top-4 right-4 text-gray-400 hover:text-white transition-colors'
+          className='fixed top-4 right-4'
         >
-          <span className='text-2xl'>✕</span>
-        </button>
+          ✕
+        </Button>
       </div>
     </div>
   )

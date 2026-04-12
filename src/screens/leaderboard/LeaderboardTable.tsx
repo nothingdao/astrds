@@ -1,163 +1,124 @@
 // src/screens/leaderboard/LeaderboardTable.tsx
 import React from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+
+type Score = {
+  walletAddress: string
+  score: number
+  date?: string
+}
 
 type LeaderboardTableProps = {
-  scores: any[];
-  loading: boolean;
-  playerWallet?: string; // Add this line to include playerWallet
-};
+  scores: Score[]
+  loading: boolean
+  playerWallet?: string
+}
+
+const shortenAddress = (address: string) => {
+  if (!address || address === 'Anonymous') return 'Anonymous'
+  return `${address.slice(0, 4)}...${address.slice(-4)}`
+}
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '—'
+  return new Date(dateString).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+const RANK_BADGES: Record<number, { label: string; className: string }> = {
+  0: { label: '1st', className: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/40' },
+  1: { label: '2nd', className: 'bg-gray-300/10 text-gray-300 border-gray-300/40' },
+  2: { label: '3rd', className: 'bg-orange-400/10 text-orange-400 border-orange-400/40' },
+}
 
 const LoadingSkeleton = () => (
-  <div className='animate-pulse space-y-4'>
-    {/* Top 3 Skeleton */}
-    {[...Array(3)].map((_, i) => (
-      <div
-        key={`top-${i}`}
-        className='grid grid-cols-4 gap-4 px-4 py-3 rounded bg-white/5'
-      >
-        <div className='h-6 bg-white/10 rounded' />
-        <div className='h-6 bg-white/10 rounded' />
-        <div className='h-6 bg-white/10 rounded' />
-        <div className='h-6 bg-white/10 rounded' />
+  <div className='animate-pulse space-y-3'>
+    {[...Array(6)].map((_, i) => (
+      <div key={i} className='grid grid-cols-4 gap-4 px-4 py-3 bg-white/5'>
+        <div className='h-5 bg-white/10' />
+        <div className='h-5 bg-white/10' />
+        <div className='h-5 bg-white/10' />
+        <div className='h-5 bg-white/10' />
       </div>
     ))}
-
-    {/* Divider Skeleton */}
-    <div className='h-px bg-white/10' />
-
-    {/* Remaining Scores Skeleton */}
-    <div className='h-48 space-y-2'>
-      {[...Array(3)].map((_, i) => (
-        <div
-          key={`rest-${i}`}
-          className='grid grid-cols-4 gap-4 px-4 py-2 rounded bg-white/5'
-        >
-          <div className='h-6 bg-white/10 rounded' />
-          <div className='h-6 bg-white/10 rounded' />
-          <div className='h-6 bg-white/10 rounded' />
-          <div className='h-6 bg-white/10 rounded' />
-        </div>
-      ))}
-    </div>
   </div>
 )
 
-const ScoreRow = ({ score, index, isCurrentUser }) => {
-  const shortenAddress = (address) => {
-    if (!address || address === 'Anonymous') return 'Anonymous'
-    return `${address.slice(0, 4)}...${address.slice(-4)}`
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
-
-  const getRankEmoji = (index) => {
-    switch (index) {
-      case 0:
-        return '🥇'
-      case 1:
-        return '🥈'
-      case 2:
-        return '🥉'
-      default:
-        return index + 1
-    }
-  }
+const ScoreRow = ({ score, index, isCurrentUser }: { score: Score; index: number; isCurrentUser: boolean }) => {
+  const rankBadge = RANK_BADGES[index]
 
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-4 gap-4 px-4 py-2 rounded
-        ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-gray-300'}
-        ${index < 3 ? 'text-lg font-bold py-3' : ''}
-        hover:bg-white/5 transition-colors`}
+      className={`grid grid-cols-4 gap-4 px-4 py-2 transition-colors
+        ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-gray-300 hover:bg-white/5'}
+        ${index < 3 ? 'py-3' : ''}`}
     >
-      <div className='flex items-center'>{getRankEmoji(index)}</div>
-
-      <div className='flex items-center space-x-2'>
-        <span>{shortenAddress(score.walletAddress)}</span>
+      <div className='flex items-center'>
+        {rankBadge ? (
+          <Badge className={rankBadge.className}>{rankBadge.label}</Badge>
+        ) : (
+          <span className='text-gray-500 text-sm'>#{index + 1}</span>
+        )}
+      </div>
+      <div className='flex items-center gap-2'>
+        <span className='font-mono text-sm'>{shortenAddress(score.walletAddress)}</span>
         <a
           href={`https://solscan.io/account/${score.walletAddress}`}
           target='_blank'
           rel='noopener noreferrer'
-          title='View on Solscan'
-          className='text-gray-400 hover:text-white transition-colors'
+          className='text-gray-500 hover:text-white transition-colors text-xs'
         >
           ⇗
         </a>
       </div>
-
       <div className='text-right font-mono'>{score.score.toLocaleString()}</div>
-
-      <div className='text-right text-sm text-gray-400'>
-        {formatDate(score.date)}
-      </div>
+      <div className='text-right text-xs text-gray-500'>{formatDate(score.date)}</div>
     </div>
   )
 }
+
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading, playerWallet }) => {
   const wallet = useWallet()
+  const isCurrentUser = (address: string) => wallet.publicKey?.toString() === address
 
-  const isCurrentUser = (scoreAddress) =>
-    wallet.publicKey?.toString() === scoreAddress
+  if (loading) return <LoadingSkeleton />
 
-  if (loading) {
-    return <LoadingSkeleton />
+  if (scores.length === 0) {
+    return <div className='text-center text-gray-500 py-8'>No scores yet — be the first!</div>
   }
 
   const topThree = scores.slice(0, 3)
-  const remainingScores = scores.slice(3)
+  const rest = scores.slice(3)
 
   return (
-    <div className='space-y-4'>
-      {/* Table Header */}
-      <div className='grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-400 px-4'>
+    <div className='space-y-2'>
+      <div className='grid grid-cols-4 gap-4 px-4 py-2 text-xs text-gray-500 uppercase tracking-wider'>
         <div>Rank</div>
         <div>Player</div>
         <div className='text-right'>Score</div>
         <div className='text-right'>Date</div>
       </div>
 
-      {/* Top 3 Podium */}
-      <div className='space-y-2'>
-        {topThree.map((score, index) => (
-          <ScoreRow
-            key={`${score.walletAddress}-${score.date}`}
-            score={score}
-            index={index}
-            isCurrentUser={isCurrentUser(score.walletAddress)}
-          />
+      <div className='space-y-1'>
+        {topThree.map((score, i) => (
+          <ScoreRow key={`${score.walletAddress}-${i}`} score={score} index={i} isCurrentUser={isCurrentUser(score.walletAddress)} />
         ))}
       </div>
 
-      {/* Divider */}
-      {remainingScores.length > 0 && <div className='h-px bg-white/10 my-4' />}
+      {rest.length > 0 && <Separator className='bg-white/10 my-2' />}
 
-      {/* Remaining Scores (Scrollable) */}
-      {remainingScores.length > 0 ? (
-        <div className='max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-game-blue scrollbar-track-white/5'>
-          <div className='space-y-1'>
-            {remainingScores.map((score, index) => (
-              <ScoreRow
-                key={`${score.walletAddress}-${score.date}`}
-                score={score}
-                index={index + 3}
-                isCurrentUser={isCurrentUser(score.walletAddress)}
-              />
-            ))}
-          </div>
+      {rest.length > 0 && (
+        <div className='max-h-48 overflow-y-auto space-y-1'>
+          {rest.map((score, i) => (
+            <ScoreRow key={`${score.walletAddress}-${i + 3}`} score={score} index={i + 3} isCurrentUser={isCurrentUser(score.walletAddress)} />
+          ))}
         </div>
-      ) : scores.length === 0 ? (
-        <div className='text-center text-gray-400 py-8'>
-          No scores yet - be the first!
-        </div>
-      ) : null}
+      )}
     </div>
   )
 }
