@@ -14,7 +14,6 @@ const TitleScreen: React.FC = () => {
   const [isPaymentModalVisible, setIsPaymentModalVisible] = React.useState(false)
   const [selectedPaymentOption, setSelectedPaymentOption] = React.useState(null)
   const { isVerifying, error, verifyWallet } = useAuth()
-  const resetEngine = useEngineStore((state) => state.resetEngine)
   const gameState = useStateMachine()
 
   const handleQuarterInsert = useCallback(async () => {
