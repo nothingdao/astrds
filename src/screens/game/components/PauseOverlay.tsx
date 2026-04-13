@@ -5,7 +5,7 @@ import { PauseOverlayProps } from '@/types/components/overlays'
 import VolumeControl from '@/components/sound/VolumeControl'
 
 const DEFAULT_SHORTCUTS = [
-  { key: '[ESC] or [P]', action: 'Pause Game' },
+  { key: '[ESC] or [P]', action: 'Pause / Resume' },
   { key: '[WASD] or [←↑↓→]', action: 'Move Ship' },
   { key: '[SPACE]', action: 'Fire Weapons' },
   { key: '[C]', action: 'Toggle Chat' },
@@ -18,13 +18,8 @@ const PauseOverlay: React.FC<PauseOverlayProps> = ({
   isVisible = true
 }) => {
   const isPaused = useStateMachine(selectIsPaused)
-  const setPause = useStateMachine(state => state.setPause)
 
   if (!isPaused || !isVisible) return null
-
-  const handleResume = () => {
-    setPause(false)
-  }
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center'>
@@ -55,12 +50,6 @@ const PauseOverlay: React.FC<PauseOverlayProps> = ({
           <VolumeControl />
         </div>
 
-        <button
-          onClick={handleResume}
-          className='px-6 py-3 bg-game-blue text-black hover:bg-white transition-colors'
-        >
-          Resume Game
-        </button>
       </div>
     </div>
   )

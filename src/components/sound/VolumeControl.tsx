@@ -1,81 +1,75 @@
 // src/components/sound/VolumeControl.tsx
-import React from 'react'
-import { Volume2, Volume1, VolumeX, Settings } from 'lucide-react'
+import React, { useRef } from 'react'
 import { useAudio } from '@/hooks/useAudio'
-import { useSettingsPanelStore } from '@/stores/settingsPanelStore'
+
+const BLOCKS = [1, 2, 3, 4, 5]
+
+const BLOCK_COLORS = [
+  'bg-green-400',
+  'bg-green-400',
+  'bg-yellow-400',
+  'bg-orange-400',
+  'bg-red-400',
+]
 
 const VolumeControl = () => {
-  const {
-    volumes,
-    setVolume,
-    currentMusic, // New from audio service
-  } = useAudio()
+  const { volumes, setVolume } = useAudio()
+  const savedMusicVolume = useRef(volumes.music > 0 ? volumes.music : 0.5)
 
-  const toggleSettingsPanel = useSettingsPanelStore((state) => state.toggle)
+  // Which block is active: ceil(master * 5), so 0.2→1, 0.4→2 … 1.0→5
+  const activeBlocks = Math.round(volumes.master * 5)
+  const musicOn = volumes.music > 0
 
-  // We need to maintain the mute state differently since it's managed differently
-  // in the new audio system (through volume rather than a separate flag)
-  const isMuted = volumes.master === 0
-
-  // Helper to get appropriate volume icon
-  const getVolumeIcon = () => {
-    if (isMuted || volumes.master === 0) return VolumeX
-    if (volumes.master < 0.5) return Volume1
-    return Volume2
+  const handleBlockClick = (n: number) => {
+    setVolume('master', n / 5)
   }
 
-  const VolumeIcon = getVolumeIcon()
-
-  const handleMute = () => {
-    setVolume('master', isMuted ? 0.5 : 0) // Toggle between muted and mid volume
-  }
-
-  const handleVolumeChange = (value) => {
-    setVolume('master', value)
+  const handleMusicToggle = () => {
+    if (musicOn) {
+      savedMusicVolume.current = volumes.music
+      setVolume('music', 0)
+    } else {
+      setVolume('music', savedMusicVolume.current)
+    }
   }
 
   return (
-    <div className='flex items-center gap-4'>
-      <button
-        onClick={handleMute}
-        className='text-game-blue hover:text-white transition-colors'
-        title={isMuted ? 'Unmute' : 'Mute'}
-      >
-        <VolumeIcon size={20} />
-      </button>
-
-      <div className='w-24 flex items-center'>
-        <input
-          type='range'
-          min='0'
-          max='1'
-          step='0.01'
-          value={volumes.master}
-          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-          className='w-full h-1 bg-game-blue/30 rounded-lg appearance-none 
-                   cursor-pointer opacity-70 hover:opacity-100 transition-opacity
-                   [&::-webkit-slider-thumb]:appearance-none
-                   [&::-webkit-slider-thumb]:w-3
-                   [&::-webkit-slider-thumb]:h-3
-                   [&::-webkit-slider-thumb]:bg-game-blue
-                   [&::-webkit-slider-thumb]:rounded-full
-                   [&::-webkit-slider-thumb]:hover:bg-white
-                   [&::-webkit-slider-thumb]:transition-colors'
-        />
+    <div className='space-y-3 font-mono text-xs'>
+      {/* Master volume */}
+      <div className='flex items-center gap-3'>
+        <span className='text-white/40 w-8'>VOL</span>
+        <div className='flex gap-1'>
+          {BLOCKS.map((n) => (
+            <button
+              key={n}
+              onClick={() => handleBlockClick(n)}
+              className={`w-6 h-4 border transition-colors ${
+                n <= activeBlocks
+                  ? `${BLOCK_COLORS[n - 1]} border-transparent`
+                  : 'bg-white/10 border-white/20 hover:bg-white/20'
+              }`}
+              title={`Volume ${n * 20}%`}
+            />
+          ))}
+        </div>
+        <span className='text-white/30'>[1–5]</span>
       </div>
 
-      <button
-        onClick={toggleSettingsPanel}
-        className='text-game-blue hover:text-white transition-colors'
-        title='Sound Settings'
-      >
-        <Settings size={20} />
-      </button>
-
-      {/* Optional: Display current music track for debugging */}
-      {currentMusic && (
-        <div className='text-xs text-white/50'>Now Playing: {currentMusic}</div>
-      )}
+      {/* Music toggle */}
+      <div className='flex items-center gap-3'>
+        <span className='text-white/40 w-8'>MUS</span>
+        <button
+          onClick={handleMusicToggle}
+          className={`px-3 h-4 border text-xs transition-colors leading-none ${
+            musicOn
+              ? 'bg-game-blue/80 border-game-blue text-black'
+              : 'bg-white/10 border-white/20 text-white/40 hover:bg-white/20'
+          }`}
+        >
+          {musicOn ? 'ON' : 'OFF'}
+        </button>
+        <span className='text-white/30'>[M]</span>
+      </div>
     </div>
   )
 }
