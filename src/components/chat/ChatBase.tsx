@@ -102,7 +102,7 @@ export const Message = ({
         <span className='text-game-blue font-bold flex items-center gap-1'>
           {shortenAddress(message.walletAddress)}
           <a
-            href={`https://solscan.io/account/${message.walletAddress}`}
+            href={`https://orbmarkets.io/address/${message.walletAddress}`}
             target='_blank'
             rel='noopener noreferrer'
             className='text-gray-200 hover:text-white transition-colors text-3xl mb-5 ml-2 mr-4'

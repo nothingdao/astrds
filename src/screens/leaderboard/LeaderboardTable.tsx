@@ -81,7 +81,7 @@ const ScoreRow = ({
         <AvatarDisplay url={avatarUrl} address={score.walletAddress} size={22} />
         <span className='font-mono text-sm'>{shortenAddress(score.walletAddress)}</span>
         <a
-          href={`https://solscan.io/account/${score.walletAddress}?cluster=devnet`}
+          href={`https://orbmarkets.io/address/${score.walletAddress}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
           className='text-gray-500 hover:text-white transition-colors text-xs'

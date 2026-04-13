@@ -56,7 +56,7 @@ const TokenBalance = ({ label, balance, symbol, address, loading, icon = null })
       </div>
       {address && (
         <a
-          href={`https://solscan.io/token/${address}?cluster=devnet`}
+          href={`https://orbmarkets.io/address/${address}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
           className='text-gray-400 hover:text-white transition-colors shrink-0'
@@ -329,7 +329,7 @@ const AccountScreen = ({ onClose }) => {
                       {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
                     </span>
                     <a
-                      href={`https://solscan.io/account/${walletAddress}?cluster=devnet`}
+                      href={`https://orbmarkets.io/address/${walletAddress}?cluster=devnet`}
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-gray-400 hover:text-white transition-colors'

@@ -62,7 +62,7 @@ const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
 
       {status.signature && (
         <a
-          href={`https://explorer.solana.com/tx/${status.signature}?cluster=devnet`}
+          href={`https://orbmarkets.io/tx/${status.signature}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
           className='block text-center text-xs text-game-blue hover:underline'

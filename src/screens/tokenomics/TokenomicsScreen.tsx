@@ -81,7 +81,7 @@ const TokenomicsScreen = ({ onClose }) => {
                   title='Total Supply'
                   value={loading ? '...' : `${stats.totalSupply.toLocaleString()} $ASTRD`}
                   subtext='Tokens are minted through gameplay'
-                  link={`https://solscan.io/token/${MINT_ADDRESS.toString()}`}
+                  link={`https://orbmarkets.io/address/${MINT_ADDRESS.toString()}`}
                 />
                 <StatCard
                   icon={Users}
@@ -94,7 +94,7 @@ const TokenomicsScreen = ({ onClose }) => {
                   title='Game Treasury'
                   value={loading ? '...' : `${stats.treasuryBalance.toLocaleString()} SOL`}
                   subtext='Balance from game fees'
-                  link={`https://solscan.io/account/${GAME_TREASURY.toString()}`}
+                  link={`https://orbmarkets.io/address/${GAME_TREASURY.toString()}`}
                 />
               </div>
             </div>
@@ -131,7 +131,7 @@ const TokenomicsScreen = ({ onClose }) => {
                   <div>
                     <div className='text-gray-400 mb-1'>Token Address:</div>
                     <a
-                      href={`https://solscan.io/token/${MINT_ADDRESS.toString()}`}
+                      href={`https://orbmarkets.io/address/${MINT_ADDRESS.toString()}`}
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-game-blue hover:text-white transition-colors break-all'
@@ -142,7 +142,7 @@ const TokenomicsScreen = ({ onClose }) => {
                   <div>
                     <div className='text-gray-400 mb-1'>Treasury Address:</div>
                     <a
-                      href={`https://solscan.io/account/${GAME_TREASURY.toString()}`}
+                      href={`https://orbmarkets.io/address/${GAME_TREASURY.toString()}`}
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-game-blue hover:text-white transition-colors break-all'

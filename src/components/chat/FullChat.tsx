@@ -150,7 +150,7 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
                             {shortenAddress(msg.walletAddress)}
                           </span>
                           <a
-                            href={`https://solscan.io/account/${msg.walletAddress}`}
+                            href={`https://orbmarkets.io/address/${msg.walletAddress}`}
                             target='_blank'
                             rel='noopener noreferrer'
                             className='text-gray-500 hover:text-white transition-colors text-xs'
