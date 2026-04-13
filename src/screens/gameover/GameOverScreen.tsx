@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import GameTitle from '@/components/common/GameTitle'
 import { useInventoryStore } from '@/stores/inventoryStore'
 import ASTRDSMinting from '@/components/tokens/ASTRDSMinting'
+import SpaceTokenClaim from './SpaceTokenClaim'
 import { MachineState } from '@/types/machine'
 
 const GameOverScreen: React.FC = () => {
@@ -46,6 +47,7 @@ const GameOverScreen: React.FC = () => {
             <Separator className='bg-white/10' />
 
             <ASTRDSMinting tokenCount={tokens} />
+            <SpaceTokenClaim />
 
             {lastGameStats?.isHighScore && (
               <Badge className='bg-yellow-400/10 text-yellow-400 border-yellow-400/50 text-sm px-4 py-1 animate-pulse'>

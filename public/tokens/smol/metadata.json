@@ -1,0 +1,7 @@
+{
+  "name": "Smol Brain",
+  "symbol": "SMOL",
+  "description": "Big brain not required. Ape first, read the whitepaper never. The token is smol but the dreams are big.",
+  "image": "https://astrds.ndao.computer/tokens/smol/logo.svg",
+  "attributes": [{ "trait_type": "Brain Size", "value": "Smol" }]
+}

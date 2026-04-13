@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#0f172a"/>
+  <circle cx="100" cy="100" r="80" fill="#1e293b"/>
+  <!-- Brain outline (two hemispheres) -->
+  <ellipse cx="87" cy="95" rx="30" ry="35" fill="#a78bfa" stroke="#7c3aed" stroke-width="2"/>
+  <ellipse cx="113" cy="95" rx="30" ry="35" fill="#a78bfa" stroke="#7c3aed" stroke-width="2"/>
+  <!-- Brain divider -->
+  <line x1="100" y1="62" x2="100" y2="128" stroke="#7c3aed" stroke-width="2"/>
+  <!-- Brain folds left -->
+  <path d="M72 82 Q80 78 78 90" stroke="#7c3aed" stroke-width="1.5" fill="none"/>
+  <path d="M70 100 Q78 96 76 108" stroke="#7c3aed" stroke-width="1.5" fill="none"/>
+  <!-- Brain folds right -->
+  <path d="M128 82 Q120 78 122 90" stroke="#7c3aed" stroke-width="1.5" fill="none"/>
+  <path d="M130 100 Q122 96 124 108" stroke="#7c3aed" stroke-width="1.5" fill="none"/>
+  <!-- Galaxy glow rays emanating from brain -->
+  <line x1="100" y1="55" x2="100" y2="40" stroke="#c4b5fd" stroke-width="1.5" opacity="0.7"/>
+  <line x1="120" y1="62" x2="133" y2="52" stroke="#c4b5fd" stroke-width="1.5" opacity="0.7"/>
+  <line x1="80" y1="62" x2="67" y2="52" stroke="#c4b5fd" stroke-width="1.5" opacity="0.7"/>
+  <line x1="130" y1="80" x2="148" y2="75" stroke="#c4b5fd" stroke-width="1.5" opacity="0.5"/>
+  <line x1="70" y1="80" x2="52" y2="75" stroke="#c4b5fd" stroke-width="1.5" opacity="0.5"/>
+  <!-- Stars -->
+  <circle cx="100" cy="36" r="2.5" fill="#e879f9"/>
+  <circle cx="136" cy="49" r="2" fill="#22d3ee"/>
+  <circle cx="64" cy="49" r="2" fill="#22d3ee"/>
+  <circle cx="150" cy="72" r="1.5" fill="#fbbf24"/>
+  <circle cx="50" cy="72" r="1.5" fill="#fbbf24"/>
+  <text x="100" y="178" font-family="monospace" font-size="13" font-weight="bold" fill="#c4b5fd" text-anchor="middle">GBRAIN</text>
+</svg>

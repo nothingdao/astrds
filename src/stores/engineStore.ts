@@ -22,6 +22,7 @@ import { useInventoryStore } from './inventoryStore'
 import { useGameData } from './gameData'
 import { audioService } from '@/services/audio/AudioService'
 import { useLevelStore } from './levelStore'
+import { useSpaceTokenStore } from './spaceTokenStore'
 
 const INITIAL_STATE: EngineStoreState = {
   entities: {
@@ -139,7 +140,14 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     // Ship-Token collisions
     tokens.forEach((token) => {
       if (state.checkCollision(currentShip, token)) {
-        useInventoryStore.getState().addItem('tokens', 1)
+        if (token.type === 'space' && token.metadata.mintAddress) {
+          // Space token — look up the deposit and record collection
+          const pools = useSpaceTokenStore.getState().activePools
+          const deposit = pools.find((p) => p.mintAddress === token.metadata.mintAddress)
+          if (deposit) useSpaceTokenStore.getState().recordCollection(deposit)
+        } else {
+          useInventoryStore.getState().addItem('tokens', 1)
+        }
         token.destroy()
         audioService.playSound('collect')
       }
@@ -374,10 +382,40 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
 
     if (now - state.lastTokenSpawn > state.tokenSpawnDelay) {
       try {
-        const token = new Token({
-          screen: state.screen,
-          type: 'standard',
-        })
+        const level = useLevelStore.getState().level
+        const spaceStore = useSpaceTokenStore.getState()
+        const eligiblePools = spaceStore.activePools.filter(
+          (p) =>
+            p.status === 'active' &&
+            p.minLevel <= level &&
+            p.maxLevel >= level &&
+            p.remainingAmount >= p.tokensPerPill
+        )
+
+        // 25% chance to spawn a space token if any eligible pools exist
+        const spawnSpace = eligiblePools.length > 0 && Math.random() < 0.25
+
+        let token: Token
+        if (spawnSpace) {
+          const deposit = eligiblePools[Math.floor(Math.random() * eligiblePools.length)]
+          token = new Token({
+            screen: state.screen,
+            type: 'space',
+            color: '#a855f7', // purple for space tokens
+            metadata: {
+              symbol: deposit.symbol,
+              value: deposit.tokensPerPill,
+              mineable: true,
+              mintAddress: deposit.mintAddress,
+            },
+          })
+        } else {
+          token = new Token({
+            screen: state.screen,
+            type: 'standard',
+          })
+        }
+
         state.addEntity(token, 'tokens')
         set({ lastTokenSpawn: now })
       } catch (error) {

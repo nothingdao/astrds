@@ -67,7 +67,7 @@ export default class Token implements TokenState, TokenMethods {
     this.type = args.type || 'standard'
     this.timeToLive = 15 * 1000 // 15 seconds lifetime
     this.creation = Date.now()
-    this.color = '#FF642D'
+    this.color = args.color ?? '#FF642D'
     this.rotation = 0
 
     this.metadata = args.metadata || {

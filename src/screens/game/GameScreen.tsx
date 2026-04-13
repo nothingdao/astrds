@@ -8,6 +8,8 @@ import Ship from '@/game/entities/Ship'
 // import OverlayChat from '@/components/chat/OverlayChat'
 import PauseOverlay from './components/PauseOverlay'
 import DeathDisplay from './components/DeathDisplay'
+import SpacePoolSync from '@/components/space/SpacePoolSync'
+import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { MachineState } from '@/types/machine'
 import { GameScreenProps } from '@/types/components/layout'
 
@@ -64,6 +66,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
         // Reset all game state for a fresh game
         resetEngine()
         useInventoryStore.getState().resetInventory()
+        useSpaceTokenStore.getState().resetSession()
         useGameData.getState().resetGame()
         initializeEngine(context)
 
@@ -224,6 +227,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
       {/* <OverlayChat /> */}
       {isPaused && <PauseOverlay />}
       <DeathDisplay />
+      <SpacePoolSync />
     </>
   )
 }

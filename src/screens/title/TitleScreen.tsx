@@ -81,7 +81,7 @@ const TitleScreen: React.FC = () => {
         {/* Top: studio credit */}
         <div className='text-center'>
           <p className='font-mono text-xs text-white/25 uppercase tracking-[0.5em]'>
-            Nothing DAO presents
+            nothingdao presents
           </p>
         </div>
 
@@ -100,13 +100,13 @@ const TitleScreen: React.FC = () => {
             ASTRDS
           </h1>
 
-          <p className='font-mono text-xs text-white/35 uppercase tracking-[0.7em]'>
-            earn &nbsp;·&nbsp; survive &nbsp;·&nbsp; or die trying
+          <p className='font-mono text-xl text-white/35 uppercase tracking-[0.7em]'>
+            mine &nbsp;·&nbsp; survive &nbsp;·&nbsp; or die trying
           </p>
 
           {/* Flavor badges */}
           <div className='flex items-center gap-3 mt-2 flex-wrap justify-center'>
-            {['Token-2022', 'Solana Devnet', 'Earn $ASTRDS'].map((badge) => (
+            {['Token-2022', 'Solana Devnet', 'Mine $ASTRDS'].map((badge) => (
               <span
                 key={badge}
                 className='font-mono text-[10px] text-game-blue/50 uppercase tracking-widest border border-game-blue/15 px-3 py-1'
@@ -139,7 +139,7 @@ const TitleScreen: React.FC = () => {
           )}
 
           <p className='font-mono text-[10px] text-white/12 uppercase tracking-[0.4em]'>
-            © 2025 Nothing DAO
+            © 2025 nothingdao
           </p>
         </div>
       </div>

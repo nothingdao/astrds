@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#92400e"/>
+  <circle cx="100" cy="100" r="80" fill="#b45309"/>
+  <rect x="45" y="75" width="110" height="60" rx="4" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+  <line x1="55" y1="85" x2="145" y2="85" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="55" y1="100" x2="145" y2="100" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="55" y1="115" x2="145" y2="115" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,4"/>
+  <polygon points="130,130 170,150 150,90" fill="#fbbf24" opacity="0.9"/>
+  <text x="100" y="175" font-family="monospace" font-size="18" font-weight="bold" fill="#fde68a" text-anchor="middle">RUGD</text>
+</svg>

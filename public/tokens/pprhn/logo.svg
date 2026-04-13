@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#134e4a"/>
+  <circle cx="100" cy="100" r="80" fill="#115e59"/>
+  <!-- Paper sheet (folded corner) -->
+  <polygon points="60,50 140,50 140,155 60,155" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <!-- Folded corner -->
+  <polygon points="115,50 140,50 140,75" fill="#bbf7d0"/>
+  <polygon points="115,50 115,75 140,75" fill="#d1fae5" stroke="#bbf7d0" stroke-width="1"/>
+  <!-- Panic sell lines -->
+  <line x1="75" y1="80" x2="105" y2="80" stroke="#ef4444" stroke-width="2"/>
+  <line x1="75" y1="92" x2="110" y2="92" stroke="#ef4444" stroke-width="2"/>
+  <!-- Arrow pointing down (sold at bottom) -->
+  <polyline points="80,105 100,125 120,105" stroke="#dc2626" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="100" y1="105" x2="100" y2="125" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+  <!-- Tear lines -->
+  <line x1="60" y1="100" x2="75" y2="103" stroke="#bbf7d0" stroke-width="1" opacity="0.5"/>
+  <line x1="60" y1="110" x2="78" y2="112" stroke="#bbf7d0" stroke-width="1" opacity="0.5"/>
+  <text x="100" y="178" font-family="monospace" font-size="13" font-weight="bold" fill="#6ee7b7" text-anchor="middle">PPRHN</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#166534"/>
+  <circle cx="100" cy="100" r="80" fill="#15803d"/>
+  <path d="M40 110 Q60 70 80 110 Q100 150 120 110 Q140 70 160 110" stroke="#86efac" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <circle cx="160" cy="110" r="10" fill="#4ade80"/>
+  <circle cx="164" cy="106" r="3" fill="#052e16"/>
+  <text x="100" y="175" font-family="monospace" font-size="18" font-weight="bold" fill="#86efac" text-anchor="middle">WORM</text>
+</svg>

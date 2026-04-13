@@ -15,6 +15,7 @@ const SECTIONS: Section[] = [
       { keys: ['F'], label: 'Full Chat' },
       { keys: ['L'], label: 'Leaderboard' },
       { keys: ['A'], label: 'Account' },
+      { keys: ['R'], label: 'Launch tokens into space' },
       { keys: ['?'], label: 'Keyboard shortcuts' },
       { keys: ['Esc'], label: 'Close overlay' },
     ],

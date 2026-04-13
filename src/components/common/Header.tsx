@@ -1,6 +1,6 @@
 // src/components/common/Header.tsx
 import React, { useCallback } from 'react'
-import { MessageSquare, User, Trophy, Coins, LucideIcon } from 'lucide-react'
+import { MessageSquare, User, Trophy, Coins, Rocket, LucideIcon } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useStateMachine, selectMachineState } from '@/stores/stateMachine'
 import { Overlay } from '@/types/overlay'
@@ -36,7 +36,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
     disabled ||
     (currentGameState === MachineState.PLAYING &&
       !isSelected &&
-      [Overlay.TOKENOMICS, Overlay.LEADERBOARD].includes(overlayType))
+      [Overlay.TOKENOMICS, Overlay.LEADERBOARD, Overlay.SPACE].includes(overlayType))
 
   return (
     <button
@@ -66,6 +66,7 @@ const Header: React.FC = () => {
     { key: 'chat',       icon: MessageSquare, label: 'Chat',        overlayType: Overlay.CHAT,        shortcut: 'f' },
     { key: 'leaderboard',icon: Trophy,        label: 'Leaderboard', overlayType: Overlay.LEADERBOARD, shortcut: 'l' },
     { key: 'account',    icon: User,          label: 'Account',     overlayType: Overlay.ACCOUNT,     shortcut: 'a' },
+    { key: 'space',      icon: Rocket,        label: 'Space',       overlayType: Overlay.SPACE,       shortcut: 'r' },
   ]
 
   return (

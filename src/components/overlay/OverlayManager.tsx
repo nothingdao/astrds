@@ -11,6 +11,7 @@ import FullChat from '@/components/chat/FullChat'
 import LeaderboardScreen from '@/screens/leaderboard/LeaderboardScreen'
 import TokenomicsScreen from '@/screens/tokenomics/TokenomicsScreen'
 import KeyboardShortcutsOverlay from '@/components/common/KeyboardShortcutsOverlay'
+import SendToSpaceOverlay from '@/components/space/SendToSpaceOverlay'
 
 const OVERLAY_META: Record<Overlay, { title: string; maxWidth: string }> = {
   [Overlay.NONE]:        { title: '',                   maxWidth: 'max-w-4xl' },
@@ -20,6 +21,7 @@ const OVERLAY_META: Record<Overlay, { title: string; maxWidth: string }> = {
   [Overlay.LEADERBOARD]: { title: 'Leaderboard',        maxWidth: 'max-w-4xl' },
   [Overlay.TOKENOMICS]:  { title: 'Tokenomics',         maxWidth: 'max-w-4xl' },
   [Overlay.SHORTCUTS]:   { title: 'Keyboard Shortcuts', maxWidth: 'max-w-lg'  },
+  [Overlay.SPACE]:       { title: 'Launch Tokens into Space', maxWidth: 'max-w-2xl' },
 }
 
 interface OverlayContentProps {
@@ -65,6 +67,9 @@ const OverlayContent: React.FC<OverlayContentProps> = ({ type, onClose }) => {
 
     case Overlay.SHORTCUTS:
       return <KeyboardShortcutsOverlay onClose={onClose} />
+
+    case Overlay.SPACE:
+      return <SendToSpaceOverlay onClose={onClose} />
 
     default:
       return null

@@ -9,10 +9,13 @@
  */
 
 import type * as chat from "../chat.js";
+import type * as devTools from "../devTools.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as players from "../players.js";
 import type * as scores from "../scores.js";
 import type * as sessions from "../sessions.js";
+import type * as spaceDeposits from "../spaceDeposits.js";
+import type * as spaceDepositsActions from "../spaceDepositsActions.js";
 import type * as tokens from "../tokens.js";
 import type * as verifyPayment from "../verifyPayment.js";
 
@@ -24,10 +27,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
+  devTools: typeof devTools;
   gameSessions: typeof gameSessions;
   players: typeof players;
   scores: typeof scores;
   sessions: typeof sessions;
+  spaceDeposits: typeof spaceDeposits;
+  spaceDepositsActions: typeof spaceDepositsActions;
   tokens: typeof tokens;
   verifyPayment: typeof verifyPayment;
 }>;

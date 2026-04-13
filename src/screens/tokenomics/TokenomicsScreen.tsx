@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import { connection } from '@/lib/solana'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import {
   Coins,
   Wallet,
@@ -9,12 +11,13 @@ import {
   Sparkles,
   CircleDollarSign,
   ExternalLink,
+  Rocket,
 } from 'lucide-react'
 
 const MINT_ADDRESS = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const GAME_TREASURY = new PublicKey('AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE')
 
-const TokenomicsScreen = ({ onClose }) => {
+const TokenomicsScreen = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalSupply: 0,
@@ -41,6 +44,8 @@ const TokenomicsScreen = ({ onClose }) => {
     }
     fetchTokenData()
   }, [])
+
+  const activeDeposits = useQuery(api.spaceDeposits.getAllActiveSpaceDeposits)
 
   const StatCard = ({ icon: Icon, title, value, subtext, link }) => (
     <div className='bg-black/30 border border-white/10 rounded-lg p-6 hover:border-game-blue/50 transition-colors'>
@@ -70,7 +75,7 @@ const TokenomicsScreen = ({ onClose }) => {
   )
 
   return (
-    <div className='p-5'>
+    <div className='p-5 space-y-6'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-6'>
               <div className='grid grid-cols-1 gap-4'>
@@ -106,7 +111,7 @@ const TokenomicsScreen = ({ onClose }) => {
                   </div>
                   <div className='flex items-start gap-3'>
                     <CircleDollarSign className='text-game-blue mt-1' size={16} />
-                    <p>Earn $ASTRD by collecting tokens during gameplay</p>
+                    <p>Mine $ASTRD by collecting tokens during gameplay</p>
                   </div>
                   <div className='flex items-start gap-3'>
                     <Sparkles className='text-game-blue mt-1' size={16} />
@@ -151,6 +156,57 @@ const TokenomicsScreen = ({ onClose }) => {
                 </div>
               </InfoSection>
             </div>
+      </div>
+
+      {/* Tokens in Space */}
+      <div className='bg-black/30 border border-purple-500/20 rounded-lg p-6'>
+        <h3 className='text-sm text-purple-400 flex items-center gap-2 mb-4'>
+          <Rocket size={16} />
+          Tokens in Space
+        </h3>
+        {!activeDeposits ? (
+          <p className='text-xs text-white/30 font-mono'>Loading...</p>
+        ) : activeDeposits.length === 0 ? (
+          <p className='text-xs text-white/30 font-mono'>
+            No tokens currently in space. Launch some from your wallet using the Space button above.
+          </p>
+        ) : (
+          <div className='space-y-3'>
+            <p className='text-xs text-white/40 font-mono mb-3'>
+              {activeDeposits.length} token type{activeDeposits.length !== 1 ? 's' : ''} available in the game world
+            </p>
+            <div className='grid grid-cols-1 gap-2'>
+              {activeDeposits.map((d) => (
+                <div
+                  key={d._id}
+                  className='flex items-center justify-between bg-black/30 border border-white/10 rounded p-3'
+                >
+                  <div className='flex items-center gap-3'>
+                    {d.logoUri ? (
+                      <img src={d.logoUri} alt={d.symbol} className='w-6 h-6 rounded-full object-cover' />
+                    ) : (
+                      <div className='w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center'>
+                        <span className='text-[8px] font-mono text-purple-400'>{d.symbol.slice(0, 2)}</span>
+                      </div>
+                    )}
+                    <div>
+                      <div className='font-mono text-sm text-white'>{d.symbol}</div>
+                      <div className='font-mono text-[10px] text-white/30'>{d.name}</div>
+                    </div>
+                  </div>
+                  <div className='text-right font-mono text-xs text-white/50 space-y-0.5'>
+                    <div className='text-purple-300'>
+                      {(d.remainingAmount / 10 ** (d.decimals ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })} remaining
+                    </div>
+                    <div>
+                      {(d.tokensPerPill / 10 ** (d.decimals ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })}/pill · L{d.minLevel}–{d.maxLevel}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

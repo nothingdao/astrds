@@ -37,4 +37,24 @@ export default defineSchema({
     avatarStorageId: v.optional(v.id('_storage')),
     updatedAt: v.number(),
   }).index('by_wallet', ['walletAddress']),
+
+  spaceDeposits: defineTable({
+    walletAddress: v.string(),       // depositor
+    txSignature: v.string(),         // on-chain transfer tx
+    mintAddress: v.string(),         // token mint
+    programId: v.string(),           // 'TOKEN' or 'TOKEN_2022'
+    symbol: v.string(),
+    name: v.string(),
+    logoUri: v.optional(v.string()),
+    decimals: v.optional(v.number()), // token decimals (for display; absent on legacy docs)
+    totalAmount: v.number(),         // total tokens deposited (raw units)
+    remainingAmount: v.number(),     // tokens left to distribute (raw units)
+    tokensPerPill: v.number(),       // raw units each collected pill represents
+    minLevel: v.number(),
+    maxLevel: v.number(),
+    depositedAt: v.number(),
+    status: v.union(v.literal('active'), v.literal('depleted'), v.literal('cancelled')),
+  })
+    .index('by_wallet', ['walletAddress'])
+    .index('by_status', ['status']),
 })

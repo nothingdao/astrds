@@ -5,6 +5,7 @@ export interface TokenMetadata {
   symbol: string
   value: number
   mineable: boolean
+  mintAddress?: string  // set for space tokens
 }
 
 export interface TokenConfig {
@@ -13,6 +14,7 @@ export interface TokenConfig {
     height: number
   }
   type?: string
+  color?: string
   metadata?: TokenMetadata
 }
 

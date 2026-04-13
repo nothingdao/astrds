@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#854d0e"/>
+  <circle cx="100" cy="100" r="80" fill="#a16207"/>
+  <polygon points="100,45 115,80 155,80 122,102 134,138 100,116 66,138 78,102 45,80 85,80" fill="#fbbf24" stroke="#fde68a" stroke-width="2"/>
+  <text x="100" y="175" font-family="monospace" font-size="16" font-weight="bold" fill="#fde68a" text-anchor="middle">SHILL</text>
+</svg>
