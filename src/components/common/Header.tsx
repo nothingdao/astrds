@@ -7,6 +7,7 @@ import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import WalletDropdown from './WalletDropdown'
 import { Kbd } from '@/components/ui/kbd'
+import AudioWidget from './AudioWidget'
 
 interface HeaderButtonProps {
   icon: LucideIcon
@@ -71,6 +72,12 @@ const Header: React.FC = () => {
     <header className='fixed top-0 w-full z-50 border-b border-white/10 px-4 py-3'>
       {/* Nav centered, wallet pinned right */}
       <div className='relative flex items-center justify-center'>
+        {/* Audio widget — left */}
+        <div className='absolute left-0'>
+          <AudioWidget />
+        </div>
+
+        {/* Nav buttons — center */}
         <div className='flex items-center gap-2'>
           {headerButtons.map(({ key, ...props }) => (
             <HeaderButton key={key} {...props} />
@@ -83,6 +90,8 @@ const Header: React.FC = () => {
             ?
           </button>
         </div>
+
+        {/* Wallet — right */}
         <div className='absolute right-0'>
           <WalletDropdown />
         </div>

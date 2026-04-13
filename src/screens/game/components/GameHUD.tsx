@@ -10,6 +10,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import AvatarDisplay from '@/components/common/AvatarDisplay'
+import AudioWidget from '@/components/common/AudioWidget'
 
 const POWERUP_DURATION = 10_000
 
@@ -60,10 +61,13 @@ export const GameHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* Level */}
-        <div className='text-center'>
-          <div className='font-mono text-lg leading-none text-game-blue'>{level}</div>
-          <div className='font-mono text-xs text-white/30 mt-0.5'>LEVEL</div>
+        {/* Level + audio widget */}
+        <div className='flex flex-col items-center gap-1'>
+          <div className='text-center'>
+            <div className='font-mono text-lg leading-none text-game-blue'>{level}</div>
+            <div className='font-mono text-xs text-white/30 mt-0.5'>LEVEL</div>
+          </div>
+          <AudioWidget compact />
         </div>
 
         {/* Ship lives */}

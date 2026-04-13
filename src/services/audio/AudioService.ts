@@ -27,6 +27,9 @@ class AudioService {
   private initialized: boolean
   private effectSettings: { [key: string]: any }
   private loopingSounds: Set<string>
+  private audioCtx: AudioContext | null = null
+  private analyser: AnalyserNode | null = null
+  private connectedElements: Set<HTMLAudioElement> = new Set()
 
   constructor(config: typeof AUDIO_CONFIG) {
     this.config = config
@@ -38,7 +41,7 @@ class AudioService {
     this.initialized = false
     this.effectSettings = { ...config.effectSettings }
     this.loopingSounds = new Set()
-    this.loadSettings() // Load saved settings on initialization
+    this.loadSettings()
   }
 
   // Public getters for private properties
@@ -52,6 +55,17 @@ class AudioService {
 
   isInitialized() {
     return this.initialized
+  }
+
+  getAnalyser(): AnalyserNode | null {
+    return this.analyser
+  }
+
+  getFrequencyData(): Uint8Array | null {
+    if (!this.analyser) return null
+    const data = new Uint8Array(this.analyser.frequencyBinCount)
+    this.analyser.getByteFrequencyData(data)
+    return data
   }
 
   on<K extends keyof AudioEvents>(
@@ -76,6 +90,17 @@ class AudioService {
       audio.load()
     })
 
+    // Route through Web Audio graph so the analyser can read it
+    if (this.audioCtx && this.analyser && !this.connectedElements.has(audio)) {
+      try {
+        const source = this.audioCtx.createMediaElementSource(audio)
+        source.connect(this.analyser)
+        this.connectedElements.add(audio)
+      } catch {
+        // ignore — element may already be connected
+      }
+    }
+
     this.music.set(id, { audio, config })
   }
 
@@ -95,6 +120,11 @@ class AudioService {
     }
 
     try {
+      // Resume AudioContext if suspended (browser autoplay policy)
+      if (this.audioCtx?.state === 'suspended') {
+        await this.audioCtx.resume()
+      }
+
       // Already playing this track — nothing to do
       if (this.currentMusic?.id === id) return
 
@@ -300,6 +330,17 @@ class AudioService {
     if (this.initialized) return
 
     try {
+      // Set up Web Audio API analyser for visualizer
+      try {
+        this.audioCtx = new AudioContext()
+        this.analyser = this.audioCtx.createAnalyser()
+        this.analyser.fftSize = 64           // 32 frequency bins — enough for a bar graph
+        this.analyser.smoothingTimeConstant = 0.75
+        this.analyser.connect(this.audioCtx.destination)
+      } catch {
+        // Web Audio API unavailable — visualizer will be disabled
+      }
+
       // Calculate total assets (both sounds and music)
       const totalAssets =
         Object.keys(this.config.sounds).length +
