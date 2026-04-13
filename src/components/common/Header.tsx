@@ -6,6 +6,8 @@ import { useStateMachine, selectMachineState } from '@/stores/stateMachine'
 import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import WalletDropdown from './WalletDropdown'
+import { Kbd } from '@/components/ui/kbd'
+import { useOverlayStore } from '@/stores/overlayStore'
 
 interface HeaderButtonProps {
   icon: LucideIcon
@@ -42,6 +44,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
       disabled={isDisabled}
       title={`${label} [${shortcut.toUpperCase()}]${isDisabled ? ' (Unavailable during gameplay)' : ''}`}
       className={`btn-grain h-8 px-4 flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider transition-colors
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-black
         ${isDisabled
           ? 'bg-white/10 text-white/20 cursor-not-allowed'
           : isSelected
@@ -56,6 +59,8 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
 }
 
 const Header: React.FC = () => {
+  const openOverlay = useOverlayStore((state) => state.openOverlay)
+
   const headerButtons: Array<HeaderButtonProps & { key: string }> = [
     { key: 'tokenomics', icon: Coins,         label: 'Tokenomics',  overlayType: Overlay.TOKENOMICS,  shortcut: 't' },
     { key: 'chat',       icon: MessageSquare, label: 'Chat',        overlayType: Overlay.CHAT,        shortcut: 'f' },
@@ -71,6 +76,13 @@ const Header: React.FC = () => {
           {headerButtons.map(({ key, ...props }) => (
             <HeaderButton key={key} {...props} />
           ))}
+          <button
+            onClick={() => openOverlay(Overlay.SHORTCUTS)}
+            title='Keyboard shortcuts [?]'
+            className='btn-grain h-8 w-8 flex items-center justify-center font-mono text-xs bg-white/10 text-white/50 hover:bg-white/20 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-black'
+          >
+            ?
+          </button>
         </div>
         <div className='absolute right-0'>
           <WalletDropdown />

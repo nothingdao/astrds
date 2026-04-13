@@ -6,4 +6,5 @@ export enum Overlay {
   CHAT = 'CHAT',
   LEADERBOARD = 'LEADERBOARD',
   TOKENOMICS = 'TOKENOMICS',
+  SHORTCUTS = 'SHORTCUTS',
 }

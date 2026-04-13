@@ -9,6 +9,7 @@ import AccountScreen from '@/screens/account/AccountScreen'
 import FullChat from '@/components/chat/FullChat'
 import LeaderboardScreen from '@/screens/leaderboard/LeaderboardScreen'
 import TokenomicsScreen from '@/screens/tokenomics/TokenomicsScreen'
+import KeyboardShortcutsOverlay from '@/components/common/KeyboardShortcutsOverlay'
 
 interface OverlayContentProps {
   type: Overlay
@@ -55,6 +56,9 @@ const OverlayContent: React.FC<OverlayContentProps> = ({ type, onClose }) => {
 
     case Overlay.TOKENOMICS:
       return <TokenomicsScreen onClose={onClose} />
+
+    case Overlay.SHORTCUTS:
+      return <KeyboardShortcutsOverlay onClose={onClose} />
 
     default:
       return null

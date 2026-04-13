@@ -11,9 +11,11 @@ import GameStateManager from './screens/game/components/GameStateManager'
 import ChatSystem from './components/chat/ChatSystem'
 import OverlayManager from './components/overlay/OverlayManager'
 import { useSettingsPanelStore } from './stores/settingsPanelStore'
+import { useOverlayStore } from './stores/overlayStore'
 import { useAudio } from './hooks/useAudio'
 import { usePhantom } from './hooks/usePhantom'
 import { audioManager } from './services/audio/AudioManager'
+import { Overlay } from './types/overlay'
 import { Commitment } from '@solana/web3.js';
 import { RPC_ENDPOINT } from '@/lib/solana';
 
@@ -47,6 +49,7 @@ const App: React.FC = () => {
 
   const { volumes, setVolume, isInitialized } = useAudio();
   const toggleSettingsPanel = useSettingsPanelStore((state) => state.toggle);
+  const openOverlay = useOverlayStore((state) => state.openOverlay);
   const endpoint = useMemo(() => RPC_ENDPOINT, [])
 
   useEffect(() => {
@@ -74,8 +77,23 @@ const App: React.FC = () => {
         case '3':
         case '4':
         case '5':
-          const volumeLevel = parseInt(e.key) / 5
-          setVolume('master', volumeLevel)
+          setVolume('master', parseInt(e.key) / 5)
+          break
+        // Nav shortcuts — work everywhere outside gameplay text inputs
+        case 't':
+          openOverlay(Overlay.TOKENOMICS)
+          break
+        case 'f':
+          openOverlay(Overlay.CHAT)
+          break
+        case 'l':
+          openOverlay(Overlay.LEADERBOARD)
+          break
+        case 'a':
+          openOverlay(Overlay.ACCOUNT)
+          break
+        case '?':
+          openOverlay(Overlay.SHORTCUTS)
           break
         default:
           break
@@ -84,7 +102,7 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [toggleSettingsPanel, setVolume])
+  }, [toggleSettingsPanel, setVolume, openOverlay, volumes.master])
 
   const wallets = useMemo(
     () => [
