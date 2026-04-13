@@ -155,7 +155,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
       ) return
 
       // Handle pause key
-      if (e.code === 'Escape') {
+      if (e.code === 'Escape' || e.code === 'KeyP') {
         setPause(!isPaused)
         return
       }

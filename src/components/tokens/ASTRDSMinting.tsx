@@ -67,7 +67,7 @@ const ASTRDSMinting: React.FC<{ tokenCount: number }> = ({ tokenCount }) => {
           rel='noopener noreferrer'
           className='block text-center text-xs text-game-blue hover:underline'
         >
-          View on Solana Explorer ⇗
+          View on Helius Orb ⇗
         </a>
       )}
     </div>
