@@ -23,15 +23,6 @@ import { useGameData } from './gameData'
 import { audioService } from '@/services/audio/AudioService'
 import { useLevelStore } from './levelStore'
 
-// Performance monitoring
-interface PerformanceMetrics {
-  fps: number
-  frameTime: number
-  lastFrameTimestamp: number
-  frameCount: number
-  entityCounts: Record<EntityGroup, number>
-}
-
 const INITIAL_STATE: EngineStoreState = {
   entities: {
     ship: [],
@@ -64,74 +55,11 @@ const INITIAL_STATE: EngineStoreState = {
   tokenSpawnDelay: 5000,
   powerupTimeout: null,
   gameLoopId: null,
-  performance: {
-    fps: 0,
-    frameTime: 0,
-    lastFrameTimestamp: performance.now(),
-    frameCount: 0,
-    entityCounts: {
-      ship: 0,
-      asteroids: 0,
-      bullets: 0,
-      particles: 0,
-      pills: 0,
-      tokens: 0,
-      shipPickups: 0,
-    },
-  },
 }
 
-// Entity management helpers
-const entityManagement = {
-  validateEntity: <T extends EntityGroup>(
-    entity: EngineEntities[T][number],
-    group: T
-  ): boolean => {
-    if (!entity || !entity.id) {
-      console.error(`Invalid entity for group ${group}:`, entity)
-      return false
-    }
-    return true
-  },
 
-  updateEntityCounts: (
-    state: EngineStoreState
-  ): Record<EntityGroup, number> => {
-    return Object.entries(state.entities).reduce(
-      (counts, [group, entities]) => ({
-        ...counts,
-        [group]: entities.length,
-      }),
-      {} as Record<EntityGroup, number>
-    )
-  },
-}
-
-// Performance monitoring helpers
-const performanceMonitoring = {
-  updateMetrics: (state: EngineStoreState): PerformanceMetrics => {
-    const now = performance.now()
-    const frameTime = now - state.performance.lastFrameTimestamp
-    const newFrameCount = state.performance.frameCount + 1
-
-    // Calculate FPS over last second
-    const fps = Math.round(1000 / frameTime)
-
-    return {
-      fps,
-      frameTime,
-      lastFrameTimestamp: now,
-      frameCount: newFrameCount,
-      entityCounts: entityManagement.updateEntityCounts(state),
-    }
-  },
-
-  logSlowFrame: (frameTime: number) => {
-    if (frameTime > 16.67) {
-      console.warn(`Slow frame detected: ${Math.round(frameTime)}ms`)
-    }
-  },
-}
+// Module-level RAF id — kept outside Zustand so we never call set() per frame
+let _rafId: number | null = null
 
 export const useEngineStore = create<EngineStore>((set, get) => ({
   ...INITIAL_STATE,
@@ -146,10 +74,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   },
 
   cleanup: () => {
-    const state = get()
-    if (state.gameLoopId) {
-      cancelAnimationFrame(state.gameLoopId)
+    if (_rafId !== null) {
+      cancelAnimationFrame(_rafId)
+      _rafId = null
     }
+    const state = get()
     if (state.powerupTimeout) {
       clearTimeout(state.powerupTimeout)
     }
@@ -161,22 +90,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     entity: EngineEntities[T][number],
     group: T
   ) => {
-    if (!entityManagement.validateEntity(entity, group)) return
-
+    if (!entity?.id) return
     set((state) => ({
       entities: {
         ...state.entities,
         [group]: [...state.entities[group], entity],
-      },
-      performance: {
-        ...state.performance,
-        entityCounts: entityManagement.updateEntityCounts({
-          ...state,
-          entities: {
-            ...state.entities,
-            [group]: [...state.entities[group], entity],
-          },
-        }),
       },
     }))
   },
@@ -185,21 +103,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     set((state) => ({
       entities: {
         ...state.entities,
-        [group]: state.entities[group].filter(
-          (entity) => entity.id !== entityId
-        ),
-      },
-      performance: {
-        ...state.performance,
-        entityCounts: entityManagement.updateEntityCounts({
-          ...state,
-          entities: {
-            ...state.entities,
-            [group]: state.entities[group].filter(
-              (entity) => entity.id !== entityId
-            ),
-          },
-        }),
+        [group]: state.entities[group].filter((e) => e.id !== entityId),
       },
     }))
   },
@@ -245,12 +149,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     pills.forEach((pill) => {
       if (state.checkCollision(currentShip, pill)) {
         pill.destroy()
-        const powerupStore = usePowerupStore.getState()
-        if (typeof powerupStore.activatePowerup === 'function') {
-          powerupStore.activatePowerup(pill.type)
-        }
-
-        // Optionally play collection sound effect
+        usePowerupStore.getState().activatePowerups()
         audioService.playSound('collect')
       }
     })
@@ -305,17 +204,26 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       state.context.fillRect(0, 0, state.screen.width, state.screen.height)
       state.context.globalAlpha = 1
 
-      // We check for cleared asteroids, then increment level, spawn new asteroids, party!
+      // Level advance: all asteroids cleared
       if (state.entities.asteroids.length === 0) {
         const levelStore = useLevelStore.getState()
         if (!levelStore.isRespawning) {
-          // Add this check
           levelStore.incrementLevel()
-
-          set((state) => ({
-            asteroidCount: Math.min(state.asteroidCount + 1, 10),
+          const nextCount = Math.min(state.asteroidCount + 1, 10)
+          // Clear transient entities from previous level in one set() call
+          set((s) => ({
+            asteroidCount: nextCount,
+            entities: {
+              ...s.entities,
+              bullets: [],
+              pills: [],
+              tokens: [],
+              shipPickups: [],
+            },
           }))
-          state.spawnAsteroids(state.asteroidCount)
+          get().spawnAsteroids(nextCount)
+          state.context.restore()
+          return
         }
       }
 
@@ -324,21 +232,33 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       state.spawnToken()
       state.spawnShipPickup()
 
-      // Render entities
+      // Render pass + collect dead entities — ONE set() call per frame max
+      const nextEntities: Partial<EngineEntities> = {}
+      let hasDeleted = false
+
       Object.entries(state.entities).forEach(([group, entities]) => {
+        const alive: typeof entities = []
         entities.forEach((entity) => {
           if (entity.delete) {
-            state.removeEntity(entity.id, group as EntityGroup)
+            hasDeleted = true
           } else {
             try {
               entity.render(state)
+              alive.push(entity)
             } catch (error) {
               console.error(`Error rendering ${group} entity:`, error)
-              state.removeEntity(entity.id, group as EntityGroup)
+              hasDeleted = true
             }
           }
         })
+        if (alive.length !== entities.length) {
+          nextEntities[group as EntityGroup] = alive
+        }
       })
+
+      if (hasDeleted) {
+        set((s) => ({ entities: { ...s.entities, ...nextEntities } }))
+      }
 
       // Update particle system
       particleSystem.update()
@@ -351,15 +271,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       // Check collisions
       state.checkCollisions()
 
-      // Update performance metrics
-      const metrics = performanceMonitoring.updateMetrics(state)
-      set({ performance: metrics })
-
       state.context.restore()
-
-      // Performance monitoring
-      const frameTime = performance.now() - startTime
-      performanceMonitoring.logSlowFrame(frameTime)
     } catch (error) {
       console.error('Error in game loop:', error)
       state.cleanup()
@@ -368,21 +280,15 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   },
 
   startGameLoop: () => {
-    const state = get()
-    if (state.gameLoopId || !state.context) {
-      console.warn('Game loop already running or context missing')
-      return
-    }
+    if (_rafId !== null || !get().context) return
 
     const loop = () => {
-      const currentState = get()
-      currentState.updateGame()
-      const frameId = requestAnimationFrame(loop)
-      set({ gameLoopId: frameId })
+      get().updateGame()
+      _rafId = requestAnimationFrame(loop)
     }
 
-    const frameId = requestAnimationFrame(loop)
-    set({ gameLoopId: frameId })
+    _rafId = requestAnimationFrame(loop)
+    set({ gameLoopId: _rafId }) // mark as running — only set once
   },
 
   resetEngine: () => {
@@ -404,11 +310,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   },
 
   stopGameLoop: () => {
-    const state = get()
-    if (state.gameLoopId) {
-      cancelAnimationFrame(state.gameLoopId)
-      set({ gameLoopId: null })
+    if (_rafId !== null) {
+      cancelAnimationFrame(_rafId)
+      _rafId = null
     }
+    set({ gameLoopId: null })
   },
 
   // Spawn management

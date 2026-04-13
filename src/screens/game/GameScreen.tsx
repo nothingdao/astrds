@@ -2,6 +2,8 @@
 import React, { useEffect, useRef } from 'react'
 import { useStateMachine, selectIsPaused } from '@/stores/stateMachine'
 import { useEngineStore } from '@/stores/engineStore'
+import { useInventoryStore } from '@/stores/inventoryStore'
+import { useGameData } from '@/stores/gameData'
 import Ship from '@/game/entities/Ship'
 // import OverlayChat from '@/components/chat/OverlayChat'
 import PauseOverlay from './components/PauseOverlay'
@@ -59,8 +61,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
       console.log('Setting up game engine...')
 
       try {
-        // Reset and initialize engine
+        // Reset all game state for a fresh game
         resetEngine()
+        useInventoryStore.getState().resetInventory()
+        useGameData.getState().resetGame()
         initializeEngine(context)
 
         // Create ship
@@ -107,11 +111,49 @@ const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
     }
   }, [])
 
+  // Resize handler — keep canvas in sync when window changes (tiling WM, wallet popups, etc.)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+
+    const handleResize = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        if (!canvasRef.current) return
+
+        const ratio = window.devicePixelRatio || 1
+        const width = window.innerWidth
+        const height = window.innerHeight
+
+        useEngineStore.setState({ screen: { width, height, ratio } })
+
+        // Canvas width/height attrs update via React re-render, which resets the context.
+        // Grab a fresh context on the next frame after the DOM settles.
+        requestAnimationFrame(() => {
+          if (!canvasRef.current) return
+          const ctx = canvasRef.current.getContext('2d')
+          if (ctx) initializeEngine(ctx)
+        })
+      }, 100)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(timer)
+    }
+  }, [initializeEngine])
+
   // Keyboard controls with pause handling
   useEffect(() => {
     console.log('Setting up keyboard controls...')
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Never intercept when focus is in a text field (chat input, etc.)
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) return
+
       // Handle pause key
       if (e.code === 'Escape') {
         setPause(!isPaused)

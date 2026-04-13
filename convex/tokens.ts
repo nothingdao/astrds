@@ -2,10 +2,19 @@
 
 import { action } from './_generated/server'
 import { v } from 'convex/values'
-import { Connection, Keypair, PublicKey } from '@solana/web3.js'
 import {
-  mintTo,
-  getOrCreateAssociatedTokenAccount,
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  sendAndConfirmTransaction,
+} from '@solana/web3.js'
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createMintToInstruction,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 
 const MINT_ADDRESS = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
@@ -25,31 +34,44 @@ export const mintTokens = action({
   handler: async (_ctx, { playerPublicKey, tokenCount }) => {
     if (tokenCount <= 0 || tokenCount > 200) throw new Error('Invalid token count')
 
-    const authority = loadAuthority()
-    const connection = new Connection(
-      process.env.SOLANA_DEVNET_RPC_ENDPOINT ?? 'https://api.devnet.solana.com',
-      'confirmed'
-    )
+    const rpcEndpoint = process.env.SOLANA_RPC_ENDPOINT
+    if (!rpcEndpoint) throw new Error('SOLANA_RPC_ENDPOINT not set')
 
+    const authority = loadAuthority()
+    const connection = new Connection(rpcEndpoint, 'confirmed')
     const playerPubkey = new PublicKey(playerPublicKey)
 
-    const tokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      authority,
+    const ata = getAssociatedTokenAddressSync(
       MINT_ADDRESS,
-      playerPubkey
+      playerPubkey,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
     )
 
     const amount = BigInt(tokenCount) * BigInt(10 ** TOKEN_DECIMALS)
 
-    const signature = await mintTo(
-      connection,
-      authority,
-      MINT_ADDRESS,
-      tokenAccount.address,
-      authority,
-      amount
+    const tx = new Transaction().add(
+      // Idempotent — no-ops if ATA already exists
+      createAssociatedTokenAccountIdempotentInstruction(
+        authority.publicKey,
+        ata,
+        playerPubkey,
+        MINT_ADDRESS,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+      createMintToInstruction(
+        MINT_ADDRESS,
+        ata,
+        authority.publicKey,
+        amount,
+        [],
+        TOKEN_2022_PROGRAM_ID
+      )
     )
+
+    const signature = await sendAndConfirmTransaction(connection, tx, [authority])
 
     return { success: true, signature }
   },

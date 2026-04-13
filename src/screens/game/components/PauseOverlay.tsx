@@ -2,6 +2,7 @@
 import React from 'react'
 import { useStateMachine, selectIsPaused } from '@/stores/stateMachine'
 import { PauseOverlayProps } from '@/types/components/overlays'
+import VolumeControl from '@/components/sound/VolumeControl'
 
 const DEFAULT_SHORTCUTS = [
   { key: '[ESC] or [P]', action: 'Pause Game' },
@@ -48,6 +49,10 @@ const PauseOverlay: React.FC<PauseOverlayProps> = ({
               </div>
             ))}
           </div>
+        </div>
+
+        <div className='bg-black/50 border border-white/10 rounded-lg p-4 flex justify-center'>
+          <VolumeControl />
         </div>
 
         <button

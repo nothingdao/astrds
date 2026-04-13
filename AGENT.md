@@ -22,7 +22,7 @@ pnpm start        # Vite only (no Convex)
 
 Required env vars in `.env.local`:
 - `VITE_CONVEX_URL` — Convex deployment URL
-- `VITE_SOLANA_RPC_ENDPOINT` — Solana RPC URL
+- `VITE_HELIUS_API_KEY` — Helius API key (network is hardcoded in `src/lib/solana.ts`)
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` is set in Convex dashboard, not locally
 
 ## Key Files

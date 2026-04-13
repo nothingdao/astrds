@@ -20,8 +20,9 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   const topScore = useGameData((state) => state.topScore);
   const selectMachineState = useStateMachine((state) => state.setState);
 
-  const highScores = useQuery(api.scores.getScores) ?? [];
-  const loading = highScores === undefined;
+  const highScoresRaw = useQuery(api.scores.getScores);
+  const loading = highScoresRaw === undefined;
+  const highScores = highScoresRaw ?? [];
 
   const [playerStats, setPlayerStats] = useState<{
     topScore: number;
@@ -100,7 +101,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                       )}
                       {!playerStats.rank && playerStats.topScore > 0 && (
                         <div className='text-center text-gray-400 text-sm'>
-                          Keep playing to reach the top 100!
+                          Keep playing to reach the top 10!
                         </div>
                       )}
                     </>
@@ -131,7 +132,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
               <LeaderboardTable
                 scores={highScores as Score[]}
                 loading={loading}
-                playerWallet={wallet.publicKey?.toString()}
               />
             </div>
           </div>

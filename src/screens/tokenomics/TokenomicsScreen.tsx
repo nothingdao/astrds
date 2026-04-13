@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Connection, PublicKey } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
+import { connection } from '@/lib/solana'
 import {
   Coins,
   Wallet,
@@ -24,10 +25,6 @@ const TokenomicsScreen = ({ onClose }) => {
   useEffect(() => {
     const fetchTokenData = async () => {
       try {
-        const connection = new Connection(
-          import.meta.env.VITE_SOLANA_RPC_ENDPOINT,
-          'confirmed'
-        )
         const tokenSupply = await connection.getTokenSupply(MINT_ADDRESS)
         const accounts = await connection.getTokenLargestAccounts(MINT_ADDRESS)
         const treasuryBalance = await connection.getBalance(GAME_TREASURY)

@@ -1,6 +1,5 @@
 // src/screens/game/components/GameLayout.tsx
 import React from 'react'
-import Header from '@/components/common/Header'
 import { GameHUD } from './GameHUD'
 import LevelTransition from './LevelTransition'
 import { useStateMachine } from '@/stores/stateMachine'
@@ -21,11 +20,8 @@ const GameStateGuard: React.FC<GameStateGuardProps> = ({
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
-
   return (
     <div className="min-h-screen bg-black relative">
-      <Header />
-
       <main className="flex items-center justify-center min-h-screen">
         {children}
         <LevelTransition />

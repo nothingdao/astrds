@@ -1,9 +1,10 @@
 // src/components/chat/FullChat.tsx
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { ChatProps } from '@/types/chat'
+import AvatarDisplay from '@/components/common/AvatarDisplay'
 
 const shortenAddress = (address: string) => {
   if (!address || address === 'Anonymous') return 'Anonymous'
@@ -23,6 +24,15 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
 
   const messages = useQuery(api.chat.getMessages) ?? []
   const sendMessage = useMutation(api.chat.sendMessage)
+
+  const uniqueWallets = useMemo(
+    () => [...new Set(messages.map((m) => m.walletAddress))],
+    [messages]
+  )
+  const avatarUrls = useQuery(
+    api.players.getAvatarUrls,
+    uniqueWallets.length > 0 ? { walletAddresses: uniqueWallets } : 'skip'
+  ) ?? {}
 
   const scrollToBottom = useCallback(
     (force = false) => {
@@ -122,31 +132,40 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
               {messages.length === 0 ? (
                 <div className='text-center text-gray-500'>No messages yet</div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`space-y-1 px-2 ${msg.walletAddress === wallet.publicKey?.toString() ? 'opacity-100' : 'opacity-80'}`}
-                  >
-                    <div className='flex items-baseline gap-2'>
-                      <span className='text-game-blue font-bold flex items-center gap-1'>
-                        {shortenAddress(msg.walletAddress)}
-                        <a
-                          href={`https://solscan.io/account/${msg.walletAddress}`}
-                          target='_blank'
-                          title={`View ${msg.walletAddress} on Solscan`}
-                          rel='noopener noreferrer'
-                          className='text-gray-200 hover:text-white transition-colors text-3xl mb-5 ml-2 mr-4'
-                        >
-                          ⇗
-                        </a>
-                      </span>
-                      <span className='text-xs text-gray-500'>
-                        {new Date(msg.timestamp).toLocaleString()}
-                      </span>
+                messages.map((msg) => {
+                  const isOwn = msg.walletAddress === wallet.publicKey?.toString()
+                  return (
+                    <div
+                      key={msg._id}
+                      className={`flex items-start gap-3 px-2 ${isOwn ? 'opacity-100' : 'opacity-80'}`}
+                    >
+                      <AvatarDisplay
+                        url={avatarUrls[msg.walletAddress]}
+                        address={msg.walletAddress}
+                        size={28}
+                      />
+                      <div className='min-w-0'>
+                        <div className='flex items-baseline gap-2'>
+                          <span className='text-game-blue font-bold text-sm'>
+                            {shortenAddress(msg.walletAddress)}
+                          </span>
+                          <a
+                            href={`https://solscan.io/account/${msg.walletAddress}`}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-gray-500 hover:text-white transition-colors text-xs'
+                          >
+                            ⇗
+                          </a>
+                          <span className='text-xs text-gray-500'>
+                            {new Date(msg.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className='text-white break-words text-sm'>{msg.message}</p>
+                      </div>
                     </div>
-                    <p className='text-white break-words'>{msg.message}</p>
-                  </div>
-                ))
+                  )
+                })
               )}
               <div ref={messagesEndRef} />
             </div>

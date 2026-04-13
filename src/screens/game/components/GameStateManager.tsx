@@ -6,6 +6,7 @@ import TitleScreen from '@/screens/title/TitleScreen'
 import ReadyScreen from '@/screens/ready/ReadyScreen'
 import GameScreen from '@/screens/game/GameScreen'
 import GameOverScreen from '@/screens/gameover/GameOverScreen'
+import Header from '@/components/common/Header'
 import { MachineState } from '@/types/machine'
 
 const GameStateManager: React.FC = () => {
@@ -13,6 +14,8 @@ const GameStateManager: React.FC = () => {
   const resetState = useStateMachine(state => state.resetState)
   const isTransitioning = useStateMachine((state) => state.isTransitioning)
   const stopGameLoop = useEngineStore((state) => state.stopGameLoop)
+
+  const isGameplay = currentState === MachineState.PLAYING || currentState === MachineState.PAUSED
 
   // Ensure game loop is stopped when returning to initial state
   useEffect(() => {
@@ -32,20 +35,28 @@ const GameStateManager: React.FC = () => {
     )
   }
 
-  // Render appropriate screen based on game state
-  switch (currentState) {
-    case MachineState.INITIAL:
-      return <TitleScreen />
-    case MachineState.READY_TO_PLAY:
-      return <ReadyScreen />
-    case MachineState.PLAYING:
-    case MachineState.PAUSED:
-      return <GameScreen />
-    case MachineState.GAME_OVER:
-      return <GameOverScreen />
-    default:
-      return null
+  const renderScreen = () => {
+    switch (currentState) {
+      case MachineState.INITIAL:
+        return <TitleScreen />
+      case MachineState.READY_TO_PLAY:
+        return <ReadyScreen />
+      case MachineState.PLAYING:
+      case MachineState.PAUSED:
+        return <GameScreen />
+      case MachineState.GAME_OVER:
+        return <GameOverScreen />
+      default:
+        return null
+    }
   }
+
+  return (
+    <>
+      {!isGameplay && <Header />}
+      {renderScreen()}
+    </>
+  )
 }
 
 export default GameStateManager

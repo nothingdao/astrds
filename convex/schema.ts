@@ -31,4 +31,10 @@ export default defineSchema({
     message: v.string(),
     timestamp: v.string(),
   }),
+
+  players: defineTable({
+    walletAddress: v.string(),
+    avatarStorageId: v.optional(v.id('_storage')),
+    updatedAt: v.number(),
+  }).index('by_wallet', ['walletAddress']),
 })

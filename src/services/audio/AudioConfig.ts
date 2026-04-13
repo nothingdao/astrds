@@ -48,6 +48,28 @@ export const AUDIO_CONFIG = {
       volume: 0.4,
       category: 'sfx',
     },
+
+    // Level-advance stingers (joi voice clips)
+    'joi-lets-fly': {
+      path: '/sounds/joi/lets-fly-this-thing-out-of-here.mp3',
+      volume: 0.7,
+      category: 'sfx',
+    },
+    'joi-whoa': {
+      path: '/sounds/joi/whoa-that-guy-was-no-match-for-you.mp3',
+      volume: 0.7,
+      category: 'sfx',
+    },
+    'joi-space': {
+      path: '/sounds/joi/we-are-space.mp3',
+      volume: 0.7,
+      category: 'sfx',
+    },
+    'joi-helmet': {
+      path: '/sounds/joi/im-not-wearing-a-helmet-either.mp3',
+      volume: 0.7,
+      category: 'sfx',
+    },
   },
 
   music: {
@@ -86,6 +108,10 @@ export const AUDIO_CONFIG = {
     [SOUND_TYPES.COUNTDOWN_PING]: EFFECT_LEVELS.NORMAL,
     [SOUND_TYPES.GAME_OVER]: EFFECT_LEVELS.NORMAL,
     [SOUND_TYPES.SPACE_WIND]: EFFECT_LEVELS.NORMAL,
+    'joi-lets-fly': EFFECT_LEVELS.NORMAL,
+    'joi-whoa': EFFECT_LEVELS.NORMAL,
+    'joi-space': EFFECT_LEVELS.NORMAL,
+    'joi-helmet': EFFECT_LEVELS.NORMAL,
   },
 
   defaultVolumes: {

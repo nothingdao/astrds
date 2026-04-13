@@ -23,7 +23,7 @@ Required env vars in `.env.local`:
 
 ```
 VITE_CONVEX_URL=https://your-deployment.convex.cloud
-VITE_SOLANA_RPC_ENDPOINT=https://...
+VITE_HELIUS_API_KEY=your-helius-api-key
 ```
 
 `pnpm start` runs Vite only (no Convex) — useful if you're working on frontend-only changes.

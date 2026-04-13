@@ -45,3 +45,14 @@ export const get = query({
   args: { sessionId: v.id('gameSessions') },
   handler: async (ctx, { sessionId }) => ctx.db.get(sessionId),
 })
+
+export const getByWallet = query({
+  args: { walletAddress: v.string() },
+  handler: async (ctx, { walletAddress }) => {
+    return await ctx.db
+      .query('gameSessions')
+      .withIndex('by_wallet', (q) => q.eq('walletAddress', walletAddress))
+      .order('desc')
+      .take(50)
+  },
+})

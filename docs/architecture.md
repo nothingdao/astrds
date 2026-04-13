@@ -66,7 +66,7 @@ All backend logic runs in Convex. No Netlify Functions.
 - `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages
 - `VITE_CONVEX_URL` — Convex deployment URL (frontend)
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — SPL mint authority keypair (Convex env, not frontend)
-- `VITE_SOLANA_RPC_ENDPOINT` — Solana RPC
+- `VITE_HELIUS_API_KEY` — Helius API key (network hardcoded in `src/lib/solana.ts`)
 
 ## Out of Scope (currently)
 

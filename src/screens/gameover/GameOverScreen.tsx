@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import GameTitle from '@/components/common/GameTitle'
-import ScreenContainer from '@/components/common/ScreenContainer'
 import { useInventoryStore } from '@/stores/inventoryStore'
 import ASTRDSMinting from '@/components/tokens/ASTRDSMinting'
 import { MachineState } from '@/types/machine'
@@ -18,11 +17,16 @@ const GameOverScreen: React.FC = () => {
   const lastGameStats = useGameData((state) => state.lastGameStats)
   const tokens = useInventoryStore((state) => state.items.tokens)
   const endGameSession = useGameData((state) => state.endGameSession)
+  const submitFinalScore = useGameData((state) => state.submitFinalScore)
   const startTransition = useStateMachine((state) => state.startTransition)
 
   useEffect(() => {
+    const walletAddress = wallet.publicKey?.toString()
+    if (walletAddress) {
+      submitFinalScore(walletAddress).catch(console.error)
+    }
     endGameSession().catch(console.error)
-  }, [endGameSession])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReturnToTitle = async () => {
     try {
@@ -33,10 +37,9 @@ const GameOverScreen: React.FC = () => {
   }
 
   return (
-    <ScreenContainer screenType='GAME_OVER'>
-      <div className='fixed inset-0 flex items-center justify-center z-40 bg-black/75 backdrop-blur-sm'>
-        <div className='max-w-lg w-full mx-4 text-center'>
-          <div className='bg-black/50 border border-white/20 p-8 animate-fadeIn space-y-6'>
+    <div className='fixed inset-0 flex items-center justify-center z-40 bg-black/90'>
+      <div className='max-w-lg w-full mx-4 text-center'>
+          <div className='bg-black border border-white/20 p-8 animate-fadeIn space-y-6'>
             <GameTitle />
             <h1 className='text-game-red text-4xl'>GAME OVER</h1>
 
@@ -87,7 +90,6 @@ const GameOverScreen: React.FC = () => {
           </div>
         </div>
       </div>
-    </ScreenContainer>
   )
 }
 

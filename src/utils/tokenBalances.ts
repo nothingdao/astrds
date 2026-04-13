@@ -1,35 +1,35 @@
 // src/utils/tokenBalances.ts
-import { Connection, PublicKey } from '@solana/web3.js'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { PublicKey } from '@solana/web3.js'
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
+import { connection } from '@/lib/solana'
 
-export async function getTokenBalances(walletAddress, tokenMints) {
+async function getParsedAccountsForProgram(walletPubkey: PublicKey, programId: PublicKey) {
   try {
-    const connection = new Connection(
-      import.meta.env.VITE_SOLANA_RPC_ENDPOINT,
-      'confirmed'
-    )
+    const result = await connection.getParsedTokenAccountsByOwner(walletPubkey, { programId })
+    return result.value
+  } catch {
+    return []
+  }
+}
 
-    // Get all token accounts for the wallet
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      new PublicKey(walletAddress),
-      {
-        programId: TOKEN_PROGRAM_ID,
-      }
-    )
+export async function getTokenBalances(walletAddress: string, tokenMints: string[]) {
+  try {
+    const walletPubkey = new PublicKey(walletAddress)
 
-    // Create a map of mint addresses to balances
-    const balances = {}
+    // Query both legacy and Token-2022 accounts
+    const [legacyAccounts, token2022Accounts] = await Promise.all([
+      getParsedAccountsForProgram(walletPubkey, TOKEN_PROGRAM_ID),
+      getParsedAccountsForProgram(walletPubkey, TOKEN_2022_PROGRAM_ID),
+    ])
 
-    // Initialize all requested token balances to 0
-    tokenMints.forEach((mint) => {
-      balances[mint] = 0
-    })
+    const allAccounts = [...legacyAccounts, ...token2022Accounts]
+    const balances: Record<string, number> = {}
 
-    // Update balances for tokens that are found
-    tokenAccounts.value.forEach((account) => {
+    tokenMints.forEach((mint) => { balances[mint] = 0 })
+
+    allAccounts.forEach((account) => {
       const parsedInfo = account.account.data.parsed.info
       const mintAddress = parsedInfo.mint
-
       if (tokenMints.includes(mintAddress)) {
         balances[mintAddress] =
           Number(parsedInfo.tokenAmount.amount) /
@@ -37,9 +37,8 @@ export async function getTokenBalances(walletAddress, tokenMints) {
       }
     })
 
-    // Get SOL balance
-    const solBalance = await connection.getBalance(new PublicKey(walletAddress))
-    balances.SOL = solBalance / 1e9 // Convert lamports to SOL
+    const solBalance = await connection.getBalance(walletPubkey)
+    balances.SOL = solBalance / 1e9
 
     return balances
   } catch (error) {
@@ -51,40 +50,33 @@ export async function getTokenBalances(walletAddress, tokenMints) {
   }
 }
 
-// Add export for verify function too
 export async function verifyTokenBalance(
-  walletAddress,
-  tokenType,
-  requiredAmount
+  walletAddress: string,
+  tokenType: string,
+  requiredAmount: number
 ) {
   try {
-    const connection = new Connection(
-      import.meta.env.VITE_SOLANA_RPC_ENDPOINT,
-      'confirmed'
-    )
+    const walletPubkey = new PublicKey(walletAddress)
 
     if (tokenType === 'SOL') {
-      const balance = await connection.getBalance(new PublicKey(walletAddress))
-      return balance / 1e9 >= requiredAmount // Convert lamports to SOL
+      const balance = await connection.getBalance(walletPubkey)
+      return balance / 1e9 >= requiredAmount
     }
 
-    // For ASTRDS token
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      new PublicKey(walletAddress),
-      {
-        programId: TOKEN_PROGRAM_ID,
-      }
+    const [legacyAccounts, token2022Accounts] = await Promise.all([
+      getParsedAccountsForProgram(walletPubkey, TOKEN_PROGRAM_ID),
+      getParsedAccountsForProgram(walletPubkey, TOKEN_2022_PROGRAM_ID),
+    ])
+
+    const account = [...legacyAccounts, ...token2022Accounts].find(
+      (a) => a.account.data.parsed.info.mint === tokenType
     )
 
-    const tokenAccount = tokenAccounts.value.find(
-      (account) => account.account.data.parsed.info.mint === tokenType
-    )
-
-    if (!tokenAccount) return false
+    if (!account) return false
 
     const balance =
-      Number(tokenAccount.account.data.parsed.info.tokenAmount.amount) /
-      Math.pow(10, tokenAccount.account.data.parsed.info.tokenAmount.decimals)
+      Number(account.account.data.parsed.info.tokenAmount.amount) /
+      Math.pow(10, account.account.data.parsed.info.tokenAmount.decimals)
 
     return balance >= requiredAmount
   } catch (error) {

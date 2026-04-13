@@ -14,17 +14,22 @@ export const verifyPayment = action({
     paymentType: v.union(v.literal('SOL'), v.literal('ASTRDS')),
   },
   handler: async (ctx, { txSignature, walletAddress, paymentType }) => {
-    const rpcEndpoint = process.env.SOLANA_MAINNET_RPC_ENDPOINT
-    if (!rpcEndpoint) throw new Error('SOLANA_MAINNET_RPC_ENDPOINT not set')
+    const rpcEndpoint = process.env.SOLANA_RPC_ENDPOINT
+    if (!rpcEndpoint) throw new Error('SOLANA_RPC_ENDPOINT not set')
 
     const connection = new Connection(rpcEndpoint, 'confirmed')
 
-    const tx = await connection.getTransaction(txSignature, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0,
-    })
+    let tx = null
+    for (let i = 0; i < 5; i++) {
+      tx = await connection.getTransaction(txSignature, {
+        commitment: 'confirmed',
+        maxSupportedTransactionVersion: 0,
+      })
+      if (tx) break
+      await new Promise((r) => setTimeout(r, 2000))
+    }
 
-    if (!tx) throw new Error('Transaction not found')
+    if (!tx) throw new Error('Transaction not found after retries')
     if (tx.meta?.err) throw new Error('Transaction failed on-chain')
 
     const accountKeys =

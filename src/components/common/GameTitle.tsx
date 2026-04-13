@@ -18,7 +18,7 @@ const GameTitle: React.FC<GameTitleProps> = ({
 
   return (
     <>
-      <h1 className={titleClass}>Solana Asteroids</h1>
+      <h1 className={titleClass}>ASTRDS</h1>
       {subtitle && (
         <h2 className='text-md md:text-lg mb-5 uppercase text-center leading-tight
                       text-white animate-[glow_1.5s_ease-in-out_infinite_alternate]

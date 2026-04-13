@@ -1,9 +1,9 @@
 import {
-  Connection,
   PublicKey,
   SystemProgram,
   Transaction,
 } from '@solana/web3.js'
+import { connection as solanaConnection } from '@/lib/solana'
 import {
   createTransferInstruction,
   getAssociatedTokenAddress,
@@ -19,15 +19,45 @@ const RECIPIENT_WALLET = new PublicKey(
   'AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE'
 )
 const TOKEN_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
-const SOL_COST = 0.05
+const QUARTER_USD = 0.25 // $0.25 per play
 const TOKEN_COST = 1000
 
-class AuthService {
-  private connection: Connection
+// Simple price cache — avoid refetching on every call within the same session
+let _solPriceCache: { usd: number; fetchedAt: number } | null = null
+const PRICE_CACHE_TTL = 60_000 // 1 minute
 
-  constructor() {
-    this.connection = new Connection(import.meta.env.VITE_SOLANA_RPC_ENDPOINT)
+async function getSolPriceUsd(): Promise<number> {
+  const now = Date.now()
+  if (_solPriceCache && now - _solPriceCache.fetchedAt < PRICE_CACHE_TTL) {
+    return _solPriceCache.usd
   }
+
+  try {
+    const res = await fetch(
+      'https://price.jup.ag/v6/price?ids=SOL'
+    )
+    const json = await res.json()
+    const price = json?.data?.SOL?.price as number
+    if (price && price > 0) {
+      _solPriceCache = { usd: price, fetchedAt: now }
+      return price
+    }
+  } catch {
+    // fall through to fallback
+  }
+
+  // Fallback: use cached value if we have one, otherwise a conservative estimate
+  return _solPriceCache?.usd ?? 150
+}
+
+async function getSolCostLamports(): Promise<number> {
+  const solPrice = await getSolPriceUsd()
+  const solAmount = QUARTER_USD / solPrice
+  return Math.ceil(solAmount * 1e9) // round up so we never under-charge
+}
+
+class AuthService {
+  private connection = solanaConnection
 
   async getMintDecimals(): Promise<number> {
     try {
@@ -66,11 +96,12 @@ class AuthService {
     const transaction = new Transaction()
 
     if (paymentType === 'SOL') {
+      const lamports = await getSolCostLamports()
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: walletPubkey,
           toPubkey: RECIPIENT_WALLET,
-          lamports: SOL_COST * 1e9,
+          lamports,
         })
       )
     } else if (paymentType === 'ASTRDS') {
@@ -123,9 +154,11 @@ class AuthService {
         throw new Error(`Insufficient ASTRDS balance. Required: ${TOKEN_COST} ASTRDS`)
       }
     } else {
+      const lamports = await getSolCostLamports()
       const solBalance = await this.connection.getBalance(wallet.publicKey)
-      if (solBalance < SOL_COST * 1e9) {
-        throw new Error(`Insufficient SOL balance. Required: ${SOL_COST} SOL`)
+      if (solBalance < lamports) {
+        const solAmount = (lamports / 1e9).toFixed(4)
+        throw new Error(`Insufficient SOL balance. Required: ~${solAmount} SOL ($0.25)`)
       }
     }
 

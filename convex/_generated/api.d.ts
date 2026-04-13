@@ -10,6 +10,7 @@
 
 import type * as chat from "../chat.js";
 import type * as gameSessions from "../gameSessions.js";
+import type * as players from "../players.js";
 import type * as scores from "../scores.js";
 import type * as sessions from "../sessions.js";
 import type * as tokens from "../tokens.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   gameSessions: typeof gameSessions;
+  players: typeof players;
   scores: typeof scores;
   sessions: typeof sessions;
   tokens: typeof tokens;

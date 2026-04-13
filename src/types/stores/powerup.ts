@@ -6,6 +6,7 @@ export interface PowerupState {
     beam?: boolean
     spread?: boolean
   }
+  powerupExpiresAt: number | null
 }
 
 export interface PowerupActions {

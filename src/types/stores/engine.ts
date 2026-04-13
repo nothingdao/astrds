@@ -36,15 +36,6 @@ export interface EngineScreen {
   ratio: number
 }
 
-// New performance metrics interface
-export interface PerformanceMetrics {
-  fps: number
-  frameTime: number
-  lastFrameTimestamp: number
-  frameCount: number
-  entityCounts: Record<EntityGroup, number>
-}
-
 export interface EngineStoreState extends GameScreenState {
   entities: EngineEntities
   screen: EngineScreen
@@ -64,7 +55,6 @@ export interface EngineStoreState extends GameScreenState {
   lastShipPickupSpawn: number
   shipPickupInterval: number
   gameLoopId: number | null
-  performance: PerformanceMetrics
 }
 
 export interface EngineStoreActions {

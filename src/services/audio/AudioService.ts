@@ -26,6 +26,7 @@ class AudioService {
   private volumes: { [key: string]: number }
   private initialized: boolean
   private effectSettings: { [key: string]: any }
+  private loopingSounds: Set<string>
 
   constructor(config: typeof AUDIO_CONFIG) {
     this.config = config
@@ -36,6 +37,7 @@ class AudioService {
     this.volumes = { ...config.defaultVolumes }
     this.initialized = false
     this.effectSettings = { ...config.effectSettings }
+    this.loopingSounds = new Set()
     this.loadSettings() // Load saved settings on initialization
   }
 
@@ -93,10 +95,11 @@ class AudioService {
     }
 
     try {
-      console.log(`Playing music: ${id}`, { options })
+      // Already playing this track — nothing to do
+      if (this.currentMusic?.id === id) return
 
-      // Stop current music if playing
-      if (this.currentMusic && this.currentMusic !== music) {
+      // Stop previous track with fade
+      if (this.currentMusic) {
         await this.stopMusic(this.currentMusic.id, { fadeOut: true })
       }
 
@@ -354,6 +357,28 @@ class AudioService {
     }
   }
 
+  playSoundLoop(id: string): void {
+    if (this.loopingSounds.has(id)) return
+    const sound = this.sounds.get(id)
+    if (!sound || !this.initialized) return
+    const { audio, config } = sound
+    audio.loop = true
+    audio.volume = this.calculateVolume(config.category) * config.volume
+    audio.play().catch(() => {})
+    this.loopingSounds.add(id)
+  }
+
+  stopSoundLoop(id: string): void {
+    if (!this.loopingSounds.has(id)) return
+    const sound = this.sounds.get(id)
+    if (sound) {
+      sound.audio.loop = false
+      sound.audio.pause()
+      sound.audio.currentTime = 0
+    }
+    this.loopingSounds.delete(id)
+  }
+
   async playSound(id: string): Promise<void> {
     if (!this.initialized) {
       console.warn('Audio system not initialized')
@@ -420,12 +445,12 @@ class AudioService {
     })
     this.sounds.clear()
     this.music.clear()
+    this.loopingSounds.clear()
     this.initialized = false
   }
 }
 
-// Create and export singleton instance
+// Create and export singleton instance.
+// NOTE: do NOT call audioService.init() here — AudioManager owns initialization
+// to avoid double-play under React StrictMode.
 export const audioService = new AudioService(AUDIO_CONFIG)
-
-// Initialize on import
-audioService.init()

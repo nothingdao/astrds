@@ -30,6 +30,7 @@ export default class Ship implements ShipState, ShipMethods {
   public isInvulnerable: boolean
   public invulnerabilityTime: number
   public onDie?: () => void
+  private isThrustActive: boolean
 
   constructor(args: ShipConfig) {
     this.id = `ship-${Date.now()}`
@@ -48,6 +49,7 @@ export default class Ship implements ShipState, ShipMethods {
     this.delete = false
     this.isInvulnerable = args.isRespawning || false
     this.invulnerabilityTime = args.isRespawning ? Date.now() : 0
+    this.isThrustActive = false
   }
 
   destroy(): void {
@@ -55,6 +57,8 @@ export default class Ship implements ShipState, ShipMethods {
     if (powerups.powerups.invincible || this.isInvulnerable) return
 
     this.delete = true
+    audioService.stopSoundLoop('thrust')
+    this.isThrustActive = false
     audioService.playSound('explosion')
 
     particleSystem.createExplosion(this.position, this.radius, 60)
@@ -88,16 +92,7 @@ export default class Ship implements ShipState, ShipMethods {
       }, 2000)
     } else {
       console.log('No ships left - game over')
-      const gameStore = useGameData.getState()
-      const wallet = window.solana?.publicKey?.toString()
-
-      if (wallet) {
-        gameStore.submitFinalScore(wallet).then(() => {
-          this.onDie?.()
-        })
-      } else {
-        this.onDie?.()
-      }
+      this.onDie?.()
     }
   }
 
@@ -114,7 +109,10 @@ export default class Ship implements ShipState, ShipMethods {
     this.velocity.x -= Math.sin((-this.rotation * Math.PI) / 180) * this.speed
     this.velocity.y -= Math.cos((-this.rotation * Math.PI) / 180) * this.speed
 
-    // audioService.playSound('thrust')
+    if (!this.isThrustActive) {
+      this.isThrustActive = true
+      audioService.playSoundLoop('thrust')
+    }
 
     if (Math.random() > 0.5) {
       let posDelta = rotatePoint(
@@ -155,7 +153,12 @@ export default class Ship implements ShipState, ShipMethods {
 
     if (state.keys.left) this.rotate('LEFT')
     if (state.keys.right) this.rotate('RIGHT')
-    if (state.keys.up) this.accelerate()
+    if (state.keys.up) {
+      this.accelerate()
+    } else if (this.isThrustActive) {
+      this.isThrustActive = false
+      audioService.stopSoundLoop('thrust')
+    }
 
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y

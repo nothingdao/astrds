@@ -1,36 +1,28 @@
 // src/components/chat/ChatSystem.tsx
 import React, { useEffect } from 'react'
-import FullChat from './FullChat'
-import OverlayChat from './OverlayChat'
 import { useChatStore } from '@/stores/chatStore'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useKeyboardCommands } from '@/hooks/useKeyboardCommands'
-import { MachineState } from '@/types/machine'
-// import { useGameStateStore } from '@/stores/gameStateStore'
 import { useStateMachine } from '@/stores/stateMachine'
+import { MachineState } from '@/types/machine'
+import OverlayChat from './OverlayChat'
 
 const ChatSystem: React.FC = () => {
   const { connected } = useWallet()
-  const {
-    chatMode,
-    overlayVisible,
-    closeChat,
-    initializeChat,
-    toggleOverlay
-  } = useChatStore()
+  const { overlayVisible, toggleOverlay, initializeChat } = useChatStore()
+  const currentGameState = useStateMachine((state) => state.currentState)
 
-  const currentGameState = useStateMachine(state => state.currentState)
+  const isGameplay =
+    currentGameState === MachineState.PLAYING ||
+    currentGameState === MachineState.PAUSED
 
-  // Only allow chat toggle during gameplay
+  // C — toggle in-game chat sidebar (only during gameplay, not when typing)
   useKeyboardCommands({
     key: 'KeyC',
     action: () => {
-      if (currentGameState === MachineState.PLAYING ||
-        currentGameState === MachineState.PAUSED) {
-        toggleOverlay()
-      }
+      if (isGameplay) toggleOverlay()
     },
-    description: 'Toggle Chat',
+    description: 'Toggle chat overlay',
   })
 
   useEffect(() => {
@@ -39,17 +31,16 @@ const ChatSystem: React.FC = () => {
     }
   }, [connected, initializeChat])
 
-  return (
-    <>
-      {chatMode === 'full' && (
-        <FullChat
-          onClose={closeChat}
-          onPlayClick={() => { }}
-        />
-      )}
-      {overlayVisible && <OverlayChat />}
-    </>
-  )
+  // Close overlay when leaving gameplay
+  useEffect(() => {
+    if (!isGameplay && overlayVisible) {
+      useChatStore.getState().closeChat()
+    }
+  }, [isGameplay, overlayVisible])
+
+  if (!isGameplay || !overlayVisible) return null
+
+  return <OverlayChat />
 }
 
 export default ChatSystem

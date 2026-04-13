@@ -1,5 +1,5 @@
 // src/screens/title/PaymentModal.tsx
-import React, { memo } from 'react'
+import React, { memo, useEffect, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Coins } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,6 +11,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+
+async function fetchSolPrice(): Promise<number | null> {
+  try {
+    const res = await fetch('https://price.jup.ag/v6/price?ids=SOL')
+    const json = await res.json()
+    const price = json?.data?.SOL?.price as number
+    return price > 0 ? price : null
+  } catch {
+    return null
+  }
+}
 
 interface PaymentOptionProps {
   selected: boolean
@@ -33,7 +44,10 @@ const PaymentOption = memo(({ selected, onSelect, type, amount, symbol, label }:
     <div className='flex items-center gap-3'>
       <Coins size={20} className={selected ? 'text-game-blue' : 'text-gray-500'} />
       <div className='text-left'>
-        <div className='font-mono'>{amount.toLocaleString()} {symbol}</div>
+        {amount > 0
+          ? <div className='font-mono'>{amount.toFixed(4)} {symbol}</div>
+          : <div className='font-mono text-gray-500 text-sm'>fetching price…</div>
+        }
         <div className='text-xs opacity-60'>{label}</div>
       </div>
     </div>
@@ -45,6 +59,17 @@ const PaymentModal = memo((props: FormProps) => {
   const { isVisible, selectedOption, onSelect, onSubmit, onClose, error } = props
   const wallet = useWallet()
   const { isVerifying: authVerifying } = useAuth()
+  const [solPrice, setSolPrice] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!isVisible) return
+    fetchSolPrice().then(setSolPrice)
+  }, [isVisible])
+
+  const solAmount = solPrice ? (0.25 / solPrice) : null
+  const solLabel = solAmount
+    ? `~${solAmount.toFixed(4)} SOL ($0.25)`
+    : 'Pay with SOL ($0.25)'
 
   return (
     <Dialog open={isVisible} onOpenChange={(open) => !open && onClose()}>
@@ -59,9 +84,9 @@ const PaymentModal = memo((props: FormProps) => {
         <div className='space-y-4 my-4'>
           <PaymentOption
             type='SOL'
-            amount={0.05}
-            symbol='SOL'
-            label='Pay with SOL'
+            amount={solAmount ?? 0}
+            symbol={solAmount ? 'SOL' : ''}
+            label={solLabel}
             selected={selectedOption === 'SOL'}
             onSelect={onSelect}
           />

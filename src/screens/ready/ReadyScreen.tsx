@@ -23,7 +23,7 @@ const ReadyScreen: React.FC = () => {
 
   const resetEngine = useEngineStore((state) => state.resetEngine)
   const { playSound, stopMusic, transitionMusic } = useAudio()
-  const { verifyWallet, clearAuth } = useAuth()
+  const { clearAuth } = useAuth()
   const startTransition = useStateMachine(state => state.startTransition)
   const wallet = useWallet()
   const startGameSession = useGameData(state => state.startGameSession)
@@ -59,13 +59,6 @@ const ReadyScreen: React.FC = () => {
         if (!mountedRef.current) return
         setIsQuarterInserting(false)
 
-        const isVerified = await verifyWallet()
-        if (!isVerified) {
-          throw new Error('Wallet verification failed')
-        }
-
-        if (!mountedRef.current) return
-
         // Reset the engine state before countdown
         resetEngine()
 
@@ -100,7 +93,7 @@ const ReadyScreen: React.FC = () => {
       mountedRef.current = false
       stopMusic(MUSIC_TRACKS.READY, { fadeOut: true })
     }
-  }, [startTransition, resetEngine, playSound, stopMusic, transitionMusic, verifyWallet, clearAuth, wallet.publicKey, startGameSession])
+  }, [startTransition, resetEngine, playSound, stopMusic, transitionMusic, clearAuth, wallet.publicKey, startGameSession])
 
   const handleReturnToTitle = async () => {
     try {

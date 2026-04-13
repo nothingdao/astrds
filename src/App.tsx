@@ -13,8 +13,9 @@ import OverlayManager from './components/overlay/OverlayManager'
 import { useSettingsPanelStore } from './stores/settingsPanelStore'
 import { useAudio } from './hooks/useAudio'
 import { usePhantom } from './hooks/usePhantom'
+import { audioManager } from './services/audio/AudioManager'
 import { Commitment } from '@solana/web3.js';
-import Debugger from './components/Debugger';
+import { RPC_ENDPOINT } from '@/lib/solana';
 
 
 interface LoadingOverlayProps {
@@ -46,11 +47,12 @@ const App: React.FC = () => {
 
   const { volumes, setVolume, isInitialized } = useAudio();
   const toggleSettingsPanel = useSettingsPanelStore((state) => state.toggle);
-  const endpoint = useMemo(() => import.meta.env.VITE_SOLANA_RPC_ENDPOINT, [])
+  const endpoint = useMemo(() => RPC_ENDPOINT, [])
 
   useEffect(() => {
     if (isInitialized) {
       setIsLoading(false)
+      audioManager.start()
     }
   }, [isInitialized])
 

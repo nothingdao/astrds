@@ -6,7 +6,6 @@ import { StyledWalletButton } from './StyledComponents'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useStateMachine, selectMachineState } from '@/stores/stateMachine'
 import { Overlay } from '@/types/overlay'
-import VolumeControl from '../sound/VolumeControl'
 import { MachineState } from '@/types/machine'
 
 interface HeaderButtonProps {
@@ -63,9 +62,6 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
 }
 
 const Header: React.FC = () => {
-  const currentGameState = useStateMachine(selectMachineState)
-  const isInGame = currentGameState === MachineState.PLAYING
-
   // Updated the buttons array with proper typing
   const headerButtons: Array<HeaderButtonProps & { key: string }> = [
     {
@@ -103,30 +99,17 @@ const Header: React.FC = () => {
   ]
 
   return (
-    <header className='fixed top-0 w-full z-50 backdrop-blur-sm border-b border-white/10 px-4 py-3'>
-      <div className='max-w-7xl mx-auto flex justify-between items-center gap-4'>
-        {/* Left section */}
-        <div className='flex items-center gap-4'>
-          <VolumeControl />
-          {isInGame && (
-            <span className='text-xs text-game-blue'>
-              [ESC] to Pause
-            </span>
-          )}
-        </div>
-
-        {/* Right section */}
-        <div className='flex items-center gap-4'>
-          {headerButtons.map(({ key, ...buttonProps }) => (
-            <HeaderButton
-              key={key}
-              {...buttonProps}
-            />
-          ))}
-          <StyledWalletButton>
-            <WalletMultiButton />
-          </StyledWalletButton>
-        </div>
+    <header className='fixed top-0 w-full z-50 border-b border-white/10 px-4 py-3'>
+      <div className='max-w-7xl mx-auto flex justify-end items-center gap-4'>
+        {headerButtons.map(({ key, ...buttonProps }) => (
+          <HeaderButton
+            key={key}
+            {...buttonProps}
+          />
+        ))}
+        <StyledWalletButton>
+          <WalletMultiButton />
+        </StyledWalletButton>
       </div>
     </header>
   )

@@ -1,8 +1,11 @@
 // src/screens/leaderboard/LeaderboardTable.tsx
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import AvatarDisplay from '@/components/common/AvatarDisplay'
 
 type Score = {
   walletAddress: string
@@ -13,7 +16,6 @@ type Score = {
 type LeaderboardTableProps = {
   scores: Score[]
   loading: boolean
-  playerWallet?: string
 }
 
 const shortenAddress = (address: string) => {
@@ -49,12 +51,22 @@ const LoadingSkeleton = () => (
   </div>
 )
 
-const ScoreRow = ({ score, index, isCurrentUser }: { score: Score; index: number; isCurrentUser: boolean }) => {
+const ScoreRow = ({
+  score,
+  index,
+  isCurrentUser,
+  avatarUrl,
+}: {
+  score: Score
+  index: number
+  isCurrentUser: boolean
+  avatarUrl?: string | null
+}) => {
   const rankBadge = RANK_BADGES[index]
 
   return (
     <div
-      className={`grid grid-cols-4 gap-4 px-4 py-2 transition-colors
+      className={`grid grid-cols-4 gap-4 px-4 py-2 transition-colors items-center
         ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-gray-300 hover:bg-white/5'}
         ${index < 3 ? 'py-3' : ''}`}
     >
@@ -66,9 +78,10 @@ const ScoreRow = ({ score, index, isCurrentUser }: { score: Score; index: number
         )}
       </div>
       <div className='flex items-center gap-2'>
+        <AvatarDisplay url={avatarUrl} address={score.walletAddress} size={22} />
         <span className='font-mono text-sm'>{shortenAddress(score.walletAddress)}</span>
         <a
-          href={`https://solscan.io/account/${score.walletAddress}`}
+          href={`https://solscan.io/account/${score.walletAddress}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
           className='text-gray-500 hover:text-white transition-colors text-xs'
@@ -82,9 +95,18 @@ const ScoreRow = ({ score, index, isCurrentUser }: { score: Score; index: number
   )
 }
 
-const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading, playerWallet }) => {
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) => {
   const wallet = useWallet()
   const isCurrentUser = (address: string) => wallet.publicKey?.toString() === address
+
+  const uniqueWallets = useMemo(
+    () => [...new Set(scores.map((s) => s.walletAddress))],
+    [scores]
+  )
+  const avatarUrls = useQuery(
+    api.players.getAvatarUrls,
+    uniqueWallets.length > 0 ? { walletAddresses: uniqueWallets } : 'skip'
+  ) ?? {}
 
   if (loading) return <LoadingSkeleton />
 
@@ -106,7 +128,13 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading, pl
 
       <div className='space-y-1'>
         {topThree.map((score, i) => (
-          <ScoreRow key={`${score.walletAddress}-${i}`} score={score} index={i} isCurrentUser={isCurrentUser(score.walletAddress)} />
+          <ScoreRow
+            key={`${score.walletAddress}-${i}`}
+            score={score}
+            index={i}
+            isCurrentUser={isCurrentUser(score.walletAddress)}
+            avatarUrl={avatarUrls[score.walletAddress]}
+          />
         ))}
       </div>
 
@@ -115,7 +143,13 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading, pl
       {rest.length > 0 && (
         <div className='max-h-48 overflow-y-auto space-y-1'>
           {rest.map((score, i) => (
-            <ScoreRow key={`${score.walletAddress}-${i + 3}`} score={score} index={i + 3} isCurrentUser={isCurrentUser(score.walletAddress)} />
+            <ScoreRow
+              key={`${score.walletAddress}-${i + 3}`}
+              score={score}
+              index={i + 3}
+              isCurrentUser={isCurrentUser(score.walletAddress)}
+              avatarUrl={avatarUrls[score.walletAddress]}
+            />
           ))}
         </div>
       )}

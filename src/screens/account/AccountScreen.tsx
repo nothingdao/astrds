@@ -1,21 +1,22 @@
 // src/screens/account/AccountScreen.tsx
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import {
   ExternalLink,
   Trophy,
   Clock,
   Target,
-  Crosshair,
   Gamepad2,
   BarChart3,
   Award,
   Coins,
+  Camera,
 } from 'lucide-react'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { getTokenBalances } from '@/utils/tokenBalances'
 import { Button } from '@/components/ui/button'
+import AvatarDisplay from '@/components/common/AvatarDisplay'
 
 const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
 
@@ -37,27 +38,28 @@ const MetricCard = ({ icon: Icon, label, value, sublabel }) => (
   </div>
 )
 
-const TokenBalance = ({ label, balance, symbol, address, loading }) => (
+const TokenBalance = ({ label, balance, symbol, address, loading, icon = null }) => (
   <div className='bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors'>
     <div className='flex items-center justify-between'>
-      <div>
-        <div className='text-xs text-gray-400 mb-1'>{label}</div>
-        <div className='text-xl text-game-blue font-mono'>
-          {loading ? (
-            <div className='h-6 w-20 bg-game-blue/10 animate-pulse rounded' />
-          ) : balance !== undefined ? (
-            `${balance.toLocaleString()} ${symbol}`
-          ) : (
-            '0 ${symbol}'
-          )}
+      <div className='flex items-center gap-3'>
+        {icon && <div className='shrink-0'>{icon}</div>}
+        <div>
+          <div className='text-xs text-gray-400 mb-1'>{label}</div>
+          <div className='text-xl text-game-blue font-mono'>
+            {loading ? (
+              <div className='h-6 w-20 bg-game-blue/10 animate-pulse rounded' />
+            ) : (
+              `${(balance ?? 0).toLocaleString()} ${symbol}`
+            )}
+          </div>
         </div>
       </div>
       {address && (
         <a
-          href={`https://solscan.io/token/${address}`}
+          href={`https://solscan.io/token/${address}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-gray-400 hover:text-white transition-colors'
+          className='text-gray-400 hover:text-white transition-colors shrink-0'
         >
           <ExternalLink size={16} />
         </a>
@@ -68,83 +70,107 @@ const TokenBalance = ({ label, balance, symbol, address, loading }) => (
 
 const AccountScreen = ({ onClose }) => {
   const wallet = useWallet()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
   const allScores = useQuery(api.scores.getScores) ?? []
+  const gameSessions = useQuery(
+    api.gameSessions.getByWallet,
+    wallet.publicKey ? { walletAddress: wallet.publicKey.toString() } : 'skip'
+  ) ?? []
+
+  const generateUploadUrl = useMutation(api.players.generateUploadUrl)
+  const saveAvatarMutation = useMutation(api.players.saveAvatar)
+  const avatarUrl = useQuery(
+    api.players.getAvatarUrl,
+    wallet.publicKey ? { walletAddress: wallet.publicKey.toString() } : 'skip'
+  )
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !wallet.publicKey) return
+    setUploading(true)
+    try {
+      const uploadUrl = await generateUploadUrl()
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      const { storageId } = await res.json()
+      await saveAvatarMutation({ walletAddress: wallet.publicKey.toString(), storageId })
+    } catch (err) {
+      console.error('Avatar upload failed:', err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const [loading, setLoading] = React.useState(true)
-  const [scores, setScores] = React.useState<Array<{ score: number; walletAddress: string; date?: string }>>([])
   const [tokenBalances, setTokenBalances] = React.useState<Record<string, number>>({
     SOL: 0,
     [MINT_ADDRESS]: 0,
   })
-  const [stats, setStats] = React.useState({
-    totalGames: 0,
-    averageScore: 0,
-    bestScore: 0,
-    bestRank: null as number | null,
-    accuracy: 0,
-    totalPlayTime: 0,
-    favoriteLevel: 1,
-  })
 
   React.useEffect(() => {
-    const loadStats = async () => {
-      if (!wallet.publicKey || allScores.length === 0) return
+    if (!wallet.publicKey) return
+    let cancelled = false
 
-      try {
-        const walletAddress = wallet.publicKey.toString()
-        const userScores = allScores.filter(
-          (s) => s.walletAddress === walletAddress
-        )
-
-        // Load token balances
-        const balances = await getTokenBalances(walletAddress, [MINT_ADDRESS])
+    getTokenBalances(wallet.publicKey.toString(), [MINT_ADDRESS]).then((balances) => {
+      if (!cancelled) {
         setTokenBalances(balances)
-
-        if (userScores.length > 0) {
-          const totalScore = userScores.reduce((sum, s) => sum + s.score, 0)
-          const bestScore = Math.max(...userScores.map((s) => s.score))
-          const bestRankIndex = allScores.findIndex(
-            (s) => s.walletAddress === walletAddress && s.score === bestScore
-          )
-
-          setStats({
-            totalGames: userScores.length,
-            averageScore: Math.round(totalScore / userScores.length),
-            bestScore,
-            bestRank: bestRankIndex + 1,
-            accuracy: Math.round(Math.random() * 30 + 70), // Simulated accuracy
-            totalPlayTime: Math.round(userScores.length * 3.5), // Simulated playtime
-            favoriteLevel: Math.round(Math.random() * 5 + 1), // Simulated favorite level
-          })
-          setScores(userScores.sort((a, b) => b.score - a.score).slice(0, 5))
-        }
-      } catch (error) {
-        console.error('Error loading account stats:', error)
-      } finally {
         setLoading(false)
       }
-    }
+    })
 
-    loadStats()
+    return () => { cancelled = true }
   }, [wallet.publicKey])
 
   if (!wallet.connected) {
     return (
       <div className='max-w-md mx-auto text-center'>
         <h2 className='text-2xl text-game-blue mb-4'>Account</h2>
-        <p className='text-gray-400'>
-          Connect your wallet to view your profile
-        </p>
+        <p className='text-gray-400'>Connect your wallet to view your profile</p>
       </div>
     )
   }
+
+  const walletAddress = wallet.publicKey?.toString() ?? ''
+
+  // Stats derived from real data
+  const endedSessions = gameSessions.filter((s) => s.status === 'ended')
+  const totalGames = endedSessions.length
+  const bestScore = totalGames > 0 ? Math.max(...endedSessions.map((s) => s.score)) : 0
+  const averageScore = totalGames > 0
+    ? Math.round(endedSessions.reduce((sum, s) => sum + s.score, 0) / totalGames)
+    : 0
+  const totalPlayMs = endedSessions.reduce((sum, s) => {
+    if (!s.sessionEnd) return sum
+    return sum + (new Date(s.sessionEnd).getTime() - new Date(s.sessionStart).getTime())
+  }, 0)
+  const totalPlayMin = Math.round(totalPlayMs / 60000)
+
+  const levelCounts = endedSessions.reduce<Record<number, number>>((acc, s) => {
+    acc[s.levelReached] = (acc[s.levelReached] ?? 0) + 1
+    return acc
+  }, {})
+  const favoriteLevel = Object.entries(levelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—'
+
+  const leaderboardRank = allScores.findIndex((s) => s.walletAddress === walletAddress && s.score === bestScore)
+  const bestRank = leaderboardRank >= 0 ? leaderboardRank + 1 : null
+
+  const recentGames = [...endedSessions]
+    .sort((a, b) => new Date(b.sessionStart).getTime() - new Date(a.sessionStart).getTime())
+    .slice(0, 5)
 
   return (
     <div className='w-full max-h-[90vh] overflow-y-auto'>
       <div className='max-w-7xl mx-auto p-4'>
         <div className='grid grid-cols-1 md:grid-cols-12 gap-8'>
+
           {/* Left Column - Balances */}
           <div className='md:col-span-3 space-y-6'>
-            {/* Token Balances Section */}
             <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Coins size={20} />
@@ -152,43 +178,32 @@ const AccountScreen = ({ onClose }) => {
               </h2>
               <div className='space-y-4'>
                 <TokenBalance
-                  label='SOL Balance'
+                  label='SOL'
                   balance={tokenBalances.SOL}
                   symbol='SOL'
                   address=''
                   loading={loading}
                 />
                 <TokenBalance
-                  label='ASTRDS Balance'
+                  label='ASTRDS'
                   balance={tokenBalances[MINT_ADDRESS]}
                   symbol='ASTRDS'
                   address={MINT_ADDRESS}
                   loading={loading}
-                />
-              </div>
-            </div>
-
-            {/* Claim Balance Section */}
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
-                <Award size={20} />
-                Claim Balance
-              </h2>
-              <div className='space-y-4'>
-                <TokenBalance
-                  label='TEROIDS Balance'
-                  // balance={tokenBalances.TEROIDS}
-                  balance='420'
-                  symbol='TEROIDS'
-                  loading={false}
+                  icon={
+                    <img
+                      src='/astrds.png'
+                      alt='ASTRDS'
+                      className='w-8 h-8 rounded-full object-cover'
+                    />
+                  }
                 />
               </div>
             </div>
           </div>
 
-          {/* Center Column - Stats Grid and Recent Games */}
+          {/* Center Column - Stats + Recent Games */}
           <div className='md:col-span-6 space-y-6'>
-            {/* Performance Stats Section */}
             <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <BarChart3 size={20} />
@@ -198,69 +213,67 @@ const AccountScreen = ({ onClose }) => {
                 <MetricCard
                   icon={Gamepad2}
                   label='Total Games'
-                  value={stats.totalGames}
+                  value={totalGames || '—'}
                   sublabel='Career games played'
                 />
                 <MetricCard
                   icon={Trophy}
                   label='Best Score'
-                  value={stats.bestScore.toLocaleString()}
+                  value={bestScore ? bestScore.toLocaleString() : '—'}
                   sublabel='Personal record'
                 />
                 <MetricCard
                   icon={Target}
                   label='Average Score'
-                  value={stats.averageScore.toLocaleString()}
+                  value={averageScore ? averageScore.toLocaleString() : '—'}
                   sublabel='Points per game'
-                />
-                <MetricCard
-                  icon={Crosshair}
-                  label='Accuracy'
-                  value={`${stats.accuracy}%`}
-                  sublabel='Hit ratio'
                 />
                 <MetricCard
                   icon={Clock}
                   label='Play Time'
-                  value={`${stats.totalPlayTime}m`}
+                  value={totalPlayMin ? `${totalPlayMin}m` : '—'}
                   sublabel='Total time played'
                 />
                 <MetricCard
                   icon={Award}
                   label='Favorite Level'
-                  value={stats.favoriteLevel}
-                  sublabel='Most played level'
+                  value={favoriteLevel}
+                  sublabel='Most reached level'
+                />
+                <MetricCard
+                  icon={Trophy}
+                  label='Best Rank'
+                  value={bestRank ? `#${bestRank}` : '—'}
+                  sublabel='Leaderboard position'
                 />
               </div>
             </div>
 
-            {/* Recent Games Section - Moved from right column */}
             <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Clock size={20} />
                 Recent Games
               </h2>
               <div className='space-y-3'>
-                {scores.map((score, index) => (
+                {recentGames.map((session) => (
                   <div
-                    key={score.date}
-                    className='bg-black/30 border border-white/10 rounded-lg p-3
-                               hover:border-game-blue/30 transition-colors'
+                    key={session._id}
+                    className='bg-black/30 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
                   >
                     <div className='flex justify-between items-center mb-1'>
                       <span className='text-xs text-gray-400'>
-                        {new Date(score.date).toLocaleDateString()}
+                        {new Date(session.sessionStart).toLocaleDateString()}
                       </span>
                       <span className='text-xs text-gray-500'>
-                        #{index + 1}
+                        Level {session.levelReached}
                       </span>
                     </div>
                     <div className='text-lg font-mono text-game-blue'>
-                      {score.score.toLocaleString()}
+                      {session.score.toLocaleString()}
                     </div>
                   </div>
                 ))}
-                {scores.length === 0 && (
+                {recentGames.length === 0 && (
                   <div className='text-center text-gray-500 text-sm py-4'>
                     No games played yet
                   </div>
@@ -269,18 +282,43 @@ const AccountScreen = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Right Column - Player Info */}
+          {/* Right Column - Profile */}
           <div className='md:col-span-3 space-y-6'>
-            {/* Profile Section */}
             <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Trophy size={20} />
                 Player Profile
               </h2>
               <div className='space-y-4'>
+                {/* Avatar */}
+                <div className='flex flex-col items-center gap-3'>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className='relative group'
+                    title='Upload avatar'
+                  >
+                    <AvatarDisplay url={avatarUrl} address={walletAddress} size={80} />
+                    <div className='absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity'>
+                      {uploading
+                        ? <div className='text-xs text-white animate-pulse'>...</div>
+                        : <Camera size={18} className='text-white' />
+                      }
+                    </div>
+                  </button>
+                  <p className='text-xs text-gray-500'>Click to upload avatar</p>
+                  <input
+                    ref={fileInputRef}
+                    type='file'
+                    accept='image/*'
+                    className='hidden'
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
                 <div className='text-center p-4 border border-white/5 rounded-lg bg-black/30'>
                   <div className='text-4xl text-game-blue font-mono mb-2'>
-                    #{stats.bestRank || '??'}
+                    {bestRank ? `#${bestRank}` : '—'}
                   </div>
                   <div className='text-xs text-gray-400'>Best Rank</div>
                 </div>
@@ -288,11 +326,10 @@ const AccountScreen = ({ onClose }) => {
                   <span className='text-gray-400'>Wallet</span>
                   <div className='flex items-center gap-2'>
                     <span className='font-mono text-xs text-white/70'>
-                      {wallet.publicKey?.toString().slice(0, 4)}...
-                      {wallet.publicKey?.toString().slice(-4)}
+                      {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
                     </span>
                     <a
-                      href={`https://solscan.io/account/${wallet.publicKey?.toString()}`}
+                      href={`https://solscan.io/account/${walletAddress}?cluster=devnet`}
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-gray-400 hover:text-white transition-colors'
@@ -303,31 +340,9 @@ const AccountScreen = ({ onClose }) => {
                 </div>
               </div>
             </div>
-
-            {/* Achievement Badges */}
-            <div className='bg-black/50 border border-white/10 rounded-lg p-6'>
-              <h3 className='text-sm text-game-blue mb-4 flex items-center gap-2'>
-                <Award size={16} />
-                Achievements
-              </h3>
-              <div className='grid grid-cols-3 gap-2'>
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className='aspect-square rounded-lg bg-black/30 border border-white/5 flex items-center justify-center'
-                  >
-                    <div className='w-8 h-8 rounded-full bg-game-blue/10 animate-pulse' />
-                  </div>
-                ))}
-              </div>
-              <div className='text-center mt-4 text-xs text-gray-500'>
-                More achievements coming soon!
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Close Button */}
         <Button
           variant='ghost'
           size='icon'

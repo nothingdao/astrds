@@ -2,8 +2,7 @@
 
 interface ImportMeta {
   readonly env: {
-    readonly VITE_SOLANA_RPC_ENDPOINT: string
-    // Add other env variables as needed
+    readonly VITE_HELIUS_API_KEY: string
   }
 }
 
