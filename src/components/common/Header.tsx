@@ -7,7 +7,6 @@ import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import WalletDropdown from './WalletDropdown'
 import { Kbd } from '@/components/ui/kbd'
-import { useOverlayStore } from '@/stores/overlayStore'
 
 interface HeaderButtonProps {
   icon: LucideIcon
