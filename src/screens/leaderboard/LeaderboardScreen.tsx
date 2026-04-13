@@ -111,15 +111,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                 </div>
               </div>
 
-              <div className='bg-black/50 border border-white/10 rounded-lg p-6'>
-                <h3 className='text-lg text-game-blue mb-3'>Pro Tips</h3>
-                <ul className='space-y-2 text-sm text-white/80'>
-                  <li>• Smaller asteroids are worth more points</li>
-                  <li>• Collect power-ups to enhance your ship</li>
-                  <li>• Use chat to connect with other players</li>
-                  <li>• Press [P] to pause and view controls</li>
-                </ul>
-              </div>
             </div>
 
             <div className='bg-black/50 border border-white/10 rounded-lg p-6 max-h-[70vh] overflow-y-auto'>
