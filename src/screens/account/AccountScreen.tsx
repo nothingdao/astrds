@@ -15,7 +15,6 @@ import {
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { getTokenBalances } from '@/utils/tokenBalances'
-import { Button } from '@/components/ui/button'
 import AvatarDisplay from '@/components/common/AvatarDisplay'
 
 const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
@@ -129,9 +128,8 @@ const AccountScreen = ({ onClose }) => {
 
   if (!wallet.connected) {
     return (
-      <div className='max-w-md mx-auto text-center'>
-        <h2 className='text-2xl text-game-blue mb-4'>Account</h2>
-        <p className='text-gray-400'>Connect your wallet to view your profile</p>
+      <div className='p-10 text-center'>
+        <p className='font-mono text-sm text-white/40'>Connect your wallet to view your profile</p>
       </div>
     )
   }
@@ -165,9 +163,8 @@ const AccountScreen = ({ onClose }) => {
     .slice(0, 5)
 
   return (
-    <div className='w-full max-h-[90vh] overflow-y-auto'>
-      <div className='max-w-7xl mx-auto p-4'>
-        <div className='grid grid-cols-1 md:grid-cols-12 gap-8'>
+    <div className='p-5'>
+      <div className='grid grid-cols-1 md:grid-cols-12 gap-6'>
 
           {/* Left Column - Balances */}
           <div className='md:col-span-3 space-y-6'>
@@ -341,16 +338,6 @@ const AccountScreen = ({ onClose }) => {
               </div>
             </div>
           </div>
-        </div>
-
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={onClose}
-          className='fixed top-4 right-4'
-        >
-          ✕
-        </Button>
       </div>
     </div>
   )

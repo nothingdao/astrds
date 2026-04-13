@@ -70,10 +70,8 @@ const TokenomicsScreen = ({ onClose }) => {
   )
 
   return (
-    <div className='inset-0 z-40 flex items-center justify-center bg-black/75 backdrop-blur-sm'>
-      <div className='w-full min-h-screen py-8 px-4 overflow-y-auto'>
-        <div className='max-w-7xl mx-auto'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+    <div className='p-5'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-6'>
               <div className='grid grid-cols-1 gap-4'>
                 <StatCard
@@ -153,8 +151,6 @@ const TokenomicsScreen = ({ onClose }) => {
                 </div>
               </InfoSection>
             </div>
-          </div>
-        </div>
       </div>
     </div>
   )

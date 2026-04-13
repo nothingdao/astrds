@@ -109,35 +109,27 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
   }
 
   return (
-    <div className='max-w-2xl w-full mx-auto h-[80vh] top-20 mt-10 flex flex-col bg-black border border-game-blue p-6'>
-      <button
-        onClick={onClose}
-        className='absolute top-4 right-4 text-gray-400 hover:text-white transition-colors'
-      >
-        <span className='text-2xl'>✕</span>
-      </button>
-
-      <div className='flex justify-between items-center mb-4 mt-12'>
-        <h2 className='text-xl text-game-blue'>Game Chat</h2>
+    <div className='flex flex-col h-full' style={{ minHeight: '480px' }}>
+      <div className='px-5 py-3 border-b border-white/8'>
       </div>
 
-      <div className='flex-1 relative'>
+      <div className='flex-1 relative min-h-0'>
         <div
           ref={messagesContainerRef}
           className='absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-game-blue'
           style={{ paddingBottom: '0.5rem' }}
         >
           <div className='min-h-full flex flex-col justify-end'>
-            <div className='space-y-4'>
+            <div className='space-y-4 px-5 py-3'>
               {messages.length === 0 ? (
-                <div className='text-center text-gray-500'>No messages yet</div>
+                <div className='text-center text-white/30 font-mono text-xs py-8'>No messages yet</div>
               ) : (
                 messages.map((msg) => {
                   const isOwn = msg.walletAddress === wallet.publicKey?.toString()
                   return (
                     <div
                       key={msg._id}
-                      className={`flex items-start gap-3 px-2 ${isOwn ? 'opacity-100' : 'opacity-80'}`}
+                      className={`flex items-start gap-3 ${isOwn ? 'opacity-100' : 'opacity-70'}`}
                     >
                       <AvatarDisplay
                         url={avatarUrls[msg.walletAddress]}
@@ -174,7 +166,7 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
         <NewMessagesIndicator />
       </div>
 
-      <form onSubmit={handleSubmit} className='flex gap-2'>
+      <form onSubmit={handleSubmit} className='flex gap-2 px-5 py-3 border-t border-white/10 shrink-0'>
         <input
           type='text'
           value={newMessage}
@@ -201,7 +193,7 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
         </button>
       </form>
 
-      {error && <div className='mt-2 text-red-500 text-sm text-center'>{error}</div>}
+      {error && <div className='px-5 pb-2 text-game-red text-xs'>{error}</div>}
     </div>
   )
 }

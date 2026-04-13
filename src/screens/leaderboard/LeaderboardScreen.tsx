@@ -75,10 +75,8 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   };
 
   return (
-    <div className='inset-0 flex items-center justify-center z-40 bg-black/75 backdrop-blur-sm'>
-      <div className='w-full min-h-screen py-8 px-4'>
-        <div className='max-w-7xl mx-auto'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+    <div className='p-5'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-6'>
               <div className='bg-black/50 border border-white/10 rounded-lg p-6'>
                 <h2 className='text-xl text-game-blue mb-4'>Your Stats</h2>
@@ -134,8 +132,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                 loading={loading}
               />
             </div>
-          </div>
-        </div>
       </div>
     </div>
   );
