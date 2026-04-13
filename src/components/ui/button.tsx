@@ -11,9 +11,9 @@ const buttonVariants = cva(
         // Standard game button — blue
         default:
           "border-2 border-game-blue text-game-blue bg-transparent hover:bg-game-blue hover:text-black hover:shadow-[0_0_15px_#4dc1f9]",
-        // Insert quarter — green
+        // Insert quarter — green, solid fill with grain
         quarter:
-          "border-2 border-game-green text-game-green bg-transparent hover:bg-game-green hover:text-black hover:shadow-[0_0_15px_#4dff4d]",
+          "btn-grain bg-game-green text-black hover:bg-white hover:shadow-[0_0_20px_#4dff4d]",
         // Danger / red
         destructive:
           "border-2 border-game-red text-game-red bg-transparent hover:bg-game-red hover:text-black hover:shadow-[0_0_15px_#ff4d4d]",
