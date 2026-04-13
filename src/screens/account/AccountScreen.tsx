@@ -8,7 +8,6 @@ import {
   Target,
   Gamepad2,
   BarChart3,
-  Award,
   Coins,
   Camera,
 } from 'lucide-react'
@@ -149,13 +148,8 @@ const AccountScreen = ({ onClose }) => {
   }, 0)
   const totalPlayMin = Math.round(totalPlayMs / 60000)
 
-  const levelCounts = endedSessions.reduce<Record<number, number>>((acc, s) => {
-    acc[s.levelReached] = (acc[s.levelReached] ?? 0) + 1
-    return acc
-  }, {})
-  const favoriteLevel = Object.entries(levelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—'
-
-  const leaderboardRank = allScores.findIndex((s) => s.walletAddress === walletAddress && s.score === bestScore)
+  // allScores is sorted descending — first hit for this wallet is the best rank
+  const leaderboardRank = allScores.findIndex((s) => s.walletAddress === walletAddress)
   const bestRank = leaderboardRank >= 0 ? leaderboardRank + 1 : null
 
   const recentGames = [...endedSessions]
@@ -230,12 +224,6 @@ const AccountScreen = ({ onClose }) => {
                   label='Play Time'
                   value={totalPlayMin ? `${totalPlayMin}m` : '—'}
                   sublabel='Total time played'
-                />
-                <MetricCard
-                  icon={Award}
-                  label='Favorite Level'
-                  value={favoriteLevel}
-                  sublabel='Most reached level'
                 />
                 <MetricCard
                   icon={Trophy}
