@@ -40,7 +40,7 @@ const SpaceTokenClaim: React.FC = () => {
           pillCount: entry.pillCount,
         })
         if (res.totalClaimed > 0) {
-          results.push({ symbol: entry.symbol, total: res.totalClaimed / 10 ** entry.decimals })
+          results.push({ symbol: entry.symbol, total: res.totalClaimed / 10 ** (entry.decimals ?? 6) })
         }
       }
       setClaimed(results)
@@ -65,7 +65,7 @@ const SpaceTokenClaim: React.FC = () => {
         <>
           <div className='space-y-1'>
             {collected.map((c) => {
-              const perPillUi = c.tokensPerPill / 10 ** c.decimals
+              const perPillUi = c.tokensPerPill / 10 ** (c.decimals ?? 6)
               const totalUi = c.pillCount * perPillUi
               return (
                 <div key={c.depositId} className='flex justify-between font-mono text-xs'>

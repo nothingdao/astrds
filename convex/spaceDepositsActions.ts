@@ -16,6 +16,7 @@ import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
   createTransferInstruction,
+  getAccount,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -136,6 +137,25 @@ export const claimSpaceTokens = action({
       tokenProgramId,
       ASSOCIATED_TOKEN_PROGRAM_ID
     )
+
+    // Pre-flight: verify treasury has enough tokens before attempting transfer
+    try {
+      const treasuryAccount = await getAccount(connection, treasuryAta, 'confirmed', tokenProgramId)
+      if (treasuryAccount.amount < BigInt(claimable)) {
+        throw new Error(
+          `Treasury ATA ${treasuryAta.toString()} has ${treasuryAccount.amount} raw units of ${deposit.symbol} ` +
+          `(programId=${deposit.programId}), need ${claimable}. ` +
+          `Authority pubkey: ${authorityPubkey.toString()}`
+        )
+      }
+    } catch (err: any) {
+      if (err.message?.includes('Treasury ATA')) throw err
+      throw new Error(
+        `Treasury ATA ${treasuryAta.toString()} not found for ${deposit.symbol} ` +
+        `(programId=${deposit.programId}). Authority: ${authorityPubkey.toString()}. ` +
+        `Original: ${err.message}`
+      )
+    }
 
     const transferTx = new Transaction().add(
       createAssociatedTokenAccountIdempotentInstruction(
