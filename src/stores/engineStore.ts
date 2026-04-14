@@ -23,6 +23,7 @@ import { useGameData } from './gameData'
 import { audioService } from '@/services/audio/AudioService'
 import { useLevelStore } from './levelStore'
 import { useSpaceTokenStore } from './spaceTokenStore'
+import { getTokenColor, ASTRDS_COLOR } from '@/lib/tokenColors'
 
 const INITIAL_STATE: EngineStoreState = {
   entities: {
@@ -401,7 +402,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
           token = new Token({
             screen: state.screen,
             type: 'space',
-            color: '#a855f7', // purple for space tokens
+            color: getTokenColor(deposit.mintAddress),
             metadata: {
               symbol: deposit.symbol,
               value: deposit.tokensPerPill,
@@ -413,6 +414,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
           token = new Token({
             screen: state.screen,
             type: 'standard',
+            color: ASTRDS_COLOR,
           })
         }
 

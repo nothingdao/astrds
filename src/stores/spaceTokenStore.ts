@@ -2,6 +2,7 @@
 // Tracks active space deposits (for spawning) and tokens collected this session
 import { create } from 'zustand'
 import type { Id } from '../../convex/_generated/dataModel'
+import { getTokenColor } from '@/lib/tokenColors'
 
 export interface SpaceDeposit {
   _id: Id<'spaceDeposits'>
@@ -28,6 +29,7 @@ export interface CollectedSpaceToken {
   decimals: number
   tokensPerPill: number  // raw units
   pillCount: number
+  color: string          // deterministic from mintAddress via getTokenColor
 }
 
 interface SpaceTokenStore {
@@ -67,6 +69,7 @@ export const useSpaceTokenStore = create<SpaceTokenStore>((set, get) => ({
             decimals: deposit.decimals,
             tokensPerPill: deposit.tokensPerPill,
             pillCount: 1,
+            color: getTokenColor(deposit.mintAddress),
           },
         ],
       }))

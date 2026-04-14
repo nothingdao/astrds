@@ -5,8 +5,9 @@ import { useLevelStore } from '@/stores/levelStore'
 import { useInventoryStore } from '@/stores/inventoryStore'
 import { usePowerupStore } from '@/stores/powerupStore'
 import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
+import { ASTRDS_COLOR } from '@/lib/tokenColors'
 import { ShipIcon, PillIcon } from '@/components/icons/GameIcons'
-import { Shield, Zap, Rocket } from 'lucide-react'
+import { Shield, Zap } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
@@ -22,7 +23,6 @@ export const GameHUD: React.FC = () => {
   const powerups = usePowerupStore((state) => state.powerups)
   const powerupExpiresAt = usePowerupStore((state) => state.powerupExpiresAt)
   const spaceCollected = useSpaceTokenStore((s) => s.collectedThisSession)
-  const totalSpacePills = spaceCollected.reduce((sum, c) => sum + c.pillCount, 0)
   const [powerupProgress, setPowerupProgress] = useState(0)
   const wallet = useWallet()
   const walletAddress = wallet.publicKey?.toString() ?? ''
@@ -131,21 +131,28 @@ export const GameHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* ASTRDS tokens + space tokens */}
-        <div className='flex items-center gap-4'>
-          {totalSpacePills > 0 && (
-            <div className='flex items-center gap-1.5'>
-              <Rocket size={14} className='text-purple-400' />
-              <span className='font-mono text-sm text-purple-400'>×{totalSpacePills}</span>
+        {/* Token counters — ASTRDS + any space tokens collected */}
+        <div className='flex items-center gap-3'>
+          {spaceCollected.map((c) => (
+            <div key={c.depositId} className='flex items-center gap-1.5'>
+              <span
+                className='w-2.5 h-2.5 rounded-full inline-block shrink-0'
+                style={{ backgroundColor: c.color }}
+              />
+              <span className='font-mono text-sm' style={{ color: c.color }}>
+                {c.symbol} ×{c.pillCount}
+              </span>
             </div>
-          )}
+          ))}
           <div className='flex items-center gap-2'>
             <img
               src='/astrds.png'
               alt='ASTRDS'
               className='w-5 h-5 rounded-full object-cover'
             />
-            <span className='font-mono text-sm text-game-blue'>×{items.tokens}</span>
+            <span className='font-mono text-sm' style={{ color: ASTRDS_COLOR }}>
+              ×{items.tokens}
+            </span>
           </div>
         </div>
       </div>
