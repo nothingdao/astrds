@@ -13,6 +13,12 @@ const DevTools: React.FC = () => {
   const clearDevDeposits = useMutation(api.devMutations.clearDevDeposits)
   const devFastSpawn = useEngineStore((s) => s.devFastSpawn)
   const setDevFastSpawn = useEngineStore((s) => s.setDevFastSpawn)
+  const entities = useEngineStore((s) => s.entities)
+
+  const handleSuicide = () => {
+    const ship = entities.ship[0]
+    if (ship) ship.destroy()
+  }
 
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [amount, setAmount] = useState('10000')
@@ -174,6 +180,15 @@ const DevTools: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Kill ship */}
+      <button
+        onClick={handleSuicide}
+        disabled={!entities.ship[0]}
+        className='w-full bg-red-500/20 border border-red-500/40 text-red-400 px-2 py-1.5 hover:bg-red-500/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
+      >
+        ☠ Kill Ship (end game)
+      </button>
 
       {/* Fast spawn toggle */}
       <div className='flex items-center justify-between border border-white/10 px-2 py-1.5'>
