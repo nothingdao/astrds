@@ -119,41 +119,52 @@ export const claimSpaceTokens = action({
     const playerPubkey = new PublicKey(playerWalletAddress)
     const authorityPubkey = authority.publicKey
 
-    const tokenProgramId =
-      deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
+    // Resolve the correct token program by finding which treasury ATA actually holds tokens.
+    // The stored programId may be wrong (e.g., TOKEN_2022 token listed under TOKEN accounts),
+    // so we probe both and use whichever has a balance.
+    const candidatePrograms = [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]
+    let tokenProgramId = deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
 
-    const treasuryAta = getAssociatedTokenAddressSync(
-      mintPubkey,
-      authorityPubkey,
-      false,
-      tokenProgramId,
-      ASSOCIATED_TOKEN_PROGRAM_ID
+    let resolvedTreasuryAta = getAssociatedTokenAddressSync(
+      mintPubkey, authorityPubkey, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
     )
 
+    // Try to find which program's ATA actually holds the claimable amount
+    for (const programId of candidatePrograms) {
+      const candidateAta = getAssociatedTokenAddressSync(
+        mintPubkey, authorityPubkey, false, programId, ASSOCIATED_TOKEN_PROGRAM_ID
+      )
+      try {
+        const acct = await getAccount(connection, candidateAta, 'confirmed', programId)
+        if (acct.amount >= BigInt(claimable)) {
+          tokenProgramId = programId
+          resolvedTreasuryAta = candidateAta
+          break
+        }
+      } catch {
+        // account doesn't exist for this program — try next
+      }
+    }
+
+    const treasuryAta = resolvedTreasuryAta
     const playerAta = getAssociatedTokenAddressSync(
-      mintPubkey,
-      playerPubkey,
-      false,
-      tokenProgramId,
-      ASSOCIATED_TOKEN_PROGRAM_ID
+      mintPubkey, playerPubkey, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
     )
 
-    // Pre-flight: verify treasury has enough tokens before attempting transfer
+    // Final balance check with helpful diagnostics if still insufficient
     try {
       const treasuryAccount = await getAccount(connection, treasuryAta, 'confirmed', tokenProgramId)
       if (treasuryAccount.amount < BigInt(claimable)) {
         throw new Error(
-          `Treasury ATA ${treasuryAta.toString()} has ${treasuryAccount.amount} raw units of ${deposit.symbol} ` +
-          `(programId=${deposit.programId}), need ${claimable}. ` +
-          `Authority pubkey: ${authorityPubkey.toString()}`
+          `Treasury ATA ${treasuryAta.toString()} has ${treasuryAccount.amount} of ${deposit.symbol}, need ${claimable}. ` +
+          `Authority: ${authorityPubkey.toString()}`
         )
       }
     } catch (err: any) {
       if (err.message?.includes('Treasury ATA')) throw err
       throw new Error(
-        `Treasury ATA ${treasuryAta.toString()} not found for ${deposit.symbol} ` +
-        `(programId=${deposit.programId}). Authority: ${authorityPubkey.toString()}. ` +
-        `Original: ${err.message}`
+        `Treasury ATA ${treasuryAta.toString()} not found for ${deposit.symbol}. ` +
+        `Authority: ${authorityPubkey.toString()}. ${err.message}`
       )
     }
 

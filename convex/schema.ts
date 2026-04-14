@@ -46,7 +46,7 @@ export default defineSchema({
     symbol: v.string(),
     name: v.string(),
     logoUri: v.optional(v.string()),
-    decimals: v.number(),             // token decimals
+    decimals: v.optional(v.number()),  // token decimals (optional for legacy docs)
     totalAmount: v.number(),         // total tokens deposited (raw units)
     remainingAmount: v.number(),     // tokens left to distribute (raw units)
     tokensPerPill: v.number(),       // raw units each collected pill represents

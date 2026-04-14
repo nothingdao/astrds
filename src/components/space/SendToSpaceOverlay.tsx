@@ -76,10 +76,11 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       const signed = await wallet.signTransaction(tx)
 
-      // Send tx
+      // Send tx — use blockhash form of confirmTransaction (deprecated string form is unreliable)
       const connection = new Connection(RPC_ENDPOINT, 'confirmed')
       const sig = await connection.sendRawTransaction(signed.serialize())
-      await connection.confirmTransaction(sig, 'confirmed')
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
+      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
       // Record deposit in Convex (verifies tx on-chain)
       await recordDeposit({
