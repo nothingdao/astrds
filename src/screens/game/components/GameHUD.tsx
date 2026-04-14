@@ -4,8 +4,9 @@ import { useGameData } from '@/stores/gameData'
 import { useLevelStore } from '@/stores/levelStore'
 import { useInventoryStore } from '@/stores/inventoryStore'
 import { usePowerupStore } from '@/stores/powerupStore'
+import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { ShipIcon, PillIcon } from '@/components/icons/GameIcons'
-import { Shield, Zap } from 'lucide-react'
+import { Shield, Zap, Rocket } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
@@ -20,6 +21,8 @@ export const GameHUD: React.FC = () => {
   const items = useInventoryStore((state) => state.items)
   const powerups = usePowerupStore((state) => state.powerups)
   const powerupExpiresAt = usePowerupStore((state) => state.powerupExpiresAt)
+  const spaceCollected = useSpaceTokenStore((s) => s.collectedThisSession)
+  const totalSpacePills = spaceCollected.reduce((sum, c) => sum + c.pillCount, 0)
   const [powerupProgress, setPowerupProgress] = useState(0)
   const wallet = useWallet()
   const walletAddress = wallet.publicKey?.toString() ?? ''
@@ -128,14 +131,22 @@ export const GameHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* ASTRDS tokens */}
-        <div className='flex items-center gap-2'>
-          <img
-            src='/astrds.png'
-            alt='ASTRDS'
-            className='w-5 h-5 rounded-full object-cover'
-          />
-          <span className='font-mono text-sm text-game-blue'>×{items.tokens}</span>
+        {/* ASTRDS tokens + space tokens */}
+        <div className='flex items-center gap-4'>
+          {totalSpacePills > 0 && (
+            <div className='flex items-center gap-1.5'>
+              <Rocket size={14} className='text-purple-400' />
+              <span className='font-mono text-sm text-purple-400'>×{totalSpacePills}</span>
+            </div>
+          )}
+          <div className='flex items-center gap-2'>
+            <img
+              src='/astrds.png'
+              alt='ASTRDS'
+              className='w-5 h-5 rounded-full object-cover'
+            />
+            <span className='font-mono text-sm text-game-blue'>×{items.tokens}</span>
+          </div>
         </div>
       </div>
     </>
