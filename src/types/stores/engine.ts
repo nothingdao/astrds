@@ -55,6 +55,7 @@ export interface EngineStoreState extends GameScreenState {
   lastShipPickupSpawn: number
   shipPickupInterval: number
   gameLoopId: number | null
+  devFastSpawn: boolean
 }
 
 export interface EngineStoreActions {
@@ -81,6 +82,7 @@ export interface EngineStoreActions {
   spawnShipPickup: () => void
   resetEngine: () => void
   togglePause: (shouldPause?: boolean) => void
+  setDevFastSpawn: (enabled: boolean) => void
 }
 
 export type EngineStore = EngineStoreState & EngineStoreActions

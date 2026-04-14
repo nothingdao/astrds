@@ -57,6 +57,7 @@ const INITIAL_STATE: EngineStoreState = {
   tokenSpawnDelay: 5000,
   powerupTimeout: null,
   gameLoopId: null,
+  devFastSpawn: false,
 }
 
 
@@ -377,11 +378,14 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     }
   },
 
+  setDevFastSpawn: (enabled: boolean) => set({ devFastSpawn: enabled }),
+
   spawnToken: () => {
     const state = get()
     const now = Date.now()
+    const delay = state.devFastSpawn ? 500 : state.tokenSpawnDelay
 
-    if (now - state.lastTokenSpawn > state.tokenSpawnDelay) {
+    if (now - state.lastTokenSpawn > delay) {
       try {
         const level = useLevelStore.getState().level
         const spaceStore = useSpaceTokenStore.getState()
@@ -393,8 +397,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
             p.remainingAmount >= p.tokensPerPill
         )
 
-        // 25% chance to spawn a space token if any eligible pools exist
-        const spawnSpace = eligiblePools.length > 0 && Math.random() < 0.25
+        // Dev fast spawn: always pick space token if pools exist; otherwise 25% chance
+        const spawnSpace = eligiblePools.length > 0 && (state.devFastSpawn || Math.random() < 0.25)
 
         let token: Token
         if (spawnSpace) {
