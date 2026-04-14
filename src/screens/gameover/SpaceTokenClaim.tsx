@@ -22,8 +22,10 @@ const SpaceTokenClaim: React.FC = () => {
 
   if (collected.length === 0) return null
 
-  const totalTypes = collected.length
-  const totalPills = collected.reduce((sum, c) => sum + c.pillCount, 0)
+  const totalMined = collected.reduce((sum, c) => {
+    const perPill = c.tokensPerPill / 10 ** (c.decimals ?? 6)
+    return sum + c.pillCount * perPill
+  }, 0)
 
   const handleClaim = async () => {
     if (!wallet.publicKey) return
@@ -71,7 +73,7 @@ const SpaceTokenClaim: React.FC = () => {
                 <div key={c.depositId} className='flex justify-between font-mono text-xs'>
                   <span className='text-white/60'>{c.symbol}</span>
                   <span className='text-purple-300'>
-                    {c.pillCount} pill{c.pillCount !== 1 ? 's' : ''} ×{perPillUi.toLocaleString()} = {totalUi.toLocaleString()}
+                    {c.pillCount} mined ×{perPillUi.toLocaleString()} = {totalUi.toLocaleString()}
                   </span>
                 </div>
               )
@@ -82,7 +84,7 @@ const SpaceTokenClaim: React.FC = () => {
             disabled={!wallet.connected}
             className='btn-grain w-full h-9 font-mono text-xs bg-purple-500 text-white hover:bg-purple-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
           >
-            Claim {totalTypes} token type{totalTypes !== 1 ? 's' : ''} ({totalPills} pill{totalPills !== 1 ? 's' : ''})
+            Claim {totalMined.toLocaleString()} mined tokens
           </button>
         </>
       )}

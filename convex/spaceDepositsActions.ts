@@ -107,6 +107,15 @@ export const claimSpaceTokens = action({
     if (!deposit) throw new Error('Deposit not found')
     if (deposit.status !== 'active') throw new Error('Deposit is no longer active')
 
+    // Dev-seeded deposits have no real treasury funds — skip on-chain transfer
+    if (deposit.txSignature.startsWith('dev-seed-')) {
+      const claimable = Math.min(pillCount * deposit.tokensPerPill, deposit.remainingAmount)
+      if (claimable > 0) {
+        await ctx.runMutation(internal.spaceDeposits.decrementDeposit, { depositId, amount: claimable })
+      }
+      return { success: true, signature: null, totalClaimed: claimable }
+    }
+
     const claimable = Math.min(
       pillCount * deposit.tokensPerPill,
       deposit.remainingAmount
