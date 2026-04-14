@@ -11,6 +11,7 @@ const DevTools: React.FC = () => {
   const mintTestToken = useAction(api.devTools.mintTestToken)
   const seedSpaceDeposits = useMutation(api.devMutations.seedSpaceDeposits)
   const clearDevDeposits = useMutation(api.devMutations.clearDevDeposits)
+  const clearAllDeposits = useMutation(api.devMutations.clearAllDeposits)
   const devFastSpawn = useEngineStore((s) => s.devFastSpawn)
   const setDevFastSpawn = useEngineStore((s) => s.setDevFastSpawn)
   const entities = useEngineStore((s) => s.entities)
@@ -112,6 +113,19 @@ const DevTools: React.FC = () => {
     }
   }
 
+  const handleClearAll = async () => {
+    setLoading(true)
+    setStatus('Clearing ALL deposits...')
+    try {
+      const result = await clearAllDeposits({})
+      setStatus(`✓ Deleted ${result.deleted} deposits`)
+    } catch (err: unknown) {
+      setStatus(`✗ ${err instanceof Error ? err.message : 'Error'}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className='fixed bottom-4 left-4 z-[100] bg-black border border-yellow-400/40 p-3 space-y-3 font-mono text-xs w-80'>
       <div className='flex items-center justify-between'>
@@ -177,6 +191,13 @@ const DevTools: React.FC = () => {
             className='flex-1 bg-red-500/20 border border-red-500/40 text-red-400 px-2 py-1 hover:bg-red-500/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
           >
             Clear Dev
+          </button>
+          <button
+            onClick={handleClearAll}
+            disabled={loading}
+            className='flex-1 bg-red-900/30 border border-red-700/50 text-red-300 px-2 py-1 hover:bg-red-900/50 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
+          >
+            Clear All
           </button>
         </div>
       </div>

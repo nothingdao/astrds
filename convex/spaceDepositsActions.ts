@@ -160,21 +160,15 @@ export const claimSpaceTokens = action({
       mintPubkey, playerPubkey, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
     )
 
-    // Final balance check with helpful diagnostics if still insufficient
+    // Final balance check — skip gracefully if treasury is empty (stale deposit)
     try {
       const treasuryAccount = await getAccount(connection, treasuryAta, 'confirmed', tokenProgramId)
       if (treasuryAccount.amount < BigInt(claimable)) {
-        throw new Error(
-          `Treasury ATA ${treasuryAta.toString()} has ${treasuryAccount.amount} of ${deposit.symbol}, need ${claimable}. ` +
-          `Authority: ${authorityPubkey.toString()}`
-        )
+        return { success: false, signature: null, totalClaimed: 0 }
       }
-    } catch (err: any) {
-      if (err.message?.includes('Treasury ATA')) throw err
-      throw new Error(
-        `Treasury ATA ${treasuryAta.toString()} not found for ${deposit.symbol}. ` +
-        `Authority: ${authorityPubkey.toString()}. ${err.message}`
-      )
+    } catch {
+      // ATA not found — treasury never received tokens, skip silently
+      return { success: false, signature: null, totalClaimed: 0 }
     }
 
     const transferTx = new Transaction().add(

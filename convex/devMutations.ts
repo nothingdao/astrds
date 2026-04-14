@@ -72,13 +72,18 @@ export const seedSpaceDeposits = mutation({
 export const clearDevDeposits = mutation({
   args: {},
   handler: async (ctx) => {
-    const devDocs = await ctx.db
-      .query('spaceDeposits')
-      .collect()
-    const devOnly = devDocs.filter((d) => d.txSignature.startsWith('dev-seed-'))
-    for (const doc of devOnly) {
-      await ctx.db.delete(doc._id)
-    }
+    const all = await ctx.db.query('spaceDeposits').collect()
+    const devOnly = all.filter((d) => d.txSignature.startsWith('dev-seed-'))
+    for (const doc of devOnly) await ctx.db.delete(doc._id)
     return { deleted: devOnly.length }
+  },
+})
+
+export const clearAllDeposits = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query('spaceDeposits').collect()
+    for (const doc of all) await ctx.db.delete(doc._id)
+    return { deleted: all.length }
   },
 })
