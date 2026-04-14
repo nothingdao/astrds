@@ -7,6 +7,7 @@ import { VOLUME_CHANNELS } from './AudioTypes'
 type AudioEvents = {
   volumeChanged: (data: { channel: string; value: number }) => void
   initialized: () => void
+  progress: (data: { percent: number }) => void
   error: (error: Error) => void
   effectSettingChanged: (data: { effectType: string; setting: any }) => void
   musicStarted: (data: { trackId: string }) => void // Updated to expect an object
@@ -351,6 +352,7 @@ class AudioService {
         loadedAssets++
         const progress = (loadedAssets / totalAssets) * 100
         onProgress(progress)
+        this.eventEmitter.emit('progress', { percent: progress })
       }
 
       // Load sound effects

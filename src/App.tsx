@@ -16,6 +16,7 @@ import { useOverlayStore } from './stores/overlayStore'
 import { useAudio } from './hooks/useAudio'
 import { usePhantom } from './hooks/usePhantom'
 import { audioManager } from './services/audio/AudioManager'
+import { audioService } from './services/audio/AudioService'
 import { Overlay } from './types/overlay'
 import { Commitment } from '@solana/web3.js';
 import { RPC_ENDPOINT } from '@/lib/solana';
@@ -45,13 +46,20 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ progress }) => (
 const App: React.FC = () => {
   usePhantom()
   const [isLoading, setIsLoading] = useState(true)
-  const [loadingProgress] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState(0)
 
 
   const { volumes, setVolume, isInitialized } = useAudio();
   const toggleSettingsPanel = useSettingsPanelStore((state) => state.toggle);
   const openOverlay = useOverlayStore((state) => state.openOverlay);
   const endpoint = useMemo(() => RPC_ENDPOINT, [])
+
+  useEffect(() => {
+    const unsub = audioService.on('progress', ({ percent }) => {
+      setLoadingProgress(percent)
+    })
+    return () => unsub()
+  }, [])
 
   useEffect(() => {
     if (isInitialized) {
