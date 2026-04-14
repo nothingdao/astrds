@@ -24,6 +24,8 @@ import { audioService } from '@/services/audio/AudioService'
 import { useLevelStore } from './levelStore'
 import { useSpaceTokenStore } from './spaceTokenStore'
 import { getTokenColor, ASTRDS_COLOR } from '@/lib/tokenColors'
+import { convex } from '@/lib/convex'
+import { api } from '../../convex/_generated/api'
 
 const INITIAL_STATE: EngineStoreState = {
   entities: {
@@ -143,10 +145,22 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     tokens.forEach((token) => {
       if (state.checkCollision(currentShip, token)) {
         if (token.type === 'space' && token.metadata.mintAddress) {
-          // Space token — look up the deposit and record collection
+          // Space token — atomically decrement the pool server-side first.
+          // Convex serializes mutations so this is race-safe across players.
+          // Only record the collection if the server confirms a slot was available.
           const pools = useSpaceTokenStore.getState().activePools
           const deposit = pools.find((p) => p.mintAddress === token.metadata.mintAddress)
-          if (deposit) useSpaceTokenStore.getState().recordCollection(deposit)
+          if (deposit) {
+            convex.mutation(api.spaceDeposits.collectFromDeposit, { depositId: deposit._id })
+              .then((result) => {
+                if (result.success) {
+                  useSpaceTokenStore.getState().recordCollection(deposit)
+                }
+                // If pool was depleted (another player grabbed the last slot),
+                // the token is already destroyed — collection just isn't recorded.
+              })
+              .catch(() => {})
+          }
         } else {
           useInventoryStore.getState().addItem('tokens', 1)
         }

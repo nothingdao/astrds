@@ -1,7 +1,7 @@
 // Queries, internal queries, and internal mutations for space deposits.
 // No "use node" — these run in the default Convex runtime.
 
-import { internalMutation, internalQuery, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 
 // ── Public queries ────────────────────────────────────────────────────────────
@@ -38,6 +38,27 @@ export const getDeposit = internalQuery({
   args: { depositId: v.id('spaceDeposits') },
   handler: async (ctx, { depositId }) => {
     return ctx.db.get(depositId)
+  },
+})
+
+// ── Public mutations ──────────────────────────────────────────────────────────
+
+// Called server-side when a player collects a space token during gameplay.
+// Atomically decrements remainingAmount. Returns false if the pool is depleted
+// (another player already took the last token). Convex serializes mutations so
+// this is race-safe — no two players can take the same slot.
+export const collectFromDeposit = mutation({
+  args: { depositId: v.id('spaceDeposits') },
+  handler: async (ctx, { depositId }) => {
+    const deposit = await ctx.db.get(depositId)
+    if (!deposit || deposit.status !== 'active') return { success: false }
+    if (deposit.remainingAmount < deposit.tokensPerPill) return { success: false }
+    const newRemaining = deposit.remainingAmount - deposit.tokensPerPill
+    await ctx.db.patch(depositId, {
+      remainingAmount: newRemaining,
+      status: newRemaining < deposit.tokensPerPill ? 'depleted' : 'active',
+    })
+    return { success: true }
   },
 })
 

@@ -190,12 +190,9 @@ export const claimSpaceTokens = action({
       )
     )
 
+    // Pool was already decremented at collection time (collectFromDeposit).
+    // Just do the on-chain transfer here.
     const signature = await sendAndConfirmTransaction(connection, transferTx, [authority])
-
-    await ctx.runMutation(internal.spaceDeposits.decrementDeposit, {
-      depositId,
-      amount: claimable,
-    })
 
     return { success: true, signature, totalClaimed: claimable }
   },
