@@ -22,8 +22,8 @@ const SECTIONS: Section[] = [
   {
     title: 'Gameplay',
     rows: [
-      { keys: ['P'], label: 'Pause / Resume' },
-      { keys: ['Esc'], label: 'Pause / Resume' },
+      { keys: ['P'], label: 'Pause' },
+      { keys: ['Esc'], label: 'Resume' },
       { keys: ['W', 'A', 'S', 'D'], label: 'Move ship' },
       { keys: ['↑', '←', '↓', '→'], label: 'Move ship (alt)' },
       { keys: ['Space'], label: 'Fire weapons' },

@@ -15,7 +15,7 @@ space_vault_program = "3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

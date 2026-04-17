@@ -5,6 +5,7 @@
 import { action, internalAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { v } from 'convex/values'
+import { randomBytes } from 'node:crypto'
 import {
   Connection,
   Keypair,
@@ -21,6 +22,7 @@ import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
+import nacl from 'tweetnacl'
 
 const TREASURY_WALLET = 'CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF'
 
@@ -197,11 +199,37 @@ export const reconcileAllPools = internalAction({
   },
 })
 
-// ── claimSpaceTokens ──────────────────────────────────────────────────────────
-// Claims all pending collection events for a wallet. Collections are written
-// server-side at collection time and survive browser close — this action just
-// executes the on-chain transfers and marks them as claimed.
-export const claimSpaceTokens = action({
+const toU64LeBytes = (value: number): Buffer => {
+  const bytes = Buffer.alloc(8)
+  bytes.writeBigUInt64LE(BigInt(value))
+  return bytes
+}
+
+const toI64LeBytes = (value: number): Buffer => {
+  const bytes = Buffer.alloc(8)
+  bytes.writeBigInt64LE(BigInt(value))
+  return bytes
+}
+
+const buildClaimMessage = (
+  player: PublicKey,
+  pool: PublicKey,
+  amount: number,
+  claimId: Uint8Array,
+  expiry: number
+): Buffer =>
+  Buffer.concat([
+    player.toBuffer(),
+    pool.toBuffer(),
+    toU64LeBytes(amount),
+    Buffer.from(claimId),
+    toI64LeBytes(expiry),
+  ])
+
+// ── prepareClaims ─────────────────────────────────────────────────────────────
+// Convex remains the reservation system. It signs claim messages for the
+// frontend, which then submits ed25519 + claim instructions on-chain.
+export const prepareClaims = action({
   args: {
     playerWalletAddress: v.string(),
   },
@@ -220,7 +248,22 @@ export const claimSpaceTokens = action({
       byDeposit.get(key)!.push(col)
     }
 
-    const results: { symbol: string; totalClaimed: number; signature: string | null }[] = []
+    const authority = loadAuthority()
+    const playerPubkey = new PublicKey(playerWalletAddress)
+    const expiry = Math.floor(Date.now() / 1000) + 5 * 60
+    const claims: {
+      depositId: string
+      collectionIds: string[]
+      poolAddress: string
+      mintAddress: string
+      programId: string
+      symbol: string
+      decimals: number
+      totalAmount: number
+      claimId: number[]
+      expiry: number
+      signature: number[]
+    }[] = []
 
     for (const [, cols] of byDeposit) {
       const depositId = cols[0].depositId
@@ -228,93 +271,30 @@ export const claimSpaceTokens = action({
       if (!deposit) continue
 
       const totalAmount = cols.reduce((sum, c) => sum + c.amount, 0)
-      const collectionIds = cols.map((c) => c._id)
-
-      // Dev-seeded deposits: skip on-chain transfer, just mark claimed.
-      if (deposit.txSignature.startsWith('dev-seed-')) {
-        await ctx.runMutation(internal.spaceDeposits.markCollectionsClaimed, {
-          collectionIds,
-          claimedTxSignature: undefined,
-        })
-        results.push({ symbol: deposit.symbol, totalClaimed: totalAmount, signature: null })
+      if (totalAmount <= 0 || !deposit.poolAddress) {
         continue
       }
 
-      const authority = loadAuthority()
-      const connection = getConnection()
-      const mintPubkey = new PublicKey(deposit.mintAddress)
-      const playerPubkey = new PublicKey(playerWalletAddress)
-      const authorityPubkey = authority.publicKey
+      const claimId = randomBytes(32)
+      const poolPubkey = new PublicKey(deposit.poolAddress)
+      const message = buildClaimMessage(playerPubkey, poolPubkey, totalAmount, claimId, expiry)
+      const signature = nacl.sign.detached(message, authority.secretKey)
 
-      // Probe both token programs to find the treasury ATA that holds the balance.
-      let tokenProgramId = deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
-      let resolvedTreasuryAta = getAssociatedTokenAddressSync(
-        mintPubkey, authorityPubkey, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
-      )
-      for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
-        const candidateAta = getAssociatedTokenAddressSync(
-          mintPubkey, authorityPubkey, false, programId, ASSOCIATED_TOKEN_PROGRAM_ID
-        )
-        try {
-          const acct = await getAccount(connection, candidateAta, 'confirmed', programId)
-          if (acct.amount >= BigInt(totalAmount)) {
-            tokenProgramId = programId
-            resolvedTreasuryAta = candidateAta
-            break
-          }
-        } catch { /* ATA not on this program — try next */ }
-      }
-
-      const treasuryAta = resolvedTreasuryAta
-      const playerAta = getAssociatedTokenAddressSync(
-        mintPubkey, playerPubkey, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
-      )
-
-      // Final on-chain balance check — if treasury was drained externally, reconcile and skip.
-      try {
-        const treasuryAccount = await getAccount(connection, treasuryAta, 'confirmed', tokenProgramId)
-        if (treasuryAccount.amount < BigInt(totalAmount)) {
-          await ctx.runMutation(internal.spaceDeposits.reconcilePoolBalance, {
-            depositId,
-            onChainBalance: Number(treasuryAccount.amount),
-          })
-          continue
-        }
-      } catch {
-        await ctx.runMutation(internal.spaceDeposits.reconcilePoolBalance, {
-          depositId, onChainBalance: 0,
-        })
-        continue
-      }
-
-      const transferTx = new Transaction().add(
-        createAssociatedTokenAccountIdempotentInstruction(
-          authorityPubkey, playerAta, playerPubkey, mintPubkey,
-          tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID
-        ),
-        createTransferInstruction(
-          treasuryAta, playerAta, authorityPubkey,
-          BigInt(totalAmount), [], tokenProgramId
-        )
-      )
-
-      const signature = await sendAndConfirmTransaction(connection, transferTx, [authority])
-
-      await ctx.runMutation(internal.spaceDeposits.markCollectionsClaimed, {
-        collectionIds,
-        claimedTxSignature: signature,
-      })
-      await ctx.runMutation(internal.spaceDeposits.recordClaim, {
-        depositId,
-        playerWalletAddress,
+      claims.push({
+        depositId: String(depositId),
+        collectionIds: cols.map((c) => String(c._id)),
+        poolAddress: deposit.poolAddress,
         mintAddress: deposit.mintAddress,
-        txSignature: signature,
-        amount: totalAmount,
+        programId: deposit.programId,
+        symbol: deposit.symbol,
+        decimals: deposit.decimals ?? 6,
+        totalAmount,
+        claimId: Array.from(claimId),
+        expiry,
+        signature: Array.from(signature),
       })
-
-      results.push({ symbol: deposit.symbol, totalClaimed: totalAmount, signature })
     }
 
-    return { success: true, results }
+    return { success: true, claims }
   },
 })

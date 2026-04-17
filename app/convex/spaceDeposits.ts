@@ -60,6 +60,10 @@ export const getPendingCollectionsByWallet = query({
         const deposit = await ctx.db.get(col.depositId)
         return {
           ...col,
+          depositWalletAddress: deposit?.walletAddress,
+          poolAddress: deposit?.poolAddress,
+          txSignature: deposit?.txSignature,
+          programId: deposit?.programId,
           symbol: deposit?.symbol ?? '???',
           decimals: deposit?.decimals ?? 6,
           logoUri: deposit?.logoUri,
@@ -72,6 +76,16 @@ export const getPendingCollectionsByWallet = query({
 })
 
 // On-chain claim history for AccountScreen (claimed transfers, not raw collections).
+export const getDepositsByWallet = query({
+  args: { walletAddress: v.string() },
+  handler: async (ctx, { walletAddress }) => {
+    return ctx.db
+      .query('spaceDeposits')
+      .filter((q) => q.eq(q.field('walletAddress'), walletAddress))
+      .collect()
+  },
+})
+
 export const getClaimsByWallet = query({
   args: { playerWalletAddress: v.string() },
   handler: async (ctx, { playerWalletAddress }) => {
@@ -179,9 +193,21 @@ export const registerDepositIntent = mutation({
     waveCooldown: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_wallet_mint', (q) =>
+        q.eq('walletAddress', args.walletAddress).eq('mintAddress', args.mintAddress)
+      )
+      .first()
+
+    if (existing) {
+      return existing._id
+    }
+
     return ctx.db.insert('spaceDeposits', {
       ...args,
       txSignature: '',
+      poolAddress: undefined,
       totalAmount: 0,
       remainingAmount: 0,
       depositedAt: Date.now(),
@@ -190,18 +216,40 @@ export const registerDepositIntent = mutation({
   },
 })
 
-// Step 2: attach the tx signature after the wallet has signed and broadcast.
-export const submitDepositTransaction = mutation({
+// Step 2: mirror the on-chain pool state after the deposit transaction confirms.
+export const confirmDepositFromChain = mutation({
   args: {
     depositId: v.id('spaceDeposits'),
     txSignature: v.string(),
+    poolAddress: v.string(),
+    walletAddress: v.string(),
+    mintAddress: v.string(),
+    programId: v.string(),
+    symbol: v.string(),
+    name: v.string(),
+    logoUri: v.optional(v.string()),
+    decimals: v.number(),
+    totalAmount: v.number(),
+    remainingAmount: v.number(),
+    tokensPerPill: v.number(),
+    minLevel: v.number(),
+    maxLevel: v.number(),
+    spawnMode: v.optional(v.union(v.literal('steady'), v.literal('escalating'), v.literal('wave'))),
+    spawnInterval: v.optional(v.number()),
+    escalationRate: v.optional(v.number()),
+    waveSize: v.optional(v.number()),
+    waveCooldown: v.optional(v.number()),
+    depositedAt: v.number(),
   },
-  handler: async (ctx, { depositId, txSignature }) => {
+  handler: async (ctx, args) => {
+    const { depositId, remainingAmount, tokensPerPill } = args
     const deposit = await ctx.db.get(depositId)
-    if (!deposit || deposit.status !== 'pending_verification') {
-      throw new Error('Deposit not found or already processed')
-    }
-    await ctx.db.patch(depositId, { txSignature })
+    if (!deposit) throw new Error('Deposit not found')
+
+    await ctx.db.patch(depositId, {
+      ...args,
+      status: remainingAmount < tokensPerPill ? 'depleted' : 'active',
+    })
   },
 })
 
@@ -460,6 +508,34 @@ export const markCollectionsClaimed = internalMutation({
   handler: async (ctx, { collectionIds, claimedTxSignature }) => {
     for (const id of collectionIds) {
       await ctx.db.patch(id, { status: 'claimed', claimedTxSignature })
+    }
+  },
+})
+
+export const finalizeClaim = mutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    collectionIds: v.array(v.id('collections')),
+    playerWalletAddress: v.string(),
+    mintAddress: v.string(),
+    txSignature: v.string(),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('claims', {
+      depositId: args.depositId,
+      playerWalletAddress: args.playerWalletAddress,
+      mintAddress: args.mintAddress,
+      txSignature: args.txSignature,
+      amount: args.amount,
+      claimedAt: Date.now(),
+    })
+
+    for (const id of args.collectionIds) {
+      await ctx.db.patch(id, {
+        status: 'claimed',
+        claimedTxSignature: args.txSignature,
+      })
     }
   },
 })

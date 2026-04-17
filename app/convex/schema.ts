@@ -41,6 +41,7 @@ export default defineSchema({
   spaceDeposits: defineTable({
     walletAddress: v.string(),       // depositor
     txSignature: v.string(),         // on-chain transfer tx
+    poolAddress: v.optional(v.string()), // on-chain DepositPool PDA
     mintAddress: v.string(),         // token mint
     programId: v.string(),           // 'TOKEN' or 'TOKEN_2022'
     symbol: v.string(),
@@ -70,6 +71,7 @@ export default defineSchema({
     ),
   })
     .index('by_wallet', ['walletAddress'])
+    .index('by_wallet_mint', ['walletAddress', 'mintAddress'])
     .index('by_status', ['status'])
     .index('by_tx', ['txSignature']),
 
