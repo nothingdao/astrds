@@ -33,7 +33,7 @@ export const SOUND_MAP: SoundMapConfig = {
     },
     READY_TO_PLAY: {
       music: 'readyMusic',
-      enter: 'quarterInsert',
+      enter: null,
     },
     PLAYING: {
       music: 'gameMusic',

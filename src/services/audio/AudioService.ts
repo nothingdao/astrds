@@ -31,6 +31,7 @@ class AudioService {
   private audioCtx: AudioContext | null = null
   private analyser: AnalyserNode | null = null
   private connectedElements: Set<HTMLAudioElement> = new Set()
+  private musicGeneration = 0
 
   constructor(config: typeof AUDIO_CONFIG) {
     this.config = config
@@ -120,19 +121,31 @@ class AudioService {
       return
     }
 
+    // Already playing this track — nothing to do
+    if (this.currentMusic?.id === id) return
+
+    // Snapshot what's playing now so we can fade it out
+    const outgoing = this.currentMusic
+    this.currentMusic = null
+
+    // Stamp this request so stale concurrent calls can self-abort
+    const myGen = ++this.musicGeneration
+
     try {
       // Resume AudioContext if suspended (browser autoplay policy)
       if (this.audioCtx?.state === 'suspended') {
         await this.audioCtx.resume()
       }
 
-      // Already playing this track — nothing to do
-      if (this.currentMusic?.id === id) return
-
-      // Stop previous track with fade
-      if (this.currentMusic) {
-        await this.stopMusic(this.currentMusic.id, { fadeOut: true })
+      // Fade out the old track first, then start the new one — sequential, no overlap
+      if (outgoing) {
+        await this.fadeOut(outgoing.audio)
+        outgoing.audio.pause()
+        outgoing.audio.currentTime = 0
       }
+
+      // Abort if a newer request came in during the fade-out
+      if (myGen !== this.musicGeneration) return
 
       const { audio, config } = music
       audio.volume = this.calculateVolume('music') * config.volume
@@ -144,11 +157,19 @@ class AudioService {
         await audio.play()
       }
 
+      // Abort if a newer request came in during the fade-in
+      if (myGen !== this.musicGeneration) {
+        audio.pause()
+        audio.currentTime = 0
+        return
+      }
+
       this.currentMusic = { id, audio, config }
-      this.eventEmitter.emit('musicStarted', { trackId: id }) // Updated to provide data
+      this.eventEmitter.emit('musicStarted', { trackId: id })
     } catch (error) {
+      if (myGen !== this.musicGeneration) return
       console.error(`Error playing music ${id}:`, error)
-      this.eventEmitter.emit('error', { type: 'playMusic', id, error }) // Updated to provide data
+      this.eventEmitter.emit('error', { type: 'playMusic', id, error })
     }
   }
 

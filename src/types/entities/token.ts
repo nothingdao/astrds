@@ -5,7 +5,9 @@ export interface TokenMetadata {
   symbol: string
   value: number
   mineable: boolean
-  mintAddress?: string  // set for space tokens
+  mintAddress?: string   // set for space tokens
+  spawnId?: string       // server-issued ticket ID — required to collect
+  depositId?: string     // which pool this token belongs to
 }
 
 export interface TokenConfig {

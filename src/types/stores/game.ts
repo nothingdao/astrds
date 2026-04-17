@@ -25,6 +25,7 @@ export interface GameStoreState {
   lastGameStats: GameStats | null
   error: GameError | null
   currentSessionId: string | null
+  walletAddress: string | null
   sessionState: GameSessionState
 }
 

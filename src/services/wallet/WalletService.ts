@@ -1,11 +1,10 @@
-// src/services/wallet/PhantomService.ts
-class PhantomService {
+// src/services/wallet/WalletService.ts
+class WalletService {
   constructor() {
     this.disconnectCallback = null
   }
 
   getProvider() {
-    // Check if window.phantom exists and has solana property
     if ('phantom' in window && window.phantom?.solana) {
       return window.phantom.solana
     }
@@ -49,4 +48,4 @@ class PhantomService {
   }
 }
 
-export const phantomService = new PhantomService()
+export const walletService = new WalletService()

@@ -144,24 +144,27 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     // Ship-Token collisions
     tokens.forEach((token) => {
       if (state.checkCollision(currentShip, token)) {
-        if (token.type === 'space' && token.metadata.mintAddress) {
-          // Space token — atomically decrement the pool server-side first.
-          // Convex serializes mutations so this is race-safe across players.
-          // Only record the collection if the server confirms a slot was available.
-          const pools = useSpaceTokenStore.getState().activePools
-          const deposit = pools.find((p) => p.mintAddress === token.metadata.mintAddress)
-          if (deposit) {
-            convex.mutation(api.spaceDeposits.collectFromDeposit, { depositId: deposit._id })
+        if (token.type === 'space' && token.metadata.spawnId) {
+          // Space token — validate the server-issued ticket and write a persistent
+          // collection record. The ticket (spawnId) proves the server authorized
+          // this spawn; no ticket = no collection, blocking bots.
+          const { currentSessionId, walletAddress } = useGameData.getState()
+          if (currentSessionId && walletAddress) {
+            convex.mutation(api.spaceDeposits.collectFromDeposit, {
+              spawnId: token.metadata.spawnId as any,
+              playerWalletAddress: walletAddress,
+              gameSessionId: currentSessionId as any,
+            })
               .then((result) => {
                 if (result.success) {
-                  useSpaceTokenStore.getState().recordCollection(deposit)
+                  const pools = useSpaceTokenStore.getState().activePools
+                  const deposit = pools.find((p) => p._id === token.metadata.depositId)
+                  if (deposit) useSpaceTokenStore.getState().recordCollection(deposit)
                 }
-                // If pool was depleted (another player grabbed the last slot),
-                // the token is already destroyed — collection just isn't recorded.
               })
               .catch(() => {})
           }
-        } else {
+        } else if (token.type !== 'space') {
           useInventoryStore.getState().addItem('tokens', 1)
         }
         token.destroy()
@@ -400,6 +403,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     const delay = state.devFastSpawn ? 500 : state.tokenSpawnDelay
 
     if (now - state.lastTokenSpawn > delay) {
+      set({ lastTokenSpawn: now }) // reset immediately to prevent re-entry
+
       try {
         const level = useLevelStore.getState().level
         const spaceStore = useSpaceTokenStore.getState()
@@ -411,33 +416,49 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
             p.remainingAmount >= p.tokensPerPill
         )
 
-        // Dev fast spawn: always pick space token if pools exist; otherwise 25% chance
         const spawnSpace = eligiblePools.length > 0 && (state.devFastSpawn || Math.random() < 0.25)
 
-        let token: Token
         if (spawnSpace) {
           const deposit = eligiblePools[Math.floor(Math.random() * eligiblePools.length)]
-          token = new Token({
-            screen: state.screen,
-            type: 'space',
-            color: getTokenColor(deposit.mintAddress),
-            metadata: {
-              symbol: deposit.symbol,
-              value: deposit.tokensPerPill,
-              mineable: true,
-              mintAddress: deposit.mintAddress,
-            },
-          })
+          const { currentSessionId, walletAddress } = useGameData.getState()
+
+          if (currentSessionId && walletAddress) {
+            // Request a server-issued ticket before spawning. The server validates
+            // the session is active, paid, and the spawn cooldown for this pool's
+            // mode has elapsed. No ticket = no token appears.
+            convex.mutation(api.spaceDeposits.requestSpawnTicket, {
+              depositId: deposit._id,
+              playerWalletAddress: walletAddress,
+              gameSessionId: currentSessionId as any,
+            })
+              .then((result) => {
+                if (!result.spawnId) return
+                const token = new Token({
+                  screen: get().screen,
+                  type: 'space',
+                  color: getTokenColor(deposit.mintAddress),
+                  metadata: {
+                    symbol: deposit.symbol,
+                    value: deposit.tokensPerPill,
+                    mineable: true,
+                    mintAddress: deposit.mintAddress,
+                    spawnId: result.spawnId as string,
+                    depositId: deposit._id as string,
+                  },
+                })
+                get().addEntity(token, 'tokens')
+              })
+              .catch(() => {})
+          }
         } else {
-          token = new Token({
+          // Standard ASTRDS token — no ticket needed
+          const token = new Token({
             screen: state.screen,
             type: 'standard',
             color: ASTRDS_COLOR,
           })
+          state.addEntity(token, 'tokens')
         }
-
-        state.addEntity(token, 'tokens')
-        set({ lastTokenSpawn: now })
       } catch (error) {
         console.error('Error spawning token:', error)
       }

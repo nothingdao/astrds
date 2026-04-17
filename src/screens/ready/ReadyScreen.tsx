@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useStateMachine } from '@/stores/stateMachine'
 import { useEngineStore } from '@/stores/engineStore'
 import { useGameData } from '@/stores/gameData' // Add this
-import { SOUND_TYPES, MUSIC_TRACKS } from '../../services/audio/AudioTypes'
+import { SOUND_TYPES } from '../../services/audio/AudioTypes'
 import ScreenContainer from '@/components/common/ScreenContainer'
 import GameTitle from '@/components/common/GameTitle'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ const ReadyScreen: React.FC = () => {
   const mountedRef = useRef(true)
 
   const resetEngine = useEngineStore((state) => state.resetEngine)
-  const { playSound, stopMusic, transitionMusic } = useAudio()
+  const { playSound } = useAudio()
   const { clearAuth } = useAuth()
   const startTransition = useStateMachine(state => state.startTransition)
   const wallet = useWallet()
@@ -47,12 +47,9 @@ const ReadyScreen: React.FC = () => {
           console.log('Game session started')
         }
 
-        await transitionMusic(MUSIC_TRACKS.TITLE, MUSIC_TRACKS.READY, {
-          crossFadeDuration: 1000,
-        })
-
-        if (!mountedRef.current) return
-
+        // AudioManager handles the music transition (TITLE → READY) via SOUND_MAP.
+        // We control the coin sound ourselves so it hits during "Inserting Quarter..."
+        // rather than firing immediately on state entry.
         await playSound(SOUND_TYPES.QUARTER_INSERT)
         await new Promise((resolve) => setTimeout(resolve, QUARTER_INSERT_DURATION))
 
@@ -91,13 +88,11 @@ const ReadyScreen: React.FC = () => {
 
     return () => {
       mountedRef.current = false
-      stopMusic(MUSIC_TRACKS.READY, { fadeOut: true })
     }
-  }, [startTransition, resetEngine, playSound, stopMusic, transitionMusic, clearAuth, wallet.publicKey, startGameSession])
+  }, [startTransition, resetEngine, playSound, clearAuth, wallet.publicKey, startGameSession])
 
   const handleReturnToTitle = async () => {
     try {
-      stopMusic(MUSIC_TRACKS.READY)
       await startTransition(MachineState.READY_TO_PLAY, MachineState.INITIAL)
     } catch (error) {
       console.error('Failed to return to title:', error)

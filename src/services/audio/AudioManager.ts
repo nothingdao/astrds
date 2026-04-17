@@ -40,8 +40,19 @@ class AudioManager {
       })
     )
 
-    // Play music for the current state right away
+    // Attempt music for the current state right away (may be blocked by autoplay policy)
     this.handleStateChange(useStateMachine.getState().currentState)
+
+    // Retry on first user interaction in case autoplay was blocked
+    const unlock = () => {
+      if (!this.currentTrackId) {
+        this.handleStateChange(useStateMachine.getState().currentState)
+      }
+      document.removeEventListener('click', unlock, true)
+      document.removeEventListener('keydown', unlock, true)
+    }
+    document.addEventListener('click', unlock, true)
+    document.addEventListener('keydown', unlock, true)
   }
 
   stop() {

@@ -10,6 +10,7 @@ import {
   BarChart3,
   Coins,
   Camera,
+  Pill,
 } from 'lucide-react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -72,6 +73,14 @@ const AccountScreen = ({ onClose }) => {
   const [uploading, setUploading] = useState(false)
 
   const allScores = useQuery(api.scores.getScores) ?? []
+  const claimsHistory = useQuery(
+    api.spaceDeposits.getClaimsByWallet,
+    wallet.publicKey ? { playerWalletAddress: wallet.publicKey.toString() } : 'skip'
+  ) ?? []
+  const pendingCollections = useQuery(
+    api.spaceDeposits.getPendingCollectionsByWallet,
+    wallet.publicKey ? { playerWalletAddress: wallet.publicKey.toString() } : 'skip'
+  ) ?? []
   const gameSessions = useQuery(
     api.gameSessions.getByWallet,
     wallet.publicKey ? { walletAddress: wallet.publicKey.toString() } : 'skip'
@@ -261,6 +270,75 @@ const AccountScreen = ({ onClose }) => {
                 {recentGames.length === 0 && (
                   <div className='text-center text-gray-500 text-sm py-4'>
                     No games played yet
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+                <Pill size={20} />
+                Space Token Claims
+              </h2>
+              <div className='space-y-3'>
+                {/* Pending (unclaimed) collections */}
+                {pendingCollections.length > 0 && (
+                  <div className='bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 space-y-1'>
+                    <div className='font-mono text-[10px] text-purple-400 uppercase tracking-wider mb-2'>
+                      Pending — claim from game over screen
+                    </div>
+                    {pendingCollections.map((col) => {
+                      const uiAmount = (col.amount / Math.pow(10, col.decimals)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      return (
+                        <div key={col._id} className='flex justify-between font-mono text-xs'>
+                          <div className='flex items-center gap-2'>
+                            {col.logoUri && <img src={col.logoUri} alt={col.symbol} className='w-3 h-3 rounded-full' />}
+                            <span className='text-white/50'>{col.symbol}</span>
+                          </div>
+                          <span className='text-purple-300'>+{uiAmount}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* On-chain claim history */}
+                {claimsHistory.slice(0, 10).map((claim) => {
+                  const displayAmount = (claim.amount / Math.pow(10, claim.decimals)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                  return (
+                    <div
+                      key={claim._id}
+                      className='bg-black/30 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
+                    >
+                      <div className='flex justify-between items-center mb-1'>
+                        <div className='flex items-center gap-2'>
+                          {claim.logoUri && (
+                            <img src={claim.logoUri} alt={claim.symbol} className='w-4 h-4 rounded-full' />
+                          )}
+                          <span className='text-xs text-gray-400'>{claim.symbol}</span>
+                        </div>
+                        <a
+                          href={`https://explorer.solana.com/tx/${claim.txSignature}?cluster=devnet`}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-gray-600 hover:text-white transition-colors'
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                      <div className='flex justify-between items-end'>
+                        <div className='text-lg font-mono text-game-blue'>
+                          +{displayAmount} {claim.symbol}
+                        </div>
+                        <span className='text-[10px] text-gray-500'>
+                          {new Date(claim.claimedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+                {claimsHistory.length === 0 && pendingCollections.length === 0 && (
+                  <div className='text-center text-gray-500 text-sm py-4'>
+                    No space token activity yet
                   </div>
                 )}
               </div>

@@ -46,15 +46,78 @@ export default defineSchema({
     symbol: v.string(),
     name: v.string(),
     logoUri: v.optional(v.string()),
-    decimals: v.optional(v.number()),  // token decimals (optional for legacy docs)
-    totalAmount: v.number(),         // total tokens deposited (raw units)
+    decimals: v.optional(v.number()),
+    totalAmount: v.number(),         // verified on-chain amount (raw units)
     remainingAmount: v.number(),     // tokens left to distribute (raw units)
     tokensPerPill: v.number(),       // raw units each collected pill represents
     minLevel: v.number(),
     maxLevel: v.number(),
     depositedAt: v.number(),
-    status: v.union(v.literal('active'), v.literal('depleted'), v.literal('cancelled')),
+    // Spawn distribution mode — controls how often tokens appear for each player
+    // steady: fixed interval regardless of level
+    // escalating: interval shrinks as level increases, rewarding skilled play
+    // wave: burst of N tokens then a quiet cooldown period
+    spawnMode: v.optional(v.union(v.literal('steady'), v.literal('escalating'), v.literal('wave'))),
+    spawnInterval: v.optional(v.number()),   // seconds between spawns (base for all modes)
+    escalationRate: v.optional(v.number()),  // escalating only: rate interval shrinks per level
+    waveSize: v.optional(v.number()),        // wave only: tokens per burst
+    waveCooldown: v.optional(v.number()),    // wave only: quiet period between waves (seconds)
+    status: v.union(
+      v.literal('pending_verification'),
+      v.literal('active'),
+      v.literal('depleted'),
+      v.literal('cancelled')
+    ),
   })
     .index('by_wallet', ['walletAddress'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_tx', ['txSignature']),
+
+  // One-time server-issued spawn authorizations.
+  // A ticket is issued when the server validates a spawn is allowed (session active,
+  // cooldown elapsed). The client must present the ticket ID to collect the token.
+  // This prevents bots from calling collectFromDeposit without actually playing.
+  spawnTickets: defineTable({
+    depositId: v.id('spaceDeposits'),
+    playerWalletAddress: v.string(),
+    gameSessionId: v.id('gameSessions'),
+    issuedAt: v.number(),
+    expiresAt: v.number(),       // 60s TTL — uncollected ticket expires
+    used: v.boolean(),
+  })
+    .index('by_wallet_deposit_time', ['playerWalletAddress', 'depositId', 'issuedAt'])
+    .index('by_game_session', ['gameSessionId']),
+
+  // Individual pill collection events, written server-side at collection time.
+  // Persists across sessions — player can claim at any time from AccountScreen or
+  // game-over screen. Status transitions: pending → claimed.
+  collections: defineTable({
+    playerWalletAddress: v.string(),
+    depositId: v.id('spaceDeposits'),
+    gameSessionId: v.id('gameSessions'),
+    mintAddress: v.string(),
+    amount: v.number(),              // raw units owed to player
+    spawnId: v.id('spawnTickets'),   // the ticket that authorized this collection
+    status: v.union(v.literal('pending'), v.literal('claimed')),
+    collectedAt: v.number(),
+    claimedTxSignature: v.optional(v.string()),
+  })
+    .index('by_player_wallet', ['playerWalletAddress'])
+    .index('by_status_wallet', ['status', 'playerWalletAddress'])
+    .index('by_game_session', ['gameSessionId']),
+
+  // On-chain claim transfer records — one per claimSpaceTokens execution (which
+  // may cover many collection events). Used by webhook to distinguish authorized
+  // game payouts from external treasury drains.
+  claims: defineTable({
+    depositId: v.id('spaceDeposits'),
+    playerWalletAddress: v.string(),
+    mintAddress: v.string(),
+    txSignature: v.string(),
+    amount: v.number(),              // raw units transferred on-chain
+    claimedAt: v.number(),
+  })
+    .index('by_signature', ['txSignature'])
+    .index('by_deposit', ['depositId'])
+    .index('by_player_wallet', ['playerWalletAddress']),
 })

@@ -9,8 +9,11 @@
  */
 
 import type * as chat from "../chat.js";
+import type * as crons from "../crons.js";
+import type * as devMutations from "../devMutations.js";
 import type * as devTools from "../devTools.js";
 import type * as gameSessions from "../gameSessions.js";
+import type * as http from "../http.js";
 import type * as players from "../players.js";
 import type * as scores from "../scores.js";
 import type * as sessions from "../sessions.js";
@@ -18,6 +21,7 @@ import type * as spaceDeposits from "../spaceDeposits.js";
 import type * as spaceDepositsActions from "../spaceDepositsActions.js";
 import type * as tokens from "../tokens.js";
 import type * as verifyPayment from "../verifyPayment.js";
+import type * as webhookHandlers from "../webhookHandlers.js";
 
 import type {
   ApiFromModules,
@@ -27,8 +31,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
+  crons: typeof crons;
+  devMutations: typeof devMutations;
   devTools: typeof devTools;
   gameSessions: typeof gameSessions;
+  http: typeof http;
   players: typeof players;
   scores: typeof scores;
   sessions: typeof sessions;
@@ -36,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   spaceDepositsActions: typeof spaceDepositsActions;
   tokens: typeof tokens;
   verifyPayment: typeof verifyPayment;
+  webhookHandlers: typeof webhookHandlers;
 }>;
 
 /**

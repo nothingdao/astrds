@@ -1,8 +1,11 @@
-// Queries, internal queries, and internal mutations for space deposits.
+// Queries, internal queries, and mutations for space deposits.
 // No "use node" — these run in the default Convex runtime.
 
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+
+const SPAWN_TICKET_TTL_MS = 60_000   // tickets expire after 60s if uncollected
+const MIN_SPAWN_INTERVAL_S = 5       // floor for escalating mode (seconds)
 
 // ── Public queries ────────────────────────────────────────────────────────────
 
@@ -32,6 +35,66 @@ export const getActivePoolsForLevel = query({
   },
 })
 
+export const getDepositById = query({
+  args: { depositId: v.id('spaceDeposits') },
+  handler: async (ctx, { depositId }) => {
+    return ctx.db.get(depositId)
+  },
+})
+
+// Returns all pending (unclaimed) collection events for a wallet, enriched
+// with deposit display metadata. Used by SpaceTokenClaim and AccountScreen.
+export const getPendingCollectionsByWallet = query({
+  args: { playerWalletAddress: v.string() },
+  handler: async (ctx, { playerWalletAddress }) => {
+    const cols = await ctx.db
+      .query('collections')
+      .withIndex('by_status_wallet', (q) =>
+        q.eq('status', 'pending').eq('playerWalletAddress', playerWalletAddress)
+      )
+      .order('desc')
+      .collect()
+
+    return Promise.all(
+      cols.map(async (col) => {
+        const deposit = await ctx.db.get(col.depositId)
+        return {
+          ...col,
+          symbol: deposit?.symbol ?? '???',
+          decimals: deposit?.decimals ?? 6,
+          logoUri: deposit?.logoUri,
+          name: deposit?.name ?? '???',
+          tokensPerPill: deposit?.tokensPerPill ?? col.amount,
+        }
+      })
+    )
+  },
+})
+
+// On-chain claim history for AccountScreen (claimed transfers, not raw collections).
+export const getClaimsByWallet = query({
+  args: { playerWalletAddress: v.string() },
+  handler: async (ctx, { playerWalletAddress }) => {
+    const claims = await ctx.db
+      .query('claims')
+      .withIndex('by_player_wallet', (q) => q.eq('playerWalletAddress', playerWalletAddress))
+      .order('desc')
+      .collect()
+
+    return Promise.all(
+      claims.map(async (claim) => {
+        const deposit = await ctx.db.get(claim.depositId)
+        return {
+          ...claim,
+          symbol: deposit?.symbol ?? '???',
+          decimals: deposit?.decimals ?? 6,
+          logoUri: deposit?.logoUri,
+        }
+      })
+    )
+  },
+})
+
 // ── Internal queries ──────────────────────────────────────────────────────────
 
 export const getDeposit = internalQuery({
@@ -41,24 +104,240 @@ export const getDeposit = internalQuery({
   },
 })
 
+export const getDepositBySignature = internalQuery({
+  args: { txSignature: v.string() },
+  handler: async (ctx, { txSignature }) => {
+    return ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_tx', (q) => q.eq('txSignature', txSignature))
+      .first()
+  },
+})
+
+export const getClaimBySignature = internalQuery({
+  args: { txSignature: v.string() },
+  handler: async (ctx, { txSignature }) => {
+    return ctx.db
+      .query('claims')
+      .withIndex('by_signature', (q) => q.eq('txSignature', txSignature))
+      .first()
+  },
+})
+
+export const getAllActiveDeposits = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .collect()
+  },
+})
+
+export const getDepositByMint = internalQuery({
+  args: { mintAddress: v.string() },
+  handler: async (ctx, { mintAddress }) => {
+    const all = await ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .collect()
+    return all.find((d) => d.mintAddress === mintAddress) ?? null
+  },
+})
+
+export const getPendingCollectionsForClaim = internalQuery({
+  args: { playerWalletAddress: v.string() },
+  handler: async (ctx, { playerWalletAddress }) => {
+    return ctx.db
+      .query('collections')
+      .withIndex('by_status_wallet', (q) =>
+        q.eq('status', 'pending').eq('playerWalletAddress', playerWalletAddress)
+      )
+      .collect()
+  },
+})
+
 // ── Public mutations ──────────────────────────────────────────────────────────
 
-// Called server-side when a player collects a space token during gameplay.
-// Atomically decrements remainingAmount. Returns false if the pool is depleted
-// (another player already took the last token). Convex serializes mutations so
-// this is race-safe — no two players can take the same slot.
-export const collectFromDeposit = mutation({
-  args: { depositId: v.id('spaceDeposits') },
-  handler: async (ctx, { depositId }) => {
+// Step 1 of deposit flow: register intent before sending tx.
+export const registerDepositIntent = mutation({
+  args: {
+    walletAddress: v.string(),
+    mintAddress: v.string(),
+    programId: v.string(),
+    symbol: v.string(),
+    name: v.string(),
+    logoUri: v.optional(v.string()),
+    decimals: v.number(),
+    tokensPerPill: v.number(),
+    minLevel: v.number(),
+    maxLevel: v.number(),
+    spawnMode: v.optional(v.union(v.literal('steady'), v.literal('escalating'), v.literal('wave'))),
+    spawnInterval: v.optional(v.number()),
+    escalationRate: v.optional(v.number()),
+    waveSize: v.optional(v.number()),
+    waveCooldown: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db.insert('spaceDeposits', {
+      ...args,
+      txSignature: '',
+      totalAmount: 0,
+      remainingAmount: 0,
+      depositedAt: Date.now(),
+      status: 'pending_verification',
+    })
+  },
+})
+
+// Step 2: attach the tx signature after the wallet has signed and broadcast.
+export const submitDepositTransaction = mutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    txSignature: v.string(),
+  },
+  handler: async (ctx, { depositId, txSignature }) => {
     const deposit = await ctx.db.get(depositId)
-    if (!deposit || deposit.status !== 'active') return { success: false }
+    if (!deposit || deposit.status !== 'pending_verification') {
+      throw new Error('Deposit not found or already processed')
+    }
+    await ctx.db.patch(depositId, { txSignature })
+  },
+})
+
+// ── requestSpawnTicket ────────────────────────────────────────────────────────
+// Called by the game engine when it wants to spawn a space token.
+// Validates the player has an active paid session, checks the per-player
+// spawn cooldown for this pool's mode, and issues a one-time ticket ID.
+// The engine spawns the Token entity only if a ticket is returned.
+export const requestSpawnTicket = mutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    playerWalletAddress: v.string(),
+    gameSessionId: v.id('gameSessions'),
+  },
+  handler: async (ctx, { depositId, playerWalletAddress, gameSessionId }) => {
+    // Validate game session: must be active and belong to this wallet.
+    const session = await ctx.db.get(gameSessionId)
+    if (!session || session.status !== 'active') return { spawnId: null }
+    if (session.walletAddress !== playerWalletAddress) return { spawnId: null }
+
+    // Validate verified session: player must have paid to play.
+    const verifiedSession = await ctx.db
+      .query('verifiedSessions')
+      .withIndex('by_wallet', (q) => q.eq('walletAddress', playerWalletAddress))
+      .order('desc')
+      .first()
+    if (!verifiedSession || verifiedSession.expiresAt < Date.now()) return { spawnId: null }
+
+    // Validate pool: must have tokens left to give.
+    const deposit = await ctx.db.get(depositId)
+    if (!deposit || deposit.status === 'cancelled') return { spawnId: null }
+    if (deposit.remainingAmount < deposit.tokensPerPill) return { spawnId: null }
+
+    const now = Date.now()
+    const spawnMode = deposit.spawnMode ?? 'steady'
+    const spawnInterval = deposit.spawnInterval ?? 30
+
+    if (spawnMode === 'steady') {
+      const last = await ctx.db
+        .query('spawnTickets')
+        .withIndex('by_wallet_deposit_time', (q) =>
+          q.eq('playerWalletAddress', playerWalletAddress).eq('depositId', depositId)
+        )
+        .order('desc')
+        .first()
+      if (last && now - last.issuedAt < spawnInterval * 1000) return { spawnId: null }
+    }
+
+    if (spawnMode === 'escalating') {
+      const rate = deposit.escalationRate ?? 0.1
+      const level = Math.max(1, session.levelReached ?? 1)
+      const effectiveInterval = Math.max(MIN_SPAWN_INTERVAL_S, spawnInterval / (1 + rate * level)) * 1000
+      const last = await ctx.db
+        .query('spawnTickets')
+        .withIndex('by_wallet_deposit_time', (q) =>
+          q.eq('playerWalletAddress', playerWalletAddress).eq('depositId', depositId)
+        )
+        .order('desc')
+        .first()
+      if (last && now - last.issuedAt < effectiveInterval) return { spawnId: null }
+    }
+
+    if (spawnMode === 'wave') {
+      const waveSize = deposit.waveSize ?? 3
+      const waveCooldown = deposit.waveCooldown ?? 60
+      const windowStart = now - waveCooldown * 1000
+      const ticketsInWindow = await ctx.db
+        .query('spawnTickets')
+        .withIndex('by_wallet_deposit_time', (q) =>
+          q.eq('playerWalletAddress', playerWalletAddress)
+           .eq('depositId', depositId)
+           .gte('issuedAt', windowStart)
+        )
+        .collect()
+      if (ticketsInWindow.length >= waveSize) return { spawnId: null }
+    }
+
+    const spawnId = await ctx.db.insert('spawnTickets', {
+      depositId,
+      playerWalletAddress,
+      gameSessionId,
+      issuedAt: now,
+      expiresAt: now + SPAWN_TICKET_TTL_MS,
+      used: false,
+    })
+
+    return { spawnId }
+  },
+})
+
+// ── collectFromDeposit ────────────────────────────────────────────────────────
+// Called on ship-token collision. Validates the server-issued spawn ticket,
+// atomically decrements the pool, and writes a persistent collection record.
+// The collection record survives browser close — player claims whenever they want.
+export const collectFromDeposit = mutation({
+  args: {
+    spawnId: v.id('spawnTickets'),
+    playerWalletAddress: v.string(),
+    gameSessionId: v.id('gameSessions'),
+  },
+  handler: async (ctx, { spawnId, playerWalletAddress, gameSessionId }) => {
+    // Validate ticket: must be unused, not expired, and belong to this player+session.
+    const ticket = await ctx.db.get(spawnId)
+    if (!ticket) return { success: false }
+    if (ticket.used) return { success: false }
+    if (ticket.expiresAt < Date.now()) return { success: false }
+    if (ticket.playerWalletAddress !== playerWalletAddress) return { success: false }
+    if (ticket.gameSessionId !== gameSessionId) return { success: false }
+
+    // Mark ticket used immediately — prevents any race on double-collect.
+    await ctx.db.patch(spawnId, { used: true })
+
+    // Decrement pool.
+    const deposit = await ctx.db.get(ticket.depositId)
+    if (!deposit || deposit.status === 'cancelled') return { success: false }
     if (deposit.remainingAmount < deposit.tokensPerPill) return { success: false }
+
     const newRemaining = deposit.remainingAmount - deposit.tokensPerPill
-    await ctx.db.patch(depositId, {
+    await ctx.db.patch(ticket.depositId, {
       remainingAmount: newRemaining,
       status: newRemaining < deposit.tokensPerPill ? 'depleted' : 'active',
     })
-    return { success: true }
+
+    // Write persistent collection record — survives browser close.
+    await ctx.db.insert('collections', {
+      playerWalletAddress,
+      depositId: ticket.depositId,
+      gameSessionId,
+      mintAddress: deposit.mintAddress,
+      amount: deposit.tokensPerPill,
+      spawnId,
+      status: 'pending',
+      collectedAt: Date.now(),
+    })
+
+    return { success: true, amount: deposit.tokensPerPill }
   },
 })
 
@@ -73,7 +352,7 @@ export const insertDeposit = internalMutation({
     symbol: v.string(),
     name: v.string(),
     logoUri: v.optional(v.string()),
-    decimals: v.number(),
+    decimals: v.optional(v.number()),
     totalAmount: v.number(),
     tokensPerPill: v.number(),
     minLevel: v.number(),
@@ -86,6 +365,102 @@ export const insertDeposit = internalMutation({
       depositedAt: Date.now(),
       status: 'active',
     })
+  },
+})
+
+export const confirmDeposit = internalMutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    totalAmount: v.number(),
+    depositedAt: v.number(),
+  },
+  handler: async (ctx, { depositId, totalAmount, depositedAt }) => {
+    const deposit = await ctx.db.get(depositId)
+    if (!deposit) throw new Error('Deposit not found')
+    if (deposit.status === 'active') return
+    await ctx.db.patch(depositId, {
+      totalAmount,
+      remainingAmount: totalAmount,
+      depositedAt,
+      status: 'active',
+    })
+  },
+})
+
+export const insertDepositFromWebhook = internalMutation({
+  args: {
+    txSignature: v.string(),
+    mintAddress: v.string(),
+    totalAmount: v.number(),
+    depositedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_tx', (q) => q.eq('txSignature', args.txSignature))
+      .first()
+    if (existing) return existing._id
+    return ctx.db.insert('spaceDeposits', {
+      walletAddress: 'unknown',
+      txSignature: args.txSignature,
+      mintAddress: args.mintAddress,
+      programId: 'TOKEN_2022',
+      symbol: '???',
+      name: 'Unknown (webhook)',
+      decimals: 6,
+      totalAmount: args.totalAmount,
+      remainingAmount: args.totalAmount,
+      tokensPerPill: args.totalAmount,
+      minLevel: 1,
+      maxLevel: 99,
+      depositedAt: args.depositedAt,
+      status: 'active',
+    })
+  },
+})
+
+export const reconcilePoolBalance = internalMutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    onChainBalance: v.number(),
+  },
+  handler: async (ctx, { depositId, onChainBalance }) => {
+    const deposit = await ctx.db.get(depositId)
+    if (!deposit) return
+    if (deposit.remainingAmount <= onChainBalance) return
+    await ctx.db.patch(depositId, {
+      remainingAmount: onChainBalance,
+      status: onChainBalance < deposit.tokensPerPill ? 'depleted' : 'active',
+    })
+  },
+})
+
+export const recordClaim = internalMutation({
+  args: {
+    depositId: v.id('spaceDeposits'),
+    playerWalletAddress: v.string(),
+    mintAddress: v.string(),
+    txSignature: v.string(),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('claims', {
+      ...args,
+      claimedAt: Date.now(),
+    })
+  },
+})
+
+// Marks a batch of collection records as claimed after the on-chain transfer succeeds.
+export const markCollectionsClaimed = internalMutation({
+  args: {
+    collectionIds: v.array(v.id('collections')),
+    claimedTxSignature: v.optional(v.string()),
+  },
+  handler: async (ctx, { collectionIds, claimedTxSignature }) => {
+    for (const id of collectionIds) {
+      await ctx.db.patch(id, { status: 'claimed', claimedTxSignature })
+    }
   },
 })
 

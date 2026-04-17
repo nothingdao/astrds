@@ -1,52 +1,59 @@
 // src/screens/gameover/SpaceTokenClaim.tsx
-// Shown at game over when the player collected space tokens during gameplay.
-// Batch-claims them via Convex action (treasury → player wallet).
+// Shows all pending space token collections and lets the player claim them.
+// Collections are written server-side at collection time and persist across
+// sessions — closing the browser mid-game loses nothing.
 import React, { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useAction } from 'convex/react'
+import { useAction, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { CheckCircle2, AlertCircle, Rocket } from 'lucide-react'
 
 type ClaimState = 'idle' | 'claiming' | 'done' | 'error'
 
 const SpaceTokenClaim: React.FC = () => {
   const wallet = useWallet()
-  const collected = useSpaceTokenStore((s) => s.collectedThisSession)
-  const resetSession = useSpaceTokenStore((s) => s.resetSession)
+  const walletAddress = wallet.publicKey?.toString()
+
+  const pending = useQuery(
+    api.spaceDeposits.getPendingCollectionsByWallet,
+    walletAddress ? { playerWalletAddress: walletAddress } : 'skip'
+  )
   const claimSpaceTokens = useAction(api.spaceDepositsActions.claimSpaceTokens)
 
   const [claimState, setClaimState] = useState<ClaimState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
-  const [claimed, setClaimed] = useState<{ symbol: string; total: number }[]>([])
+  const [results, setResults] = useState<{ symbol: string; totalClaimed: number; decimals: number }[]>([])
 
-  if (collected.length === 0) return null
+  // Not connected or still loading
+  if (!walletAddress || pending === undefined) return null
+  // Nothing pending
+  if (pending.length === 0 && claimState === 'idle') return null
 
-  const totalMined = collected.reduce((sum, c) => {
-    const perPill = c.tokensPerPill / 10 ** (c.decimals ?? 6)
-    return sum + c.pillCount * perPill
-  }, 0)
+  // Group pending by mint for display
+  const byMint = new Map<string, typeof pending[number] & { totalAmount: number }>()
+  for (const col of pending) {
+    const key = col.mintAddress
+    if (!byMint.has(key)) {
+      byMint.set(key, { ...col, totalAmount: 0 })
+    }
+    byMint.get(key)!.totalAmount += col.amount
+  }
+  const grouped = [...byMint.values()]
 
   const handleClaim = async () => {
-    if (!wallet.publicKey) return
+    if (!walletAddress) return
     setClaimState('claiming')
     setErrorMsg('')
-
-    const results: { symbol: string; total: number }[] = []
-
     try {
-      for (const entry of collected) {
-        const res = await claimSpaceTokens({
-          depositId: entry.depositId,
-          playerWalletAddress: wallet.publicKey.toString(),
-          pillCount: entry.pillCount,
-        })
-        if (res.totalClaimed > 0) {
-          results.push({ symbol: entry.symbol, total: res.totalClaimed / 10 ** (entry.decimals ?? 6) })
-        }
-      }
-      setClaimed(results)
-      resetSession()
+      const res = await claimSpaceTokens({ playerWalletAddress: walletAddress })
+      setResults(
+        res.results
+          .filter((r) => r.totalClaimed > 0)
+          .map((r) => {
+            const entry = grouped.find((g) => g.symbol === r.symbol)
+            return { ...r, decimals: entry?.decimals ?? 6 }
+          })
+      )
       setClaimState('done')
     } catch (err: any) {
       setErrorMsg(err?.message ?? 'Claim failed')
@@ -66,14 +73,15 @@ const SpaceTokenClaim: React.FC = () => {
       {claimState === 'idle' && (
         <>
           <div className='space-y-1'>
-            {collected.map((c) => {
-              const perPillUi = c.tokensPerPill / 10 ** (c.decimals ?? 6)
-              const totalUi = c.pillCount * perPillUi
+            {grouped.map((g) => {
+              const uiAmount = g.totalAmount / 10 ** g.decimals
+              const pillCount = Math.round(g.totalAmount / g.tokensPerPill)
+              const perPillUi = g.tokensPerPill / 10 ** g.decimals
               return (
-                <div key={c.depositId} className='flex justify-between font-mono text-xs'>
-                  <span className='text-white/60'>{c.symbol}</span>
+                <div key={g.mintAddress} className='flex justify-between font-mono text-xs'>
+                  <span className='text-white/60'>{g.symbol}</span>
                   <span className='text-purple-300'>
-                    {c.pillCount} mined ×{perPillUi.toLocaleString()} = {totalUi.toLocaleString()}
+                    {pillCount} collected × {perPillUi.toLocaleString()} = {uiAmount.toLocaleString()}
                   </span>
                 </div>
               )
@@ -81,10 +89,10 @@ const SpaceTokenClaim: React.FC = () => {
           </div>
           <button
             onClick={handleClaim}
-            disabled={!wallet.connected}
+            disabled={!wallet.connected || grouped.length === 0}
             className='btn-grain w-full h-9 font-mono text-xs bg-purple-500 text-white hover:bg-purple-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
           >
-            Claim {totalMined.toLocaleString()} mined tokens
+            Claim all space tokens
           </button>
         </>
       )}
@@ -99,11 +107,13 @@ const SpaceTokenClaim: React.FC = () => {
         <div className='flex items-start gap-2'>
           <CheckCircle2 size={14} className='text-green-400 mt-0.5 shrink-0' />
           <div className='space-y-0.5'>
-            {claimed.map((c) => (
-              <p key={c.symbol} className='font-mono text-xs text-white/60'>
-                {c.total.toLocaleString()} {c.symbol} sent to your wallet
+            {results.length > 0 ? results.map((r) => (
+              <p key={r.symbol} className='font-mono text-xs text-white/60'>
+                {(r.totalClaimed / 10 ** r.decimals).toLocaleString()} {r.symbol} sent to your wallet
               </p>
-            ))}
+            )) : (
+              <p className='font-mono text-xs text-white/60'>Nothing to claim right now.</p>
+            )}
           </div>
         </div>
       )}

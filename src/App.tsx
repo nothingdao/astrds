@@ -5,7 +5,7 @@ import {
   WalletProvider,
 } from '@solana/wallet-adapter-react'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import GameLayout from './screens/game/components/GameLayout'
 import GameStateManager from './screens/game/components/GameStateManager'
 import ChatSystem from './components/chat/ChatSystem'
@@ -14,7 +14,7 @@ import DevTools from './components/dev/DevTools'
 import { useSettingsPanelStore } from './stores/settingsPanelStore'
 import { useOverlayStore } from './stores/overlayStore'
 import { useAudio } from './hooks/useAudio'
-import { usePhantom } from './hooks/usePhantom'
+import { useWalletAutoConnect } from './hooks/useWalletAutoConnect'
 import { audioManager } from './services/audio/AudioManager'
 import { audioService } from './services/audio/AudioService'
 import { Overlay } from './types/overlay'
@@ -44,7 +44,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ progress }) => (
 )
 
 const App: React.FC = () => {
-  usePhantom()
+  useWalletAutoConnect()
   const [isLoading, setIsLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
 
@@ -118,9 +118,8 @@ const App: React.FC = () => {
 
   const wallets = useMemo(
     () => [
-      new PhantomWalletAdapter({
-        network: 'mainnet-beta',
-      }),
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
     ],
     []
   )

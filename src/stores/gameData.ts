@@ -12,6 +12,7 @@ const initialState: GameStoreState = {
   lastGameStats: null,
   error: null,
   currentSessionId: null,
+  walletAddress: null,
   sessionState: { status: null },
 }
 
@@ -72,7 +73,7 @@ export const useGameData = create<GameStore>((set, get) => ({
   startGameSession: async (walletAddress: string) => {
     try {
       const sessionId = await convex.mutation(api.gameSessions.create, { walletAddress })
-      set({ currentSessionId: sessionId, sessionState: { status: 'active' } })
+      set({ currentSessionId: sessionId, walletAddress, sessionState: { status: 'active' } })
       return sessionId
     } catch (err) {
       set((state) => ({
