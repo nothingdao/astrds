@@ -1,23 +1,15 @@
 import {
   PublicKey,
-  SystemProgram,
   Transaction,
 } from '@solana/web3.js'
 import { connection as solanaConnection } from '@/lib/solana'
 import {
-  createTransferInstruction,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  getAccount,
   getMint,
-  TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 import { convex } from '@/lib/convex'
 import { api } from '../../convex/_generated/api'
+import { buildGamePaymentTransaction, sendSignedTransaction } from '@/lib/spaceVault'
 
-const RECIPIENT_WALLET = new PublicKey(
-  'AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE'
-)
 const TOKEN_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const QUARTER_USD = 0.25 // $0.25 per play
 const TOKEN_COST = 1000
@@ -73,66 +65,22 @@ class AuthService {
     return Math.floor(uiAmount * Math.pow(10, decimals))
   }
 
-  async ensureTokenAccount(
-    walletPubkey: PublicKey,
-    isSource = true
-  ): Promise<PublicKey | null> {
-    const tokenAddress = await getAssociatedTokenAddress(
-      TOKEN_MINT,
-      isSource ? walletPubkey : RECIPIENT_WALLET
-    )
-    try {
-      await getAccount(this.connection, tokenAddress)
-      return tokenAddress
-    } catch {
-      return null
-    }
-  }
-
   async createPaymentTransaction(
     walletPubkey: PublicKey,
     paymentType = 'SOL'
   ): Promise<Transaction> {
-    const transaction = new Transaction()
-
-    if (paymentType === 'SOL') {
-      const lamports = await getSolCostLamports()
-      transaction.add(
-        SystemProgram.transfer({
-          fromPubkey: walletPubkey,
-          toPubkey: RECIPIENT_WALLET,
-          lamports,
-        })
-      )
-    } else if (paymentType === 'ASTRDS') {
-      const tokenAmount = await this.getTokenAmount(TOKEN_COST)
-      const fromTokenAddress = await getAssociatedTokenAddress(TOKEN_MINT, walletPubkey)
-      const toTokenAddress = await getAssociatedTokenAddress(TOKEN_MINT, RECIPIENT_WALLET)
-      const fromAccountExists = await this.ensureTokenAccount(walletPubkey, true)
-      const toAccountExists = await this.ensureTokenAccount(RECIPIENT_WALLET, false)
-
-      if (!fromAccountExists) {
-        transaction.add(
-          createAssociatedTokenAccountInstruction(
-            walletPubkey, fromTokenAddress, walletPubkey, TOKEN_MINT
-          )
-        )
-      }
-      if (!toAccountExists) {
-        transaction.add(
-          createAssociatedTokenAccountInstruction(
-            walletPubkey, toTokenAddress, RECIPIENT_WALLET, TOKEN_MINT
-          )
-        )
-      }
-      transaction.add(
-        createTransferInstruction(
-          fromTokenAddress, toTokenAddress, walletPubkey, tokenAmount, [], TOKEN_PROGRAM_ID
-        )
-      )
+    if (paymentType !== 'SOL') {
+      throw new Error('ASTRDS payment is no longer supported')
     }
 
-    return transaction
+    const lamports = await getSolCostLamports()
+    return (
+      await buildGamePaymentTransaction({
+        connection: this.connection,
+        player: walletPubkey,
+        lamports,
+      })
+    ).transaction
   }
 
   async getTokenBalance(walletPubkey: PublicKey): Promise<number> {
@@ -148,12 +96,11 @@ class AuthService {
   async verifyWalletSignature(wallet: any, paymentType = 'SOL'): Promise<boolean> {
     if (!wallet.publicKey) throw new Error('No wallet connected')
 
-    if (paymentType === 'ASTRDS') {
-      const tokenBalance = await this.getTokenBalance(wallet.publicKey)
-      if (tokenBalance < TOKEN_COST) {
-        throw new Error(`Insufficient ASTRDS balance. Required: ${TOKEN_COST} ASTRDS`)
-      }
-    } else {
+    if (paymentType !== 'SOL') {
+      throw new Error('ASTRDS payment is no longer supported')
+    }
+
+    {
       const lamports = await getSolCostLamports()
       const solBalance = await this.connection.getBalance(wallet.publicKey)
       if (solBalance < lamports) {
@@ -162,24 +109,24 @@ class AuthService {
       }
     }
 
-    const transaction = await this.createPaymentTransaction(wallet.publicKey, paymentType)
-    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash()
-    transaction.recentBlockhash = blockhash
-    transaction.feePayer = wallet.publicKey
-
+    const built = await buildGamePaymentTransaction({
+      connection: this.connection,
+      player: wallet.publicKey,
+      lamports: await getSolCostLamports(),
+    })
+    const transaction = built.transaction
     const signedTx = await wallet.signTransaction(transaction)
-    const txSignature = await this.connection.sendRawTransaction(
-      signedTx.serialize(),
-      { skipPreflight: false, preflightCommitment: 'confirmed' }
-    )
+    const txSignature = await sendSignedTransaction({
+      connection: this.connection,
+      signedTransaction: signedTx,
+      blockhash: built.blockhash,
+      lastValidBlockHeight: built.lastValidBlockHeight,
+    })
 
-    await this.connection.confirmTransaction({ signature: txSignature, blockhash, lastValidBlockHeight })
-
-    // Verify server-side via Convex action
     await convex.action(api.verifyPayment.verifyPayment, {
       txSignature,
       walletAddress: wallet.publicKey.toString(),
-      paymentType: paymentType as 'SOL' | 'ASTRDS',
+      paymentType: 'SOL',
     })
 
     return true

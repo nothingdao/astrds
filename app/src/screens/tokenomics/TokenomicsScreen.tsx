@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import { connection } from '@/lib/solana'
-import { useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
 import {
   Coins,
   Wallet,
-  Users,
-  CreditCard,
-  Sparkles,
-  CircleDollarSign,
   ExternalLink,
-  Rocket,
+  Shield,
+  Zap,
+  ArrowRightLeft,
 } from 'lucide-react'
 
 const MINT_ADDRESS = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
-const GAME_TREASURY = new PublicKey('AMKzF4Phzhp8htd9xerLSm1aderQT7t2v35HzbhDAjvE')
+const TREASURY = new PublicKey('CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF')
+const EXPLORER = (addr: string) => `https://explorer.solana.com/address/${addr}?cluster=devnet`
 
 const TokenomicsScreen = ({ onClose }: { onClose: () => void }) => {
   const [loading, setLoading] = useState(true)
@@ -28,9 +25,11 @@ const TokenomicsScreen = ({ onClose }: { onClose: () => void }) => {
   useEffect(() => {
     const fetchTokenData = async () => {
       try {
-        const tokenSupply = await connection.getTokenSupply(MINT_ADDRESS)
-        const accounts = await connection.getTokenLargestAccounts(MINT_ADDRESS)
-        const treasuryBalance = await connection.getBalance(GAME_TREASURY)
+        const [tokenSupply, accounts, treasuryBalance] = await Promise.all([
+          connection.getTokenSupply(MINT_ADDRESS),
+          connection.getTokenLargestAccounts(MINT_ADDRESS),
+          connection.getBalance(TREASURY),
+        ])
         setStats({
           totalSupply: tokenSupply.value.uiAmount || 0,
           holders: accounts.value.length || 0,
@@ -45,169 +44,133 @@ const TokenomicsScreen = ({ onClose }: { onClose: () => void }) => {
     fetchTokenData()
   }, [])
 
-  const activeDeposits = useQuery(api.spaceDeposits.getAllActiveSpaceDeposits)
-
-  const StatCard = ({ icon: Icon, title, value, subtext, link }) => (
-    <div className='bg-black/30 border border-white/10 rounded-lg p-6 hover:border-game-blue/50 transition-colors'>
-      <div className='flex items-start justify-between mb-4'>
-        <div>
-          <h3 className='text-sm text-game-blue flex items-center gap-2'>
-            <Icon size={16} />
-            {title}
-          </h3>
-          <div className='text-2xl font-mono mt-2'>{value}</div>
-        </div>
-        {link && (
-          <a href={link} target='_blank' rel='noopener noreferrer' className='text-gray-400 hover:text-white transition-colors'>
-            <ExternalLink size={16} />
-          </a>
-        )}
-      </div>
-      {subtext && <div className='text-xs text-gray-400'>{subtext}</div>}
-    </div>
-  )
-
-  const InfoSection = ({ title, children }) => (
-    <div className='bg-black/30 border border-white/10 rounded-lg p-6'>
-      <h3 className='text-sm text-game-blue mb-4'>{title}</h3>
-      <div className='space-y-2 text-sm text-gray-300'>{children}</div>
-    </div>
-  )
-
   return (
     <div className='p-5 space-y-6'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='space-y-6'>
-              <div className='grid grid-cols-1 gap-4'>
-                <StatCard
-                  icon={Coins}
-                  title='Total Supply'
-                  value={loading ? '...' : `${stats.totalSupply.toLocaleString()} $ASTRD`}
-                  subtext='Tokens are minted through gameplay'
-                  link={`https://orbmarkets.io/address/${MINT_ADDRESS.toString()}`}
-                />
-                <StatCard
-                  icon={Users}
-                  title='Token Holders'
-                  value={loading ? '...' : stats.holders.toLocaleString()}
-                  subtext='Unique wallet addresses holding $ASTRD'
-                />
-                <StatCard
-                  icon={Wallet}
-                  title='Game Treasury'
-                  value={loading ? '...' : `${stats.treasuryBalance.toLocaleString()} SOL`}
-                  subtext='Balance from game fees'
-                  link={`https://orbmarkets.io/address/${GAME_TREASURY.toString()}`}
-                />
-              </div>
+
+      {/* Live stats */}
+      <div className='grid grid-cols-3 gap-3'>
+        {[
+          {
+            icon: Coins,
+            label: 'Total Supply',
+            value: loading ? '...' : stats.totalSupply.toLocaleString(),
+            sub: '$ASTRDS minted',
+            link: EXPLORER(MINT_ADDRESS.toString()),
+          },
+          {
+            icon: Wallet,
+            label: 'Holders',
+            value: loading ? '...' : stats.holders.toLocaleString(),
+            sub: 'unique wallets',
+            link: null,
+          },
+          {
+            icon: ArrowRightLeft,
+            label: 'Treasury',
+            value: loading ? '...' : `${stats.treasuryBalance.toFixed(3)} SOL`,
+            sub: 'vault balance',
+            link: EXPLORER(TREASURY.toString()),
+          },
+        ].map(({ icon: Icon, label, value, sub, link }) => (
+          <div key={label} className='bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/30 transition-colors'>
+            <div className='flex items-center justify-between mb-3'>
+              <Icon size={14} className='text-game-blue/60' />
+              {link && (
+                <a href={link} target='_blank' rel='noopener noreferrer' className='text-white/20 hover:text-white/60 transition-colors'>
+                  <ExternalLink size={12} />
+                </a>
+              )}
             </div>
-
-            <div className='space-y-6'>
-              <InfoSection title='Token Utility'>
-                <div className='space-y-4'>
-                  <div className='flex items-start gap-3'>
-                    <CreditCard className='text-game-blue mt-1' size={16} />
-                    <p>Pay game fees with $ASTRD instead of SOL (1000 $ASTRD = 0.05 SOL)</p>
-                  </div>
-                  <div className='flex items-start gap-3'>
-                    <CircleDollarSign className='text-game-blue mt-1' size={16} />
-                    <p>Mine $ASTRD by collecting tokens during gameplay</p>
-                  </div>
-                  <div className='flex items-start gap-3'>
-                    <Sparkles className='text-game-blue mt-1' size={16} />
-                    <p>Future utility: cosmetic upgrades, special game modes, DAO governance</p>
-                  </div>
-                </div>
-              </InfoSection>
-
-              <InfoSection title='Token Distribution'>
-                <ul className='list-disc list-inside space-y-2'>
-                  <li>No pre-mine or team allocation</li>
-                  <li>100% of tokens are earned through gameplay</li>
-                  <li>1 collected token = 1 $ASTRD minted</li>
-                  <li>Maximum 200 tokens can be collected per game</li>
-                </ul>
-              </InfoSection>
-
-              <InfoSection title='Contract Addresses'>
-                <div className='space-y-2 font-mono text-xs'>
-                  <div>
-                    <div className='text-gray-400 mb-1'>Token Address:</div>
-                    <a
-                      href={`https://orbmarkets.io/address/${MINT_ADDRESS.toString()}`}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='text-game-blue hover:text-white transition-colors break-all'
-                    >
-                      {MINT_ADDRESS.toString()}
-                    </a>
-                  </div>
-                  <div>
-                    <div className='text-gray-400 mb-1'>Treasury Address:</div>
-                    <a
-                      href={`https://orbmarkets.io/address/${GAME_TREASURY.toString()}`}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='text-game-blue hover:text-white transition-colors break-all'
-                    >
-                      {GAME_TREASURY.toString()}
-                    </a>
-                  </div>
-                </div>
-              </InfoSection>
-            </div>
+            <div className='font-mono text-lg text-white'>{value}</div>
+            <div className='font-mono text-[10px] text-white/30 uppercase tracking-widest mt-1'>{label}</div>
+            <div className='font-mono text-[9px] text-white/20 mt-0.5'>{sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Tokens in Space */}
-      <div className='bg-black/30 border border-purple-500/20 rounded-lg p-6'>
-        <h3 className='text-sm text-purple-400 flex items-center gap-2 mb-4'>
-          <Rocket size={16} />
-          Tokens in Space
-        </h3>
-        {!activeDeposits ? (
-          <p className='text-xs text-white/30 font-mono'>Loading...</p>
-        ) : activeDeposits.length === 0 ? (
-          <p className='text-xs text-white/30 font-mono'>
-            No tokens currently in space. Launch some from your wallet using the Space button above.
-          </p>
-        ) : (
-          <div className='space-y-3'>
-            <p className='text-xs text-white/40 font-mono mb-3'>
-              {activeDeposits.length} token type{activeDeposits.length !== 1 ? 's' : ''} available in the game world
-            </p>
-            <div className='grid grid-cols-1 gap-2'>
-              {activeDeposits.map((d) => (
-                <div
-                  key={d._id}
-                  className='flex items-center justify-between bg-black/30 border border-white/10 rounded p-3'
-                >
-                  <div className='flex items-center gap-3'>
-                    {d.logoUri ? (
-                      <img src={d.logoUri} alt={d.symbol} className='w-6 h-6 rounded-full object-cover' />
-                    ) : (
-                      <div className='w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center'>
-                        <span className='text-[8px] font-mono text-purple-400'>{d.symbol.slice(0, 2)}</span>
-                      </div>
-                    )}
-                    <div>
-                      <div className='font-mono text-sm text-white'>{d.symbol}</div>
-                      <div className='font-mono text-[10px] text-white/30'>{d.name}</div>
-                    </div>
-                  </div>
-                  <div className='text-right font-mono text-xs text-white/50 space-y-0.5'>
-                    <div className='text-purple-300'>
-                      {(d.remainingAmount / 10 ** (d.decimals ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })} remaining
-                    </div>
-                    <div>
-                      {(d.tokensPerPill / 10 ** (d.decimals ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })}/pill · L{d.minLevel}–{d.maxLevel}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+
+        {/* How $ASTRDS works */}
+        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+          <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
+            <Zap size={13} />
+            How $ASTRDS Works
+          </h3>
+          <div className='space-y-3 font-mono text-xs text-white/50'>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>01</span>
+              <span>Pay ~$0.25 in SOL to insert a quarter and start a game</span>
+            </div>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>02</span>
+              <span>Collect $ASTRDS tokens floating in the asteroid field during gameplay</span>
+            </div>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>03</span>
+              <span>On game over, collected tokens are minted to your wallet — 1 collected = 1 $ASTRDS minted. No pre-mine. No team allocation. 100% earned through play.</span>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Revenue split */}
+        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+          <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
+            <ArrowRightLeft size={13} />
+            Quarter Payment Split
+          </h3>
+          <div className='space-y-2'>
+            {[
+              { label: 'Operational', desc: 'Server costs, infrastructure', color: 'bg-game-blue' },
+              { label: 'Operator', desc: 'Revenue', color: 'bg-purple-400' },
+              { label: 'Buyback', desc: '$ASTRDS buyback pressure', color: 'bg-green-400' },
+            ].map(({ label, desc, color }) => (
+              <div key={label} className='flex items-center gap-3'>
+                <div className={`w-1.5 h-1.5 rounded-full ${color} shrink-0`} />
+                <div className='flex-1'>
+                  <div className='font-mono text-xs text-white/60'>{label}</div>
+                  <div className='font-mono text-[10px] text-white/25'>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className='font-mono text-[10px] text-white/20 border-t border-white/5 pt-3'>
+            Split weights are admin-adjustable on-chain via the vault program.
+          </p>
+        </div>
+
+        {/* Vault program */}
+        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+          <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
+            <Shield size={13} />
+            On-Chain Vault
+          </h3>
+          <div className='space-y-2 font-mono text-xs text-white/50'>
+            <p>Your tokens never pass through our hands. Every deposit, claim, and payment settles directly on Solana — verifiable by anyone.</p>
+          </div>
+          <div className='space-y-1.5 font-mono text-[10px]'>
+            <div>
+              <div className='text-white/25 mb-0.5'>$ASTRDS Mint</div>
+              <a href={EXPLORER(MINT_ADDRESS.toString())} target='_blank' rel='noopener noreferrer'
+                className='text-game-blue/60 hover:text-game-blue transition-colors break-all'>
+                {MINT_ADDRESS.toString()}
+              </a>
+            </div>
+            <div>
+              <div className='text-white/25 mb-0.5'>Treasury / Authority</div>
+              <a href={EXPLORER(TREASURY.toString())} target='_blank' rel='noopener noreferrer'
+                className='text-game-blue/60 hover:text-game-blue transition-colors break-all'>
+                {TREASURY.toString()}
+              </a>
+            </div>
+          </div>
+        </div>
+
       </div>
+
+      <p className='font-mono text-[9px] text-white/10 text-center uppercase tracking-widest'>
+        Devnet — not real money
+      </p>
+
     </div>
   )
 }

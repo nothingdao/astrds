@@ -1,0 +1,488 @@
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/space_vault_program.json`.
+ */
+export type SpaceVaultProgram = {
+  "address": "3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE",
+  "metadata": {
+    "name": "spaceVaultProgram",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vaultConfig",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "paymentWeights",
+          "type": {
+            "defined": {
+              "name": "paymentWeights"
+            }
+          }
+        },
+        {
+          "name": "buybackRate",
+          "type": "u64"
+        },
+        {
+          "name": "convexAuthority",
+          "type": "pubkey"
+        },
+        {
+          "name": "operationalWallet",
+          "type": "pubkey"
+        },
+        {
+          "name": "operatorWallet",
+          "type": "pubkey"
+        },
+        {
+          "name": "buybackWallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "setWeights",
+      "discriminator": [
+        25,
+        58,
+        193,
+        19,
+        186,
+        84,
+        236,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "vaultConfig",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "paymentWeights",
+          "type": {
+            "defined": {
+              "name": "paymentWeights"
+            }
+          }
+        },
+        {
+          "name": "buybackRate",
+          "type": "u64"
+        },
+        {
+          "name": "convexAuthority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "registerPool",
+      "discriminator": [
+        85,
+        229,
+        114,
+        47,
+        75,
+        145,
+        166,
+        100
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "depositPool",
+          "writable": true
+        },
+        {
+          "name": "vaultAta",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "depositPool",
+          "writable": true
+        },
+        {
+          "name": "depositorTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "vaultAta",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vaultConfig"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "depositPool",
+          "writable": true
+        },
+        {
+          "name": "claimRecord",
+          "writable": true
+        },
+        {
+          "name": "vaultAta",
+          "writable": true
+        },
+        {
+          "name": "playerTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "instructionsSysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "tokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "claimId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "expiry",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "gamePayment",
+      "discriminator": [
+        44,
+        5,
+        226,
+        247,
+        176,
+        177,
+        31,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vaultConfig"
+        },
+        {
+          "name": "operationalWallet",
+          "writable": true
+        },
+        {
+          "name": "operatorWallet",
+          "writable": true
+        },
+        {
+          "name": "buybackWallet",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "vaultConfig",
+      "discriminator": [
+        99,
+        86,
+        43,
+        216,
+        184,
+        102,
+        119,
+        77
+      ]
+    },
+    {
+      "name": "depositPool",
+      "discriminator": [
+        64,
+        107,
+        122,
+        248,
+        155,
+        187,
+        255,
+        28
+      ]
+    },
+    {
+      "name": "claimRecord",
+      "discriminator": [
+        57,
+        229,
+        0,
+        9,
+        65,
+        62,
+        96,
+        7
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "vaultConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "paymentWeights",
+            "type": {
+              "defined": {
+                "name": "paymentWeights"
+              }
+            }
+          },
+          {
+            "name": "buybackRate",
+            "type": "u64"
+          },
+          {
+            "name": "convexAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "operationalWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "operatorWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "buybackWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "depositPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "totalDeposited",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "claimRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "claimId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "claimedAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "paymentWeights",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operationalBps",
+            "type": "u16"
+          },
+          {
+            "name": "operatorBps",
+            "type": "u16"
+          },
+          {
+            "name": "buybackBps",
+            "type": "u16"
+          }
+        ]
+      }
+    }
+  ]
+};

@@ -1,8 +1,6 @@
 // src/components/common/KeyboardShortcutsOverlay.tsx
 import React from 'react'
 import { Kbd } from '@/components/ui/kbd'
-import { useOverlayStore } from '@/stores/overlayStore'
-import { Overlay } from '@/types/overlay'
 
 type ShortcutRow = { keys: string[]; label: string }
 type Section = { title: string; rows: ShortcutRow[] }
@@ -11,8 +9,9 @@ const SECTIONS: Section[] = [
   {
     title: 'Navigation',
     rows: [
-      { keys: ['T'], label: 'Tokenomics' },
-      { keys: ['F'], label: 'Full Chat' },
+      { keys: ['T'], label: '$ASTRDS' },
+      { keys: ['M'], label: 'Mining' },
+      { keys: ['F'], label: 'Chat' },
       { keys: ['L'], label: 'Leaderboard' },
       { keys: ['A'], label: 'Account' },
       { keys: ['R'], label: 'Launch tokens into space' },
@@ -34,7 +33,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Audio',
     rows: [
-      { keys: ['M'], label: 'Toggle music' },
+      { keys: ['H'], label: 'Hush (mute toggle)' },
       { keys: ['1'], label: 'Volume 20%' },
       { keys: ['2'], label: 'Volume 40%' },
       { keys: ['3'], label: 'Volume 60%' },

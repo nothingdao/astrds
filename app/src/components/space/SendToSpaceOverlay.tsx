@@ -2,12 +2,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Connection } from '@solana/web3.js'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useAction, useMutation, useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { Id } from '../../../convex/_generated/dataModel'
 import { getWalletTokens, WalletToken } from '@/utils/walletTokens'
 import { buildSendToSpaceTransaction } from '@/lib/tokenTransfer'
 import { RPC_ENDPOINT } from '@/lib/solana'
+import { fetchDepositPool, sendSignedTransaction } from '@/lib/spaceVault'
 import { Rocket, RefreshCw, ChevronRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 
 // pick → configure → sending (wallet approval + tx) → verifying (waiting for Convex) → done | error
@@ -16,13 +16,10 @@ type Step = 'pick' | 'configure' | 'sending' | 'verifying' | 'done' | 'error'
 const toUi = (raw: number, decimals: number) =>
   (raw / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: 4 })
 
-const VERIFY_TIMEOUT_MS = 45_000
-
 const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const wallet = useWallet()
   const registerDepositIntent = useMutation(api.spaceDeposits.registerDepositIntent)
-  const submitDepositTransaction = useMutation(api.spaceDeposits.submitDepositTransaction)
-  const verifyAndConfirmDeposit = useAction(api.spaceDepositsActions.verifyAndConfirmDeposit)
+  const confirmDepositFromChain = useMutation(api.spaceDeposits.confirmDepositFromChain)
   const activeDeposits = useQuery(api.spaceDeposits.getAllActiveSpaceDeposits)
 
   const [step, setStep] = useState<Step>('pick')
@@ -40,28 +37,6 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [waveCooldown, setWaveCooldown] = useState('60')
   const [errorMsg, setErrorMsg] = useState('')
   const [txSig, setTxSig] = useState('')
-  const [pendingDepositId, setPendingDepositId] = useState<Id<'spaceDeposits'> | null>(null)
-  const [verifyTimedOut, setVerifyTimedOut] = useState(false)
-
-  // Reactive subscription to the pending deposit — fires when webhook activates it.
-  const pendingDeposit = useQuery(
-    api.spaceDeposits.getDepositById,
-    pendingDepositId ? { depositId: pendingDepositId } : 'skip'
-  )
-
-  // Advance to done as soon as Convex flips the deposit to active.
-  useEffect(() => {
-    if (step === 'verifying' && pendingDeposit?.status === 'active') {
-      setStep('done')
-    }
-  }, [step, pendingDeposit])
-
-  // Verification timeout — offer manual retry if webhook doesn't fire.
-  useEffect(() => {
-    if (step !== 'verifying') return
-    const timer = setTimeout(() => setVerifyTimedOut(true), VERIFY_TIMEOUT_MS)
-    return () => clearTimeout(timer)
-  }, [step])
 
   const loadTokens = useCallback(async () => {
     if (!wallet.publicKey) return
@@ -90,7 +65,6 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!wallet.publicKey || !wallet.signTransaction || !selected) return
     setStep('sending')
     setErrorMsg('')
-    setVerifyTimedOut(false)
 
     try {
       const decimals = selected.decimals
@@ -100,9 +74,6 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       if (rawAmount <= 0) throw new Error('Invalid send amount')
       if (rawTokensPerPill <= 0) throw new Error('Invalid tokens per pill')
 
-      // Step 1: register intent in Convex BEFORE sending the tx.
-      // This gives us a depositId to subscribe to and lets the webhook find
-      // the record by txSignature once we attach it.
       const depositId = await registerDepositIntent({
         walletAddress: wallet.publicKey.toString(),
         mintAddress: selected.mintAddress,
@@ -120,49 +91,54 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         waveSize: spawnMode === 'wave' ? parseInt(waveSize) : undefined,
         waveCooldown: spawnMode === 'wave' ? parseInt(waveCooldown) : undefined,
       })
-      setPendingDepositId(depositId)
+      setStep('verifying')
 
-      // Step 2: build, sign, and send the on-chain transfer.
-      const tx = await buildSendToSpaceTransaction(
+      const built = await buildSendToSpaceTransaction(
         wallet.publicKey,
         selected.mintAddress,
         rawAmount,
         selected.programId
       )
-      const signed = await wallet.signTransaction(tx)
       const connection = new Connection(RPC_ENDPOINT, 'confirmed')
-      const sig = await connection.sendRawTransaction(signed.serialize())
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+      const signed = await wallet.signTransaction(built.transaction)
+      const sig = await sendSignedTransaction({
+        connection,
+        signedTransaction: signed,
+        blockhash: built.blockhash,
+        lastValidBlockHeight: built.lastValidBlockHeight,
+      })
       setTxSig(sig)
 
-      // Step 3: attach the signature to the pending Convex record so the webhook
-      // (and the fallback action) can find it.
-      await submitDepositTransaction({ depositId, txSignature: sig })
+      const pool = await fetchDepositPool(connection, built.poolAddress)
+      if (!pool) throw new Error('Deposit pool not found after confirmation')
 
-      // Step 4: verify in parallel — fire the action immediately rather than
-      // waiting passively for the webhook. confirmDeposit is idempotent so
-      // whichever arrives first (webhook or action) wins with no conflict.
-      setStep('verifying')
-      verifyAndConfirmDeposit({ depositId }).catch(() => {
-        // Action failed — webhook may still fire. Timeout will surface the retry button.
+      await confirmDepositFromChain({
+        depositId,
+        txSignature: sig,
+        poolAddress: built.poolAddress.toString(),
+        walletAddress: wallet.publicKey.toString(),
+        mintAddress: selected.mintAddress,
+        programId: selected.programId,
+        symbol: selected.symbol,
+        name: selected.name,
+        logoUri: selected.logoUri,
+        decimals,
+        totalAmount: pool.totalDeposited.toNumber(),
+        remainingAmount: pool.remaining.toNumber(),
+        tokensPerPill: rawTokensPerPill,
+        minLevel: parseInt(minLevel),
+        maxLevel: parseInt(maxLevel),
+        spawnMode,
+        spawnInterval: parseFloat(spawnInterval),
+        escalationRate: spawnMode === 'escalating' ? parseFloat(escalationRate) : undefined,
+        waveSize: spawnMode === 'wave' ? parseInt(waveSize) : undefined,
+        waveCooldown: spawnMode === 'wave' ? parseInt(waveCooldown) : undefined,
+        depositedAt: Date.now(),
       })
+
+      setStep('done')
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Transaction failed')
-      setStep('error')
-    }
-  }
-
-  // Manual fallback: if webhook hasn't fired after VERIFY_TIMEOUT_MS, the user
-  // can force-verify by triggering the action which reads tx.meta directly.
-  const handleForceVerify = async () => {
-    if (!pendingDepositId) return
-    setVerifyTimedOut(false)
-    try {
-      await verifyAndConfirmDeposit({ depositId: pendingDepositId })
-      // Reactive subscription will flip to done on next Convex update
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Verification failed')
       setStep('error')
     }
   }
@@ -443,13 +419,13 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
       )}
 
-      {/* ── Verifying (waiting for Helius webhook → Convex) ── */}
+      {/* ── Verifying (waiting for the on-chain pool state) ── */}
       {step === 'verifying' && (
         <div className='py-8 text-center space-y-4'>
           <Loader2 size={32} className='mx-auto text-purple-400 animate-spin' />
-          <p className='font-mono text-sm text-white/50'>Verifying on-chain...</p>
+          <p className='font-mono text-sm text-white/50'>Confirming on-chain deposit...</p>
           <p className='font-mono text-xs text-white/30'>
-            Confirming actual token amount received by treasury.
+            Reading the vault pool state from devnet.
           </p>
           {txSig && (
             <a
@@ -460,19 +436,6 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             >
               View transaction ↗
             </a>
-          )}
-          {verifyTimedOut && (
-            <div className='space-y-2 pt-2'>
-              <p className='font-mono text-xs text-yellow-400/70'>
-                Webhook is taking longer than expected.
-              </p>
-              <button
-                onClick={handleForceVerify}
-                className='btn-grain h-9 px-5 font-mono text-xs bg-yellow-400/20 border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/30 transition-colors'
-              >
-                Verify Manually
-              </button>
-            </div>
           )}
         </div>
       )}
@@ -496,7 +459,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </a>
           )}
           <button
-            onClick={() => { setStep('pick'); setSelected(null); setPendingDepositId(null) }}
+            onClick={() => { setStep('pick'); setSelected(null) }}
             className='btn-grain mt-2 h-10 px-6 font-mono text-xs bg-game-blue text-black hover:bg-white transition-colors'
           >
             Launch Another

@@ -78,7 +78,7 @@ const App: React.FC = () => {
       }
 
       switch (e.key.toLowerCase()) {
-        case 'm':
+        case 'h':
           setVolume('master', volumes.master > 0 ? 0 : 0.5)
           break
         case '1':
@@ -88,9 +88,11 @@ const App: React.FC = () => {
         case '5':
           setVolume('master', parseInt(e.key) / 5)
           break
-        // Nav shortcuts — work everywhere outside gameplay text inputs
         case 't':
-          openOverlay(Overlay.TOKENOMICS)
+          openOverlay(Overlay.ASTRDS)
+          break
+        case 'm':
+          openOverlay(Overlay.MINING)
           break
         case 'f':
           openOverlay(Overlay.CHAT)

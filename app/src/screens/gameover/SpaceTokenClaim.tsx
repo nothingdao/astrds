@@ -4,9 +4,12 @@
 // sessions — closing the browser mid-game loses nothing.
 import React, { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useAction, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { Connection } from '@solana/web3.js'
 import { CheckCircle2, AlertCircle, Rocket } from 'lucide-react'
+import { RPC_ENDPOINT } from '@/lib/solana'
+import { buildClaimTransaction, sendSignedTransaction } from '@/lib/spaceVault'
 
 type ClaimState = 'idle' | 'claiming' | 'done' | 'error'
 
@@ -18,7 +21,8 @@ const SpaceTokenClaim: React.FC = () => {
     api.spaceDeposits.getPendingCollectionsByWallet,
     walletAddress ? { playerWalletAddress: walletAddress } : 'skip'
   )
-  const claimSpaceTokens = useAction(api.spaceDepositsActions.claimSpaceTokens)
+  const prepareClaims = useAction(api.spaceDepositsActions.prepareClaims)
+  const finalizeClaim = useMutation(api.spaceDeposits.finalizeClaim)
 
   const [claimState, setClaimState] = useState<ClaimState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -41,22 +45,48 @@ const SpaceTokenClaim: React.FC = () => {
   const grouped = [...byMint.values()]
 
   const handleClaim = async () => {
-    if (!walletAddress) return
+    if (!walletAddress || !wallet.publicKey || !wallet.signTransaction) return
     setClaimState('claiming')
     setErrorMsg('')
     try {
-      const res = await claimSpaceTokens({ playerWalletAddress: walletAddress })
-      setResults(
-        res.results
-          .filter((r) => r.totalClaimed > 0)
-          .map((r) => {
-            const entry = grouped.find((g) => g.symbol === r.symbol)
-            return { ...r, decimals: entry?.decimals ?? 6 }
-          })
-      )
+      const prepared = await prepareClaims({ playerWalletAddress: walletAddress })
+      const connection = new Connection(RPC_ENDPOINT, 'confirmed')
+      const claimed: { symbol: string; totalClaimed: number; decimals: number }[] = []
+
+      for (const claim of prepared.claims) {
+        const built = await buildClaimTransaction({
+          connection,
+          player: wallet.publicKey,
+          claim,
+        })
+        const signed = await wallet.signTransaction(built.transaction)
+        const txSignature = await sendSignedTransaction({
+          connection,
+          signedTransaction: signed,
+          blockhash: built.blockhash,
+          lastValidBlockHeight: built.lastValidBlockHeight,
+        })
+
+        await finalizeClaim({
+          depositId: claim.depositId as any,
+          collectionIds: claim.collectionIds as any,
+          playerWalletAddress: walletAddress,
+          mintAddress: claim.mintAddress,
+          txSignature,
+          amount: claim.totalAmount,
+        })
+
+        claimed.push({
+          symbol: claim.symbol,
+          totalClaimed: claim.totalAmount,
+          decimals: claim.decimals,
+        })
+      }
+
+      setResults(claimed)
       setClaimState('done')
-    } catch (err: any) {
-      setErrorMsg(err?.message ?? 'Claim failed')
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Claim failed')
       setClaimState('error')
     }
   }
@@ -99,7 +129,7 @@ const SpaceTokenClaim: React.FC = () => {
 
       {claimState === 'claiming' && (
         <p className='font-mono text-xs text-white/40 text-center py-2'>
-          Claiming tokens from treasury...
+          Claiming tokens from the vault...
         </p>
       )}
 
