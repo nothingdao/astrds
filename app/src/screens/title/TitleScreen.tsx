@@ -1,15 +1,70 @@
-import React, { memo, useCallback, useState } from 'react'
+import React, { memo, useCallback, useState, useEffect } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useStateMachine } from '@/stores/stateMachine'
 import { QuarterButton } from '@/components/common/Buttons'
 import { MachineState } from '@/types/machine'
 import { authService } from '@/auth/AuthService'
 
+const MAX_CAPACITY = 50
+
+type Region = {
+  id: string
+  label: string
+  city: string
+  ping: number | null
+  players: number | null
+}
+
+const REGIONS: Region[] = [
+  { id: 'us-west', label: 'US West', city: 'Oregon', ping: null, players: null },
+  { id: 'us-east', label: 'US East', city: 'Virginia', ping: null, players: null },
+  { id: 'eu-west', label: 'EU West', city: 'Amsterdam', ping: null, players: null },
+  { id: 'ap-sea', label: 'Asia Pacific', city: 'Singapore', ping: null, players: null },
+]
+
+const PingDot: React.FC<{ ping: number | null }> = ({ ping }) => {
+  if (ping === null) return <span className='w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse inline-block' />
+  if (ping < 80) return <span className='w-1.5 h-1.5 rounded-full bg-green-400 inline-block' />
+  if (ping < 150) return <span className='w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block' />
+  return <span className='w-1.5 h-1.5 rounded-full bg-red-400 inline-block' />
+}
+
+const CapacityBar: React.FC<{ players: number | null }> = ({ players }) => {
+  if (players === null) return (
+    <div className='w-16 h-1 bg-white/10 rounded-full overflow-hidden'>
+      <div className='h-full w-full bg-white/10 animate-pulse' />
+    </div>
+  )
+  const pct = players / MAX_CAPACITY
+  const color = pct > 0.8 ? 'bg-red-400' : pct > 0.5 ? 'bg-yellow-400' : 'bg-green-400'
+  return (
+    <div className='w-16 h-1 bg-white/10 rounded-full overflow-hidden'>
+      <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct * 100}%` }} />
+    </div>
+  )
+}
+
 const TitleScreen: React.FC = () => {
   const wallet = useWallet()
   const gameState = useStateMachine()
   const [isPaying, setIsPaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [regions, setRegions] = useState(REGIONS)
+  const [selectedRegion, setSelectedRegion] = useState('us-west')
+
+  useEffect(() => {
+    const fakePing = (base: number) => base + Math.floor(Math.random() * 20)
+    const fakePlayers = (max: number) => Math.floor(Math.random() * max)
+    const timer = setTimeout(() => {
+      setRegions([
+        { id: 'us-west', label: 'US West', city: 'Oregon', ping: fakePing(18), players: fakePlayers(40) },
+        { id: 'us-east', label: 'US East', city: 'Virginia', ping: fakePing(42), players: fakePlayers(25) },
+        { id: 'eu-west', label: 'EU West', city: 'Amsterdam', ping: fakePing(110), players: fakePlayers(15) },
+        { id: 'ap-sea', label: 'Asia Pacific', city: 'Singapore', ping: fakePing(190), players: fakePlayers(8) },
+      ])
+    }, 1200)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handlePlay = useCallback(async () => {
     if (!wallet.connected || isPaying) return
@@ -100,6 +155,48 @@ const TitleScreen: React.FC = () => {
                 {badge}
               </span>
             ))}
+          </div>
+        </div>
+
+        {/* Region picker */}
+        <div className='flex flex-col items-center gap-2'>
+          <p className='font-mono text-[9px] text-white/20 uppercase tracking-[0.5em] mb-1'>Select Server</p>
+          <div className='flex gap-2 flex-wrap justify-center'>
+            {regions.map((r) => {
+              const full = r.players !== null && r.players >= MAX_CAPACITY
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => !full && setSelectedRegion(r.id)}
+                  disabled={full}
+                  className={`font-mono text-[9px] uppercase tracking-widest px-3 py-2 border transition-colors flex flex-col gap-1.5 text-left min-w-[120px] ${
+                    full
+                      ? 'border-white/5 text-white/15 cursor-not-allowed'
+                      : selectedRegion === r.id
+                      ? 'border-game-blue/60 text-game-blue bg-game-blue/10'
+                      : 'border-white/10 text-white/30 hover:border-white/25 hover:text-white/50'
+                  }`}
+                >
+                  <div className='flex items-center justify-between w-full gap-3'>
+                    <div className='flex items-center gap-1.5'>
+                      <PingDot ping={r.ping} />
+                      <span>{r.label}</span>
+                    </div>
+                    {full ? (
+                      <span className='text-red-400/60'>FULL</span>
+                    ) : r.ping !== null ? (
+                      <span className='text-white/20'>{r.ping}ms</span>
+                    ) : null}
+                  </div>
+                  <div className='flex items-center gap-2 w-full'>
+                    <CapacityBar players={r.players} />
+                    <span className='text-white/20 text-[8px]'>
+                      {r.players !== null ? `${r.players}/${MAX_CAPACITY}` : '...'}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
