@@ -26,10 +26,10 @@ async function getSolPriceUsd(): Promise<number> {
 
   try {
     const res = await fetch(
-      'https://price.jup.ag/v6/price?ids=SOL'
+      'https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112'
     )
     const json = await res.json()
-    const price = json?.data?.SOL?.price as number
+    const price = json?.data?.['So11111111111111111111111111111111111111112']?.price as number
     if (price && price > 0) {
       _solPriceCache = { usd: price, fetchedAt: now }
       return price
