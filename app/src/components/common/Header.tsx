@@ -36,7 +36,7 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
     disabled ||
     (currentGameState === MachineState.PLAYING &&
       !isSelected &&
-      [Overlay.TOKENOMICS, Overlay.LEADERBOARD, Overlay.SPACE].includes(overlayType))
+      [Overlay.ASTRDS, Overlay.LEADERBOARD, Overlay.SPACE].includes(overlayType))
 
   return (
     <button
@@ -62,7 +62,7 @@ const Header: React.FC = () => {
   const openOverlay = useOverlayStore((state) => state.openOverlay)
 
   const headerButtons: Array<HeaderButtonProps & { key: string }> = [
-    { key: 'tokenomics', icon: Coins,         label: 'Tokenomics',  overlayType: Overlay.TOKENOMICS,  shortcut: 't' },
+    { key: 'astrds',     icon: Coins,         label: 'ASTRDS',      overlayType: Overlay.ASTRDS,      shortcut: 't' },
     { key: 'chat',       icon: MessageSquare, label: 'Chat',        overlayType: Overlay.CHAT,        shortcut: 'f' },
     { key: 'leaderboard',icon: Trophy,        label: 'Leaderboard', overlayType: Overlay.LEADERBOARD, shortcut: 'l' },
     { key: 'account',    icon: User,          label: 'Account',     overlayType: Overlay.ACCOUNT,     shortcut: 'a' },

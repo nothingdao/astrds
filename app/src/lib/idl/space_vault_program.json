@@ -1,5 +1,5 @@
 {
-  "address": "3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE",
+  "address": "4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB",
   "metadata": {
     "name": "space_vault_program",
     "version": "0.1.0",
@@ -8,130 +8,863 @@
   },
   "instructions": [
     {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "deposit_pool"
+          ]
+        },
+        {
+          "name": "deposit_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  45,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "deposit_pool.depositor",
+                "account": "DepositPool"
+              },
+              {
+                "kind": "account",
+                "path": "deposit_pool.mint",
+                "account": "DepositPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109,
+                  45,
+                  114,
+                  101,
+                  99,
+                  111,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "claim_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "deposit_pool"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "player_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "player"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "claim_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "expiry",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "deposit_pool"
+          ]
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "deposit_pool"
+          ]
+        },
+        {
+          "name": "deposit_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  45,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "deposit_pool.depositor",
+                "account": "DepositPool"
+              },
+              {
+                "kind": "account",
+                "path": "deposit_pool.mint",
+                "account": "DepositPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "depositor_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "deposit_pool"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "game_payment",
+      "discriminator": [
+        44,
+        5,
+        226,
+        247,
+        176,
+        177,
+        31,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "operational_wallet",
+          "writable": true
+        },
+        {
+          "name": "operator_wallet",
+          "writable": true
+        },
+        {
+          "name": "buyback_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initialize",
-      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
       "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "vaultConfig", "writable": true },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "paymentWeights", "type": { "defined": { "name": "PaymentWeights" } } },
-        { "name": "buybackRate", "type": "u64" },
-        { "name": "convexAuthority", "type": "pubkey" },
-        { "name": "operationalWallet", "type": "pubkey" },
-        { "name": "operatorWallet", "type": "pubkey" },
-        { "name": "buybackWallet", "type": "pubkey" }
+        {
+          "name": "payment_weights",
+          "type": {
+            "defined": {
+              "name": "PaymentWeights"
+            }
+          }
+        },
+        {
+          "name": "buyback_rate",
+          "type": "u64"
+        },
+        {
+          "name": "convex_authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "operational_wallet",
+          "type": "pubkey"
+        },
+        {
+          "name": "operator_wallet",
+          "type": "pubkey"
+        },
+        {
+          "name": "buyback_wallet",
+          "type": "pubkey"
+        }
       ]
     },
     {
-      "name": "setWeights",
-      "discriminator": [25, 58, 193, 19, 186, 84, 236, 187],
-      "accounts": [
-        { "name": "authority", "signer": true },
-        { "name": "vaultConfig", "writable": true }
+      "name": "register_pool",
+      "discriminator": [
+        85,
+        229,
+        114,
+        47,
+        75,
+        145,
+        166,
+        100
       ],
-      "args": [
-        { "name": "paymentWeights", "type": { "defined": { "name": "PaymentWeights" } } },
-        { "name": "buybackRate", "type": "u64" },
-        { "name": "convexAuthority", "type": "pubkey" }
-      ]
-    },
-    {
-      "name": "registerPool",
-      "discriminator": [85, 229, 114, 47, 75, 145, 166, 100],
       "accounts": [
-        { "name": "depositor", "writable": true, "signer": true },
-        { "name": "mint" },
-        { "name": "depositPool", "writable": true },
-        { "name": "vaultAta", "writable": true },
-        { "name": "tokenProgram" },
-        { "name": "associatedTokenProgram", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "deposit_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  45,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "depositor"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "deposit_pool"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": []
     },
     {
-      "name": "deposit",
-      "discriminator": [242, 35, 198, 137, 82, 225, 242, 182],
+      "name": "set_weights",
+      "discriminator": [
+        25,
+        58,
+        193,
+        19,
+        186,
+        84,
+        236,
+        187
+      ],
       "accounts": [
-        { "name": "depositor", "writable": true, "signer": true },
-        { "name": "mint" },
-        { "name": "depositPool", "writable": true },
-        { "name": "depositorTokenAccount", "writable": true },
-        { "name": "vaultAta", "writable": true },
-        { "name": "tokenProgram" }
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "vault_config"
+          ]
+        },
+        {
+          "name": "vault_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
       ],
       "args": [
-        { "name": "amount", "type": "u64" }
-      ]
-    },
-    {
-      "name": "claim",
-      "discriminator": [62, 198, 214, 193, 213, 159, 108, 210],
-      "accounts": [
-        { "name": "player", "writable": true, "signer": true },
-        { "name": "vaultConfig" },
-        { "name": "mint" },
-        { "name": "depositPool", "writable": true },
-        { "name": "claimRecord", "writable": true },
-        { "name": "vaultAta", "writable": true },
-        { "name": "playerTokenAccount", "writable": true },
-        { "name": "instructionsSysvar", "address": "Sysvar1nstructions1111111111111111111111111" },
-        { "name": "tokenProgram" },
-        { "name": "associatedTokenProgram", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "amount", "type": "u64" },
-        { "name": "claimId", "type": { "array": ["u8", 32] } },
-        { "name": "expiry", "type": "i64" }
-      ]
-    },
-    {
-      "name": "gamePayment",
-      "discriminator": [44, 5, 226, 247, 176, 177, 31, 183],
-      "accounts": [
-        { "name": "player", "writable": true, "signer": true },
-        { "name": "vaultConfig" },
-        { "name": "operationalWallet", "writable": true },
-        { "name": "operatorWallet", "writable": true },
-        { "name": "buybackWallet", "writable": true },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "amount", "type": "u64" }
+        {
+          "name": "payment_weights",
+          "type": {
+            "defined": {
+              "name": "PaymentWeights"
+            }
+          }
+        },
+        {
+          "name": "buyback_rate",
+          "type": "u64"
+        },
+        {
+          "name": "convex_authority",
+          "type": "pubkey"
+        }
       ]
     }
   ],
   "accounts": [
     {
-      "name": "VaultConfig",
-      "discriminator": [99, 86, 43, 216, 184, 102, 119, 77]
+      "name": "ClaimRecord",
+      "discriminator": [
+        57,
+        229,
+        0,
+        9,
+        65,
+        62,
+        96,
+        7
+      ]
     },
     {
       "name": "DepositPool",
-      "discriminator": [64, 107, 122, 248, 155, 187, 255, 28]
+      "discriminator": [
+        64,
+        107,
+        122,
+        248,
+        155,
+        187,
+        255,
+        28
+      ]
     },
     {
-      "name": "ClaimRecord",
-      "discriminator": [57, 229, 0, 9, 65, 62, 96, 7]
+      "name": "VaultConfig",
+      "discriminator": [
+        99,
+        86,
+        43,
+        216,
+        184,
+        102,
+        119,
+        77
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidWeights",
+      "msg": "Payment weights must sum to 10000 basis points."
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero."
+    },
+    {
+      "code": 6002,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow."
+    },
+    {
+      "code": 6003,
+      "name": "PoolInactive",
+      "msg": "Deposit pool is inactive."
+    },
+    {
+      "code": 6004,
+      "name": "ClaimExpired",
+      "msg": "Claim has expired."
+    },
+    {
+      "code": 6005,
+      "name": "MissingEd25519Instruction",
+      "msg": "Missing ed25519 verification instruction."
+    },
+    {
+      "code": 6006,
+      "name": "InvalidEd25519Instruction",
+      "msg": "Invalid ed25519 verification instruction."
+    },
+    {
+      "code": 6007,
+      "name": "InvalidConvexAuthority",
+      "msg": "Invalid Convex authority."
+    },
+    {
+      "code": 6008,
+      "name": "InvalidClaimMessage",
+      "msg": "Claim message does not match the signed payload."
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientPoolBalance",
+      "msg": "Pool balance is insufficient for this claim."
+    },
+    {
+      "code": 6010,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Token account owner does not match the expected signer."
+    },
+    {
+      "code": 6011,
+      "name": "InvalidMint",
+      "msg": "Token mint does not match the pool mint."
     }
   ],
   "types": [
     {
-      "name": "VaultConfig",
+      "name": "ClaimRecord",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "authority", "type": "pubkey" },
-          { "name": "paymentWeights", "type": { "defined": { "name": "PaymentWeights" } } },
-          { "name": "buybackRate", "type": "u64" },
-          { "name": "convexAuthority", "type": "pubkey" },
-          { "name": "operationalWallet", "type": "pubkey" },
-          { "name": "operatorWallet", "type": "pubkey" },
-          { "name": "buybackWallet", "type": "pubkey" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "claim_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "claimed_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
@@ -140,23 +873,30 @@
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "depositor", "type": "pubkey" },
-          { "name": "mint", "type": "pubkey" },
-          { "name": "totalDeposited", "type": "u64" },
-          { "name": "remaining", "type": "u64" },
-          { "name": "active", "type": "bool" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
-    },
-    {
-      "name": "ClaimRecord",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          { "name": "claimId", "type": { "array": ["u8", 32] } },
-          { "name": "claimedAt", "type": "i64" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
@@ -165,9 +905,62 @@
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "operationalBps", "type": "u16" },
-          { "name": "operatorBps", "type": "u16" },
-          { "name": "buybackBps", "type": "u16" }
+          {
+            "name": "operational_bps",
+            "type": "u16"
+          },
+          {
+            "name": "operator_bps",
+            "type": "u16"
+          },
+          {
+            "name": "buyback_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "payment_weights",
+            "type": {
+              "defined": {
+                "name": "PaymentWeights"
+              }
+            }
+          },
+          {
+            "name": "buyback_rate",
+            "type": "u64"
+          },
+          {
+            "name": "convex_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "operational_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "buyback_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     }

@@ -10,13 +10,9 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  Transaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js'
 import {
   getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountIdempotentInstruction,
-  createTransferInstruction,
   getAccount,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,

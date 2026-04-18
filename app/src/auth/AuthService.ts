@@ -5,6 +5,7 @@ import {
 import { connection as solanaConnection } from '@/lib/solana'
 import {
   getMint,
+  getAssociatedTokenAddressSync,
 } from '@solana/spl-token'
 import { convex } from '@/lib/convex'
 import { api } from '../../convex/_generated/api'
@@ -85,7 +86,7 @@ class AuthService {
 
   async getTokenBalance(walletPubkey: PublicKey): Promise<number> {
     try {
-      const tokenAccount = await getAssociatedTokenAddress(TOKEN_MINT, walletPubkey)
+      const tokenAccount = getAssociatedTokenAddressSync(TOKEN_MINT, walletPubkey)
       const accountInfo = await this.connection.getTokenAccountBalance(tokenAccount)
       return accountInfo.value.uiAmount || 0
     } catch {
