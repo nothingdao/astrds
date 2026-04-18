@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-space_vault_program = "3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE"
+space_vault_program = "4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB"
 
 [programs.localnet]
-space_vault_program = "3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE"
+space_vault_program = "4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB"
 
 [registry]
 url = "https://api.apr.dev"

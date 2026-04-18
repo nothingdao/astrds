@@ -7,7 +7,7 @@ use anchor_lang::system_program::{self, Transfer as SolTransfer};
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked};
 
-declare_id!("3TXqXvJfVsD2S9k2kuE5wCt4JqnMuU3UB1RStKTTF7kE");
+declare_id!("4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB");
 
 const VAULT_CONFIG_SEED: &[u8] = b"vault-config";
 const DEPOSIT_POOL_SEED: &[u8] = b"deposit-pool";
