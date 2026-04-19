@@ -41,9 +41,10 @@ export interface PreparedClaim {
 
 const IDL = idl as SpaceVaultProgram
 const PROGRAM_ID = new PublicKey(IDL.address)
-const VAULT_CONFIG_SEED = Buffer.from('vault-config')
-const DEPOSIT_POOL_SEED = Buffer.from('deposit-pool')
-const CLAIM_RECORD_SEED = Buffer.from('claim-record')
+const enc = new TextEncoder()
+const VAULT_CONFIG_SEED = enc.encode('vault-config')
+const DEPOSIT_POOL_SEED = enc.encode('deposit-pool')
+const CLAIM_RECORD_SEED = enc.encode('claim-record')
 
 const createReadonlyWallet = (publicKey?: PublicKey): AnchorWallet => ({
   publicKey: publicKey ?? Keypair.generate().publicKey,
@@ -97,12 +98,13 @@ export const buildClaimMessage = (
   claimId: Uint8Array,
   expiry: number
 ) => {
-  const message = Buffer.alloc(112)
-  player.toBuffer().copy(message, 0)
-  pool.toBuffer().copy(message, 32)
-  message.writeBigUInt64LE(BigInt(amount), 64)
-  Buffer.from(claimId).copy(message, 72)
-  message.writeBigInt64LE(BigInt(expiry), 104)
+  const message = new Uint8Array(112)
+  const view = new DataView(message.buffer)
+  message.set(player.toBytes(), 0)
+  message.set(pool.toBytes(), 32)
+  view.setBigUint64(64, BigInt(amount), true)
+  message.set(claimId, 72)
+  view.setBigInt64(104, BigInt(expiry), true)
   return message
 }
 
