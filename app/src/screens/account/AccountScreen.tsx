@@ -20,7 +20,7 @@ import AvatarDisplay from '@/components/common/AvatarDisplay'
 const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
 
 const MetricCard = ({ icon: Icon, label, value, sublabel }) => (
-  <div className='bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors group'>
+  <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors group'>
     <div className='flex items-start justify-between'>
       <div>
         <div className='text-xs text-gray-400 mb-1'>{label}</div>
@@ -38,7 +38,7 @@ const MetricCard = ({ icon: Icon, label, value, sublabel }) => (
 )
 
 const TokenBalance = ({ label, balance, symbol, address, loading, icon = null }) => (
-  <div className='bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors'>
+  <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors'>
     <div className='flex items-center justify-between'>
       <div className='flex items-center gap-3'>
         {icon && <div className='shrink-0'>{icon}</div>}
@@ -171,7 +171,7 @@ const AccountScreen = ({ onClose }) => {
 
           {/* Left Column - Balances */}
           <div className='md:col-span-3 space-y-6'>
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+            <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Coins size={20} />
                 Wallet Balance
@@ -204,7 +204,7 @@ const AccountScreen = ({ onClose }) => {
 
           {/* Center Column - Stats + Recent Games */}
           <div className='md:col-span-6 space-y-6'>
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+            <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <BarChart3 size={20} />
                 Performance Stats
@@ -243,7 +243,7 @@ const AccountScreen = ({ onClose }) => {
               </div>
             </div>
 
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+            <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Clock size={20} />
                 Recent Games
@@ -252,7 +252,7 @@ const AccountScreen = ({ onClose }) => {
                 {recentGames.map((session) => (
                   <div
                     key={session._id}
-                    className='bg-black/30 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
+                    className='bg-neutral-800 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
                   >
                     <div className='flex justify-between items-center mb-1'>
                       <span className='text-xs text-gray-400'>
@@ -274,7 +274,7 @@ const AccountScreen = ({ onClose }) => {
                 )}
               </div>
             </div>
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+            <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Pill size={20} />
                 Space Token Claims
@@ -307,7 +307,7 @@ const AccountScreen = ({ onClose }) => {
                   return (
                     <div
                       key={claim._id}
-                      className='bg-black/30 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
+                      className='bg-neutral-800 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
                     >
                       <div className='flex justify-between items-center mb-1'>
                         <div className='flex items-center gap-2'>
@@ -347,7 +347,7 @@ const AccountScreen = ({ onClose }) => {
 
           {/* Right Column - Profile */}
           <div className='md:col-span-3 space-y-6'>
-            <div className='bg-black/50 border border-game-blue/20 rounded-lg p-6'>
+            <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
               <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
                 <Trophy size={20} />
                 Player Profile
@@ -379,7 +379,7 @@ const AccountScreen = ({ onClose }) => {
                   />
                 </div>
 
-                <div className='text-center p-4 border border-white/5 rounded-lg bg-black/30'>
+                <div className='text-center p-4 border border-white/5 rounded-lg bg-neutral-800'>
                   <div className='text-4xl text-game-blue font-mono mb-2'>
                     {bestRank ? `#${bestRank}` : '—'}
                   </div>

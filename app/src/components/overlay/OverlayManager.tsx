@@ -100,9 +100,9 @@ const OverlayManager: React.FC = () => {
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-4'>
       <div className='absolute inset-0 bg-black/80' onClick={closeOverlay} />
-      <div className={`relative z-10 w-full ${maxWidth} max-h-[88vh] bg-black border border-white/15 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.8)]`}>
-        <div className='flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0'>
-          <span className='font-mono text-[10px] uppercase tracking-[0.25em] text-white/40'>
+      <div className={`relative z-10 w-full ${maxWidth} max-h-[88vh] bg-neutral-900 border border-white/25 flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.9)]`}>
+        <div className='flex items-center justify-between px-5 py-3 border-b border-white/15 shrink-0'>
+          <span className='font-mono text-[10px] uppercase tracking-[0.25em] text-white/60'>
             {title}
           </span>
           <button

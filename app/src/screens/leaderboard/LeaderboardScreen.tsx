@@ -78,7 +78,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
     <div className='p-5'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-6'>
-              <div className='bg-black/50 border border-white/10 rounded-lg p-6'>
+              <div className='bg-neutral-800 border border-white/10 rounded-lg p-6'>
                 <h2 className='text-xl text-game-blue mb-4'>Your Stats</h2>
                 <div className='space-y-4'>
                   {wallet.connected ? (
@@ -113,7 +113,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
 
             </div>
 
-            <div className='bg-black/50 border border-white/10 rounded-lg p-6 max-h-[70vh] overflow-y-auto'>
+            <div className='bg-neutral-800 border border-white/10 rounded-lg p-6 max-h-[70vh] overflow-y-auto'>
               <h2 className='text-xl text-game-blue mb-4'>
                 Global Leaderboard{' '}
                 {highScores.length > 0 && `(Top ${highScores.length})`}

@@ -67,7 +67,7 @@ const AstrdsTab: React.FC = () => {
           { icon: Wallet, label: 'Holders', value: loading ? '...' : stats.holders.toLocaleString(), sub: 'unique wallets', link: null },
           { icon: ArrowRightLeft, label: 'Treasury', value: loading ? '...' : `${stats.treasurySol.toFixed(3)} SOL`, sub: 'vault balance', link: EXPLORER(TREASURY.toString()) },
         ].map(({ icon: Icon, label, value, sub, link }) => (
-          <div key={label} className='bg-black/30 border border-white/10 rounded-lg p-4'>
+          <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
             <div className='flex items-center justify-between mb-3'>
               <Icon size={14} className='text-game-blue/60' />
               {link && (
@@ -84,7 +84,7 @@ const AstrdsTab: React.FC = () => {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
           <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
             <Zap size={13} /> How $ASTRDS Works
           </h3>
@@ -95,7 +95,7 @@ const AstrdsTab: React.FC = () => {
           </div>
         </div>
 
-        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
           <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
             <ArrowRightLeft size={13} /> Quarter Payment Split
           </h3>
@@ -119,7 +119,7 @@ const AstrdsTab: React.FC = () => {
           </p>
         </div>
 
-        <div className='bg-black/30 border border-white/10 rounded-lg p-5 space-y-4'>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
           <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
             <Shield size={13} /> On-Chain Vault
           </h3>
@@ -200,7 +200,7 @@ const EconomyTab: React.FC = () => {
         <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Tokens in Space</div>
         <div className='grid grid-cols-4 gap-2'>
           {statCards.map(({ label, value, sub }) => (
-            <div key={label} className='bg-black/30 border border-white/10 rounded-lg p-3 text-center'>
+            <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-3 text-center'>
               <div className='font-mono text-lg text-white'>{value === null ? '...' : value.toLocaleString()}</div>
               <div className='font-mono text-[9px] text-white/30 uppercase tracking-widest mt-0.5'>{label}</div>
               <div className='font-mono text-[8px] text-white/15 mt-0.5'>{sub}</div>
@@ -229,7 +229,7 @@ const EconomyTab: React.FC = () => {
               note: 'Upgrade authority · operational · operator · buyback',
             },
           ].map(({ label, address, sol, token, note }) => (
-            <div key={address} className='bg-black/30 border border-white/10 rounded-lg p-4'>
+            <div key={address} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
               <div className='flex items-start justify-between gap-3'>
                 <div className='min-w-0'>
                   <div className='flex items-center gap-2 mb-0.5'>
@@ -254,7 +254,7 @@ const EconomyTab: React.FC = () => {
       {/* VaultConfig on-chain */}
       <div>
         <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>On-Chain Config</div>
-        <div className='bg-black/30 border border-white/10 rounded-lg p-4 space-y-2'>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 space-y-2'>
           {[
             { label: 'Program', value: '4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB' },
             { label: 'VaultConfig PDA', value: '6zsWYibNCYYQJikHv8BHXRNynEACgFKsZPNXqWqBPbvv' },

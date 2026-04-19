@@ -182,7 +182,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <button
                   key={t.mintAddress}
                   onClick={() => handleSelectToken(t)}
-                  className='w-full flex items-center justify-between bg-black/30 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors text-left'
+                  className='w-full flex items-center justify-between bg-neutral-800 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors text-left'
                 >
                   <div className='flex items-center gap-3'>
                     {t.logoUri ? (
@@ -240,7 +240,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 onChange={(e) => setSendAmount(e.target.value)}
                 max={selected.uiBalance}
                 min={1}
-                className='mt-1 w-full bg-black/50 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
+                className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
               />
             </label>
 
@@ -278,7 +278,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     onChange={(e) => setMinLevel(e.target.value)}
                     min={1}
                     max={parseInt(maxLevel)}
-                    className='mt-1 w-full bg-black/50 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
+                    className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
                   />
                 </label>
                 <label className='block'>
@@ -288,7 +288,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     value={maxLevel}
                     onChange={(e) => setMaxLevel(e.target.value)}
                     min={parseInt(minLevel)}
-                    className='mt-1 w-full bg-black/50 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
+                    className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
                   />
                 </label>
               </div>
@@ -329,7 +329,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 value={spawnMode === 'wave' ? waveCooldown : spawnInterval}
                 onChange={(e) => spawnMode === 'wave' ? setWaveCooldown(e.target.value) : setSpawnInterval(e.target.value)}
                 min={5}
-                className='mt-1 w-full bg-black/50 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
+                className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
               />
             </div>
 
