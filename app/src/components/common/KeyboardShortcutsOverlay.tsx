@@ -9,6 +9,8 @@ const SECTIONS: Section[] = [
   {
     title: 'Navigation',
     rows: [
+      { keys: [']'], label: 'Next overlay tab' },
+      { keys: ['['], label: 'Previous overlay tab' },
       { keys: ['T'], label: '$ASTRDS' },
       { keys: ['M'], label: 'Mining' },
       { keys: ['F'], label: 'Chat' },
