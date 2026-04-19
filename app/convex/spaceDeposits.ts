@@ -9,6 +9,27 @@ const MIN_SPAWN_INTERVAL_S = 5       // floor for escalating mode (seconds)
 
 // ── Public queries ────────────────────────────────────────────────────────────
 
+export const getEconomyStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const deposits = await ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .collect()
+    const allClaims = await ctx.db.query('claims').collect()
+    const uniqueMints = new Set(deposits.map((d) => d.mintAddress)).size
+    const tokensInSpace = deposits.reduce((sum, d) => sum + d.remainingAmount, 0)
+    const uniqueClaimers = new Set(allClaims.map((c) => c.playerWalletAddress)).size
+    return {
+      activePools: deposits.length,
+      uniqueMints,
+      tokensInSpace,
+      totalClaims: allClaims.length,
+      uniqueClaimers,
+    }
+  },
+})
+
 export const getAllActiveSpaceDeposits = query({
   args: {},
   handler: async (ctx) => {
