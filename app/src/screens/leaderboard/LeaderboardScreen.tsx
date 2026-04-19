@@ -79,32 +79,32 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-6'>
               <div className='bg-neutral-800 border border-white/10 rounded-lg p-6'>
-                <h2 className='text-xl text-game-blue mb-4'>Your Stats</h2>
+                <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4'>Your Stats</h2>
                 <div className='space-y-4'>
                   {wallet.connected ? (
                     <>
                       <div className='flex justify-between items-center'>
-                        <span className='text-white/80'>Your Top Score:</span>
-                        <span className='text-xl font-mono text-game-blue'>
+                        <span className='font-mono text-xs text-white/50'>Your Top Score:</span>
+                        <span className='font-mono text-lg text-white'>
                           {playerStats.topScore.toLocaleString()}
                         </span>
                       </div>
                       {playerStats.rank && (
                         <div className='flex justify-between items-center'>
-                          <span className='text-white/80'>Your Best Rank:</span>
-                          <span className='text-xl font-mono text-game-blue'>
+                          <span className='font-mono text-xs text-white/50'>Your Best Rank:</span>
+                          <span className='font-mono text-lg text-white'>
                             {formatRank(playerStats.rank)}
                           </span>
                         </div>
                       )}
                       {!playerStats.rank && playerStats.topScore > 0 && (
-                        <div className='text-center text-gray-400 text-sm'>
+                        <div className='font-mono text-xs text-white/40 text-center'>
                           Keep playing to reach the top 10!
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className='text-center text-gray-400'>
+                    <div className='font-mono text-xs text-white/40 text-center'>
                       Connect wallet to see your stats
                     </div>
                   )}
@@ -114,9 +114,8 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
             </div>
 
             <div className='bg-neutral-800 border border-white/10 rounded-lg p-6 max-h-[70vh] overflow-y-auto'>
-              <h2 className='text-xl text-game-blue mb-4'>
-                Global Leaderboard{' '}
-                {highScores.length > 0 && `(Top ${highScores.length})`}
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4'>
+                Global Leaderboard{highScores.length > 0 && ` (Top ${highScores.length})`}
               </h2>
               <LeaderboardTable
                 scores={highScores as Score[]}

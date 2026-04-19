@@ -67,30 +67,30 @@ const ScoreRow = ({
   return (
     <div
       className={`grid grid-cols-4 gap-4 px-4 py-2 transition-colors items-center
-        ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-gray-300 hover:bg-white/5'}
+        ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-white/60 hover:bg-white/5'}
         ${index < 3 ? 'py-3' : ''}`}
     >
       <div className='flex items-center'>
         {rankBadge ? (
           <Badge className={rankBadge.className}>{rankBadge.label}</Badge>
         ) : (
-          <span className='text-gray-500 text-sm'>#{index + 1}</span>
+          <span className='font-mono text-[10px] text-white/35'>#{index + 1}</span>
         )}
       </div>
       <div className='flex items-center gap-2'>
         <AvatarDisplay url={avatarUrl} address={score.walletAddress} size={22} />
-        <span className='font-mono text-sm'>{shortenAddress(score.walletAddress)}</span>
+        <span className='font-mono text-xs'>{shortenAddress(score.walletAddress)}</span>
         <a
           href={`https://orbmarkets.io/address/${score.walletAddress}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-gray-500 hover:text-white transition-colors text-xs'
+          className='text-white/30 hover:text-white transition-colors text-xs'
         >
           ⇗
         </a>
       </div>
       <div className='text-right font-mono'>{score.score.toLocaleString()}</div>
-      <div className='text-right text-xs text-gray-500'>{formatDate(score.date)}</div>
+      <div className='text-right font-mono text-[10px] text-white/35'>{formatDate(score.date)}</div>
     </div>
   )
 }
@@ -111,7 +111,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) 
   if (loading) return <LoadingSkeleton />
 
   if (scores.length === 0) {
-    return <div className='text-center text-gray-500 py-8'>No scores yet — be the first!</div>
+    return <div className='font-mono text-xs text-white/30 text-center py-8'>No scores yet — be the first!</div>
   }
 
   const topThree = scores.slice(0, 3)
@@ -119,7 +119,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) 
 
   return (
     <div className='space-y-2'>
-      <div className='grid grid-cols-4 gap-4 px-4 py-2 text-xs text-gray-500 uppercase tracking-wider'>
+      <div className='grid grid-cols-4 gap-4 px-4 py-2 font-mono text-[10px] text-white/35 uppercase tracking-widest'>
         <div>Rank</div>
         <div>Player</div>
         <div className='text-right'>Score</div>

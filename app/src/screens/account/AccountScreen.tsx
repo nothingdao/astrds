@@ -23,15 +23,15 @@ const MetricCard = ({ icon: Icon, label, value, sublabel }) => (
   <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors group'>
     <div className='flex items-start justify-between'>
       <div>
-        <div className='text-xs text-gray-400 mb-1'>{label}</div>
-        <div className='text-xl text-game-blue mb-1 font-mono'>{value}</div>
+        <div className='font-mono text-[10px] text-white/40 mb-1'>{label}</div>
+        <div className='font-mono text-lg text-white mb-1'>{value}</div>
         {sublabel && (
-          <div className='text-[10px] text-gray-500'>{sublabel}</div>
+          <div className='font-mono text-[10px] text-white/35'>{sublabel}</div>
         )}
       </div>
       <Icon
-        className='text-gray-600 group-hover:text-game-blue/50 transition-colors'
-        size={20}
+        className='text-white/20 group-hover:text-game-blue/50 transition-colors'
+        size={18}
       />
     </div>
   </div>
@@ -43,10 +43,10 @@ const TokenBalance = ({ label, balance, symbol, address, loading, icon = null })
       <div className='flex items-center gap-3'>
         {icon && <div className='shrink-0'>{icon}</div>}
         <div>
-          <div className='text-xs text-gray-400 mb-1'>{label}</div>
-          <div className='text-xl text-game-blue font-mono'>
+          <div className='font-mono text-[10px] text-white/40 mb-1'>{label}</div>
+          <div className='font-mono text-lg text-white'>
             {loading ? (
-              <div className='h-6 w-20 bg-game-blue/10 animate-pulse rounded' />
+              <div className='h-5 w-20 bg-white/10 animate-pulse rounded' />
             ) : (
               `${(balance ?? 0).toLocaleString()} ${symbol}`
             )}
@@ -58,9 +58,9 @@ const TokenBalance = ({ label, balance, symbol, address, loading, icon = null })
           href={`https://orbmarkets.io/address/${address}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-gray-400 hover:text-white transition-colors shrink-0'
+          className='text-white/30 hover:text-white transition-colors shrink-0'
         >
-          <ExternalLink size={16} />
+          <ExternalLink size={14} />
         </a>
       )}
     </div>
@@ -137,7 +137,7 @@ const AccountScreen = ({ onClose }) => {
   if (!wallet.connected) {
     return (
       <div className='p-10 text-center'>
-        <p className='font-mono text-sm text-white/40'>Connect your wallet to view your profile</p>
+        <p className='font-mono text-xs text-white/40'>Connect your wallet to view your profile</p>
       </div>
     )
   }
@@ -172,7 +172,7 @@ const AccountScreen = ({ onClose }) => {
           {/* Left Column - Balances */}
           <div className='md:col-span-3 space-y-6'>
             <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4 flex items-center gap-2'>
                 <Coins size={20} />
                 Wallet Balance
               </h2>
@@ -205,7 +205,7 @@ const AccountScreen = ({ onClose }) => {
           {/* Center Column - Stats + Recent Games */}
           <div className='md:col-span-6 space-y-6'>
             <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4 flex items-center gap-2'>
                 <BarChart3 size={20} />
                 Performance Stats
               </h2>
@@ -244,7 +244,7 @@ const AccountScreen = ({ onClose }) => {
             </div>
 
             <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4 flex items-center gap-2'>
                 <Clock size={20} />
                 Recent Games
               </h2>
@@ -255,27 +255,27 @@ const AccountScreen = ({ onClose }) => {
                     className='bg-neutral-800 border border-white/10 rounded-lg p-3 hover:border-game-blue/30 transition-colors'
                   >
                     <div className='flex justify-between items-center mb-1'>
-                      <span className='text-xs text-gray-400'>
+                      <span className='font-mono text-[10px] text-white/40'>
                         {new Date(session.sessionStart).toLocaleDateString()}
                       </span>
-                      <span className='text-xs text-gray-500'>
+                      <span className='font-mono text-[10px] text-white/35'>
                         Level {session.levelReached}
                       </span>
                     </div>
-                    <div className='text-lg font-mono text-game-blue'>
+                    <div className='font-mono text-sm text-white'>
                       {session.score.toLocaleString()}
                     </div>
                   </div>
                 ))}
                 {recentGames.length === 0 && (
-                  <div className='text-center text-gray-500 text-sm py-4'>
+                  <div className='font-mono text-xs text-white/30 text-center py-4'>
                     No games played yet
                   </div>
                 )}
               </div>
             </div>
             <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4 flex items-center gap-2'>
                 <Pill size={20} />
                 Space Token Claims
               </h2>
@@ -314,22 +314,22 @@ const AccountScreen = ({ onClose }) => {
                           {claim.logoUri && (
                             <img src={claim.logoUri} alt={claim.symbol} className='w-4 h-4 rounded-full' />
                           )}
-                          <span className='text-xs text-gray-400'>{claim.symbol}</span>
+                          <span className='font-mono text-xs text-white/50'>{claim.symbol}</span>
                         </div>
                         <a
                           href={`https://explorer.solana.com/tx/${claim.txSignature}?cluster=devnet`}
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='text-gray-600 hover:text-white transition-colors'
+                          className='text-white/30 hover:text-white transition-colors'
                         >
                           <ExternalLink size={12} />
                         </a>
                       </div>
                       <div className='flex justify-between items-end'>
-                        <div className='text-lg font-mono text-game-blue'>
+                        <div className='font-mono text-sm text-white'>
                           +{displayAmount} {claim.symbol}
                         </div>
-                        <span className='text-[10px] text-gray-500'>
+                        <span className='font-mono text-[10px] text-white/35'>
                           {new Date(claim.claimedAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -337,7 +337,7 @@ const AccountScreen = ({ onClose }) => {
                   )
                 })}
                 {claimsHistory.length === 0 && pendingCollections.length === 0 && (
-                  <div className='text-center text-gray-500 text-sm py-4'>
+                  <div className='font-mono text-xs text-white/30 text-center py-4'>
                     No space token activity yet
                   </div>
                 )}
@@ -348,7 +348,7 @@ const AccountScreen = ({ onClose }) => {
           {/* Right Column - Profile */}
           <div className='md:col-span-3 space-y-6'>
             <div className='bg-neutral-800 border border-game-blue/20 rounded-lg p-6'>
-              <h2 className='text-xl text-game-blue mb-6 flex items-center gap-2'>
+              <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest mb-4 flex items-center gap-2'>
                 <Trophy size={20} />
                 Player Profile
               </h2>
@@ -369,7 +369,7 @@ const AccountScreen = ({ onClose }) => {
                       }
                     </div>
                   </button>
-                  <p className='text-xs text-gray-500'>Click to upload avatar</p>
+                  <p className='font-mono text-[10px] text-white/35'>Click to upload avatar</p>
                   <input
                     ref={fileInputRef}
                     type='file'
@@ -379,25 +379,25 @@ const AccountScreen = ({ onClose }) => {
                   />
                 </div>
 
-                <div className='text-center p-4 border border-white/5 rounded-lg bg-neutral-800'>
-                  <div className='text-4xl text-game-blue font-mono mb-2'>
+                <div className='text-center p-4 border border-white/10 rounded-lg bg-neutral-800'>
+                  <div className='font-mono text-4xl text-white mb-2'>
                     {bestRank ? `#${bestRank}` : '—'}
                   </div>
-                  <div className='text-xs text-gray-400'>Best Rank</div>
+                  <div className='font-mono text-[10px] text-white/40'>Best Rank</div>
                 </div>
-                <div className='flex items-center justify-between text-sm'>
-                  <span className='text-gray-400'>Wallet</span>
+                <div className='flex items-center justify-between'>
+                  <span className='font-mono text-[10px] text-white/40'>Wallet</span>
                   <div className='flex items-center gap-2'>
-                    <span className='font-mono text-xs text-white/70'>
+                    <span className='font-mono text-xs text-white/60'>
                       {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
                     </span>
                     <a
                       href={`https://orbmarkets.io/address/${walletAddress}?cluster=devnet`}
                       target='_blank'
                       rel='noopener noreferrer'
-                      className='text-gray-400 hover:text-white transition-colors'
+                      className='text-white/30 hover:text-white transition-colors'
                     >
-                      <ExternalLink size={14} />
+                      <ExternalLink size={13} />
                     </a>
                   </div>
                 </div>
