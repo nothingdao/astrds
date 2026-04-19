@@ -234,7 +234,7 @@ export const prepareClaims = action({
       internal.spaceDeposits.getPendingCollectionsForClaim,
       { playerWalletAddress }
     )
-    if (pending.length === 0) return { success: true, results: [] }
+    if (pending.length === 0) return { success: true, claims: [] }
 
     // Group collection records by depositId.
     const byDeposit = new Map<string, typeof pending>()
@@ -263,13 +263,16 @@ export const prepareClaims = action({
 
     for (const [, cols] of byDeposit) {
       const depositId = cols[0].depositId
-      const deposit = await ctx.runQuery(internal.spaceDeposits.getDeposit, { depositId })
-      if (!deposit) continue
+      let deposit = await ctx.runQuery(internal.spaceDeposits.getDeposit, { depositId })
+      // depositId may be stale (e.g. after a clearAllDeposits + re-sync).
+      // Fall back to finding the active pool by mintAddress.
+      if (!deposit) {
+        deposit = await ctx.runQuery(internal.spaceDeposits.getDepositByMint, { mintAddress: cols[0].mintAddress })
+      }
+      if (!deposit || !deposit.poolAddress) continue
 
       const totalAmount = cols.reduce((sum, c) => sum + c.amount, 0)
-      if (totalAmount <= 0 || !deposit.poolAddress) {
-        continue
-      }
+      if (totalAmount <= 0) continue
 
       const claimId = randomBytes(32)
       const poolPubkey = new PublicKey(deposit.poolAddress)
@@ -277,7 +280,7 @@ export const prepareClaims = action({
       const signature = nacl.sign.detached(message, authority.secretKey)
 
       claims.push({
-        depositId: String(depositId),
+        depositId: String(deposit._id),
         collectionIds: cols.map((c) => String(c._id)),
         poolAddress: deposit.poolAddress,
         mintAddress: deposit.mintAddress,

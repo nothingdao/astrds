@@ -10,7 +10,6 @@ import GameLayout from './screens/game/components/GameLayout'
 import GameStateManager from './screens/game/components/GameStateManager'
 import ChatSystem from './components/chat/ChatSystem'
 import OverlayManager from './components/overlay/OverlayManager'
-import DevTools from './components/dev/DevTools'
 import { useSettingsPanelStore } from './stores/settingsPanelStore'
 import { useOverlayStore } from './stores/overlayStore'
 import { useAudio } from './hooks/useAudio'
@@ -151,7 +150,6 @@ const App: React.FC = () => {
                 <GameStateManager />
                 <ChatSystem />
                 <OverlayManager />
-                <DevTools />
                 {/* <Debugger /> */}
 
               </>

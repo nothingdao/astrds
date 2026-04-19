@@ -6,6 +6,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { RPC_ENDPOINT } from '@/lib/solana'
 
 export interface WalletToken {
+  accountAddress: string // the ATA pubkey
   mintAddress: string
   programId: 'TOKEN' | 'TOKEN_2022'
   balance: number      // raw amount (no decimals applied)
@@ -58,7 +59,7 @@ async function fetchDasMetadata(mintAddresses: string[]): Promise<
   return result
 }
 
-export async function getWalletTokens(walletAddress: string): Promise<WalletToken[]> {
+export async function getWalletTokens(walletAddress: string, includeEmpty = false): Promise<WalletToken[]> {
   const connection = new Connection(RPC_ENDPOINT, 'confirmed')
   const pubkey = new PublicKey(walletAddress)
 
@@ -67,32 +68,30 @@ export async function getWalletTokens(walletAddress: string): Promise<WalletToke
     connection.getParsedTokenAccountsByOwner(pubkey, { programId: TOKEN_2022_PROGRAM_ID }),
   ])
 
-  type AccountEntry = { programId: 'TOKEN' | 'TOKEN_2022'; info: any }
+  type AccountEntry = { accountAddress: string; programId: 'TOKEN' | 'TOKEN_2022'; info: any }
   const entries: AccountEntry[] = [
     ...v1Accounts.value.map((a) => ({
+      accountAddress: a.pubkey.toString(),
       programId: 'TOKEN' as const,
       info: a.account.data.parsed.info,
     })),
     ...v2Accounts.value.map((a) => ({
+      accountAddress: a.pubkey.toString(),
       programId: 'TOKEN_2022' as const,
       info: a.account.data.parsed.info,
     })),
   ]
 
-  // Filter to non-zero balances
-  const nonZero = entries.filter((e) => {
-    const amount = e.info.tokenAmount?.uiAmount ?? 0
-    return amount > 0
-  })
-
-  const mintAddresses = nonZero.map((e) => e.info.mint as string)
+  const filtered = includeEmpty ? entries : entries.filter(e => (e.info.tokenAmount?.uiAmount ?? 0) > 0)
+  const mintAddresses = filtered.map((e) => e.info.mint as string)
   const dasMetadata = await fetchDasMetadata(mintAddresses)
 
-  return nonZero.map((e) => {
+  return filtered.map((e) => {
     const mint = e.info.mint as string
     const tokenAmount = e.info.tokenAmount
     const meta = dasMetadata.get(mint)
     return {
+      accountAddress: e.accountAddress,
       mintAddress: mint,
       programId: e.programId,
       balance: Number(tokenAmount.amount),

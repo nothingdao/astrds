@@ -1,6 +1,6 @@
 // src/components/overlay/OverlayManager.tsx
 import React, { useEffect } from 'react'
-import { Coins, MessageSquare, Trophy, User, Rocket, Pickaxe } from 'lucide-react'
+import { Coins, MessageSquare, Trophy, User, Rocket, Pickaxe, FlaskConical } from 'lucide-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useStateMachine, selectMachineState } from '@/stores/stateMachine'
 import { Overlay } from '@/types/overlay'
@@ -14,16 +14,18 @@ import TokenomicsScreen from '@/screens/tokenomics/TokenomicsScreen'
 import MiningScreen from '@/screens/mining/MiningScreen'
 import KeyboardShortcutsOverlay from '@/components/common/KeyboardShortcutsOverlay'
 import SendToSpaceOverlay from '@/components/space/SendToSpaceOverlay'
+import DevTools from '@/components/dev/DevTools'
 
 // Primary overlays — shown in the tab bar and cycled by [ and ]
 const OVERLAY_TABS = [
-  { overlay: Overlay.ASTRDS,      label: '$ASTRDS',     key: 'T', icon: Coins         },
-  { overlay: Overlay.CHAT,        label: 'Chat',        key: 'F', icon: MessageSquare  },
-  { overlay: Overlay.LEADERBOARD, label: 'Leaderboard', key: 'L', icon: Trophy         },
-  { overlay: Overlay.ACCOUNT,     label: 'Account',     key: 'A', icon: User           },
-  { overlay: Overlay.SPACE,       label: 'Space',       key: 'R', icon: Rocket         },
-  { overlay: Overlay.MINING,      label: 'Mining',      key: 'M', icon: Pickaxe        },
-] as const
+  { overlay: Overlay.ASTRDS,      label: '$ASTRDS',     key: 'T', icon: Coins,         devOnly: false },
+  { overlay: Overlay.CHAT,        label: 'Chat',        key: 'F', icon: MessageSquare,  devOnly: false },
+  { overlay: Overlay.LEADERBOARD, label: 'Leaderboard', key: 'L', icon: Trophy,         devOnly: false },
+  { overlay: Overlay.ACCOUNT,     label: 'Account',     key: 'A', icon: User,           devOnly: false },
+  { overlay: Overlay.SPACE,       label: 'Space',       key: 'R', icon: Rocket,         devOnly: false },
+  { overlay: Overlay.MINING,      label: 'Mining',      key: 'M', icon: Pickaxe,        devOnly: false },
+  { overlay: Overlay.DEV,         label: 'Dev',         key: 'D', icon: FlaskConical,   devOnly: true  },
+].filter(t => !t.devOnly || import.meta.env.DEV) as { overlay: Overlay; label: string; key: string; icon: React.ElementType }[]
 
 // Overlays blocked while actively playing
 const PLAYING_RESTRICTED = new Set([Overlay.ASTRDS, Overlay.LEADERBOARD, Overlay.SPACE])
@@ -38,6 +40,7 @@ const OVERLAY_MAX_WIDTH: Record<Overlay, string> = {
   [Overlay.MINING]:      'max-w-3xl',
   [Overlay.SHORTCUTS]:   'max-w-lg',
   [Overlay.SPACE]:       'max-w-2xl',
+  [Overlay.DEV]:         'max-w-2xl',
 }
 
 interface OverlayContentProps {
@@ -89,6 +92,9 @@ const OverlayContent: React.FC<OverlayContentProps> = ({ type, onClose }) => {
 
     case Overlay.SPACE:
       return <SendToSpaceOverlay onClose={onClose} />
+
+    case Overlay.DEV:
+      return <DevTools />
 
     default:
       return null

@@ -21,7 +21,7 @@ All addresses are **Solana devnet** unless otherwise noted.
 | Convex authority / treasury | `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF` | Convex env `PROGRAM_AUTHORITY_PRIVATE_KEY` |
 
 **Deployer** — signs deployments, upgrades, and the one-time `initialize` call.  
-**Convex authority** — the server-side keypair Convex uses to sign claim authorizations and execute SPL transfers. Also holds deposited space tokens in its associated token accounts.
+**Convex authority** — the server-side keypair Convex uses to sign ed25519 claim authorizations. The on-chain program verifies these against `VaultConfig.convexAuthority`.
 
 ---
 
@@ -42,8 +42,11 @@ PDAs are deterministic — derived from seeds + program ID. No keypair needed.
 | Account | Seeds | Description |
 |---|---|---|
 | `VaultConfig` | `["vault-config"]` | `6zsWYibNCYYQJikHv8BHXRNynEACgFKsZPNXqWqBPbvv` — singleton config: weights, convex authority, wallet addresses |
-| `DepositPool` | `["deposit-pool", depositor_pubkey, mint_pubkey]` | One per depositor+mint pair; tracks remaining balance |
-| `ClaimRecord` | `["claim-record", claim_id_bytes]` | One per claim; replay protection (claim ID is a UUID hash) |
+| `DepositPool` | `["deposit-pool", depositor_pubkey, mint_pubkey]` | One per depositor+mint pair; tracks remaining balance; owns the vault ATA |
+| `ClaimRecord` | `["claim-record", claim_id_bytes]` | One per claim; replay protection (claim ID is a random 32-byte value) |
+
+Each `DepositPool` owns an associated token account (`vaultAta`) derived as:
+`ATA(mint, depositPool, allowOwnerOffCurve=true, tokenProgram)`
 
 ### VaultConfig current values (devnet)
 
@@ -81,43 +84,64 @@ game_payment instruction
 ```
 Depositor wallet
     │  1. registerDepositIntent → Convex creates pending record
-    │  2. signs SPL transfer tx (any token amount)
-    │  3. submitDepositTransaction → Convex stores txSignature
-    ▼
-Convex authority token account (for that mint)
-    │
-    Helius webhook fires on confirmed tx
-    │  OR depositor calls verifyAndConfirmDeposit manually
+    │  2. buildSendToSpaceTransaction → registerPool + deposit instructions
+    │  3. Player signs and sends on-chain
     ▼
 DepositPool PDA (depositor + mint)
-    └─ totalAmount set from on-chain tx.meta (never client input)
-    └─ remainingAmount = totalAmount (decremented as players collect)
+    │  └─ vaultAta (ATA owned by DepositPool PDA)
+    │       └─ tokens land here, not in treasury wallet
+    │
+    ├─ confirmDepositFromChain mutation → activates Convex record with poolAddress
+    │
+    └─ verifyAndConfirmDeposit action (parallel)
+           └─ reads tx.meta.postTokenBalances - preTokenBalances
+           └─ overwrites Convex amount with verified on-chain value
 ```
 
-### In-Game Token Collection → Claim
+### In-Game Token Spawn → Collection → Claim
 
 ```
-Player collects token pill in game
+Spawn:
+    engineStore.spawnToken()
+    │
+    ▼
+requestSpawnTicket (Convex mutation)
+    └─ validates: active session, paid, per-player cooldown elapsed
+    └─ issues spawnTickets record (60s TTL)
+    └─ if valid ticket returned → Token entity spawned client-side
+
+Collection:
+    Ship-token collision
     │
     ▼
 collectFromDeposit (Convex mutation — atomic, serialized)
-    └─ remainingAmount decremented in DepositPool
+    └─ validates + marks ticket used
+    └─ decrements remainingAmount in DepositPool record
+    └─ writes persistent collections record (status: pending)
 
-Game over screen — player clicks Claim
+Claim (game over screen or AccountScreen):
     │
     ▼
-Convex action: executeClaimTransfer
-    │  1. Derives claim_id (UUID → sha256 hash)
-    │  2. Signs {claim_id, player, mint, amount} with convex_authority keypair
-    │  3. Builds ed25519 pre-instruction + claim instruction
+prepareClaims (Convex action)
+    │  1. Groups pending collections by deposit
+    │  2. Signs {player, pool, amount, claimId, expiry} with convex_authority
+    │  3. Returns signed claim data to client
+    ▼
+buildClaimTransaction (client — spaceVault.ts, per claim)
+    │  Ed25519Program.createInstructionWithPublicKey(convexAuthority, message, sig)
+    │  + claim instruction
     ▼
 claim instruction (on-chain)
-    │  Verifies ed25519 signature against convex_authority in VaultConfig
+    │  Verifies ed25519 pre-instruction against VaultConfig.convexAuthority
     │  Creates ClaimRecord PDA (replay protection)
-    │  Transfers tokens from Convex authority ATA → player ATA
+    │  Transfers tokens: vaultAta → player ATA (init_if_needed)
     ▼
 Player's wallet now holds the claimed token
-    └─ claim written to Convex `claims` table
+    │
+    ▼
+finalizeClaim mutation
+    └─ marks collections as claimed
+    └─ writes to claims table (with tx signature)
 ```
 
 ### Drain Detection / Reconcile
@@ -133,7 +157,7 @@ Helius webhook fires on any tx touching treasury wallet
                │
                ▼
            reconcilePool action
-               └─ fetches actual on-chain token balance
+               └─ fetches actual on-chain pool PDA remaining balance
                └─ caps DepositPool.remainingAmount to on-chain reality
 
 Hourly cron: reconcileAllPools
@@ -146,7 +170,7 @@ Hourly cron: reconcileAllPools
 
 | Key | Purpose |
 |---|---|
-| `PROGRAM_AUTHORITY_PRIVATE_KEY` | JSON array — Convex authority keypair (minting + claims) |
+| `PROGRAM_AUTHORITY_PRIVATE_KEY` | JSON array — Convex authority keypair (ASTRDS minting + ed25519 claim signing) |
 | `SOLANA_RPC_ENDPOINT` | RPC used by Convex actions |
 | `HELIUS_WEBHOOK_SECRET` | Shared secret for webhook validation |
 
@@ -154,6 +178,6 @@ Hourly cron: reconcileAllPools
 
 ## Explorer Links
 
-- [Program on Solana Explorer](https://explorer.solana.com/address/4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB?cluster=devnet)
-- [ASTRDS Token Mint](https://explorer.solana.com/address/5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB?cluster=devnet)
-- [Treasury Wallet](https://explorer.solana.com/address/CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF?cluster=devnet)
+- [Program on Orb Markets](https://orbmarkets.io/address/4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB?cluster=devnet)
+- [ASTRDS Token Mint](https://orbmarkets.io/address/5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB?cluster=devnet)
+- [Treasury / Convex Authority Wallet](https://orbmarkets.io/address/CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF?cluster=devnet)

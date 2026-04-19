@@ -67,7 +67,14 @@ export const useGameData = create<GameStore>((set, get) => ({
     }
   },
 
-  resetGame: () => set({ ...initialState }),
+  resetGame: () => set((state) => ({
+    isProcessing: false,
+    score: 0,
+    error: null,
+    lastGameStats: null,
+    sessionState: { status: state.sessionState.status },
+    // preserve currentSessionId, walletAddress, topScore — set by startGameSession / submitFinalScore
+  })),
   clearError: () => set((state) => ({ ...state, error: null })),
 
   startGameSession: async (walletAddress: string) => {

@@ -16,6 +16,8 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { getTokenBalances } from '@/utils/tokenBalances'
 import AvatarDisplay from '@/components/common/AvatarDisplay'
+import SpaceTokenClaim from '@/screens/gameover/SpaceTokenClaim'
+import TokenBurnPanel from '@/components/account/TokenBurnPanel'
 
 const MINT_ADDRESS = '5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB'
 
@@ -280,29 +282,11 @@ const AccountScreen = ({ onClose }) => {
                 Space Token Claims
               </h2>
               <div className='space-y-3'>
-                {/* Pending (unclaimed) collections */}
-                {pendingCollections.length > 0 && (
-                  <div className='bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 space-y-1'>
-                    <div className='font-mono text-[10px] text-purple-400 uppercase tracking-wider mb-2'>
-                      Pending — claim from game over screen
-                    </div>
-                    {pendingCollections.map((col) => {
-                      const uiAmount = (col.amount / Math.pow(10, col.decimals)).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                      return (
-                        <div key={col._id} className='flex justify-between font-mono text-xs'>
-                          <div className='flex items-center gap-2'>
-                            {col.logoUri && <img src={col.logoUri} alt={col.symbol} className='w-3 h-3 rounded-full' />}
-                            <span className='text-white/50'>{col.symbol}</span>
-                          </div>
-                          <span className='text-purple-300'>+{uiAmount}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                {/* Pending (unclaimed) collections — full claim UI */}
+                <SpaceTokenClaim />
 
-                {/* On-chain claim history */}
-                {claimsHistory.slice(0, 10).map((claim) => {
+                {/* On-chain claim history — skip dev-claim entries */}
+                {claimsHistory.filter(c => !c.txSignature.startsWith('dev-claim-')).slice(0, 10).map((claim) => {
                   const displayAmount = (claim.amount / Math.pow(10, claim.decimals)).toLocaleString(undefined, { maximumFractionDigits: 2 })
                   return (
                     <div
@@ -317,7 +301,7 @@ const AccountScreen = ({ onClose }) => {
                           <span className='font-mono text-xs text-white/50'>{claim.symbol}</span>
                         </div>
                         <a
-                          href={`https://explorer.solana.com/tx/${claim.txSignature}?cluster=devnet`}
+                          href={`https://orbmarkets.io/tx/${claim.txSignature}?cluster=devnet`}
                           target='_blank'
                           rel='noopener noreferrer'
                           className='text-white/30 hover:text-white transition-colors'
@@ -343,6 +327,11 @@ const AccountScreen = ({ onClose }) => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Wallet Cleanup */}
+          <div className='md:col-span-9'>
+            <TokenBurnPanel />
           </div>
 
           {/* Right Column - Profile */}

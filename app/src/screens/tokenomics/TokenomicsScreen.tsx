@@ -18,7 +18,7 @@ import {
 const MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const TREASURY = new PublicKey('CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF')
 const DEPLOYER = new PublicKey('jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE')
-const EXPLORER = (addr: string) => `https://explorer.solana.com/address/${addr}?cluster=devnet`
+const EXPLORER = (addr: string) => `https://orbmarkets.io/address/${addr}?cluster=devnet`
 
 type Tab = 'astrds' | 'economy'
 

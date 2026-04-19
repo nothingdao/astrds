@@ -10,7 +10,6 @@
 
 import type * as chat from "../chat.js";
 import type * as crons from "../crons.js";
-import type * as devMutations from "../devMutations.js";
 import type * as devTools from "../devTools.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as http from "../http.js";
@@ -20,6 +19,7 @@ import type * as sessions from "../sessions.js";
 import type * as spaceDeposits from "../spaceDeposits.js";
 import type * as spaceDepositsActions from "../spaceDepositsActions.js";
 import type * as tokens from "../tokens.js";
+import type * as vaultHealth from "../vaultHealth.js";
 import type * as verifyPayment from "../verifyPayment.js";
 import type * as webhookHandlers from "../webhookHandlers.js";
 
@@ -32,7 +32,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   crons: typeof crons;
-  devMutations: typeof devMutations;
   devTools: typeof devTools;
   gameSessions: typeof gameSessions;
   http: typeof http;
@@ -42,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   spaceDeposits: typeof spaceDeposits;
   spaceDepositsActions: typeof spaceDepositsActions;
   tokens: typeof tokens;
+  vaultHealth: typeof vaultHealth;
   verifyPayment: typeof verifyPayment;
   webhookHandlers: typeof webhookHandlers;
 }>;

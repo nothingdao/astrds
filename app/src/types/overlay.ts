@@ -9,4 +9,5 @@ export enum Overlay {
   MINING = 'MINING',
   SHORTCUTS = 'SHORTCUTS',
   SPACE = 'SPACE',
+  DEV = 'DEV',
 }

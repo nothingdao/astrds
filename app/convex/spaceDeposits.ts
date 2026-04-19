@@ -563,6 +563,74 @@ export const finalizeClaim = mutation({
   },
 })
 
+export const getAllDeposits = internalQuery({
+  args: {},
+  handler: async (ctx) => ctx.db.query('spaceDeposits').collect(),
+})
+
+export const getDepositByWalletAndMint = internalQuery({
+  args: { walletAddress: v.string(), mintAddress: v.string() },
+  handler: async (ctx, { walletAddress, mintAddress }) =>
+    ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_wallet_mint', (q) =>
+        q.eq('walletAddress', walletAddress).eq('mintAddress', mintAddress)
+      )
+      .first(),
+})
+
+export const upsertRecoveredDeposit = internalMutation({
+  args: {
+    poolAddress: v.string(),
+    walletAddress: v.string(),
+    mintAddress: v.string(),
+    programId: v.string(),
+    symbol: v.string(),
+    name: v.string(),
+    logoUri: v.optional(v.string()),
+    decimals: v.number(),
+    totalAmount: v.number(),
+    remainingAmount: v.number(),
+    tokensPerPill: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('spaceDeposits')
+      .withIndex('by_wallet_mint', (q) =>
+        q.eq('walletAddress', args.walletAddress).eq('mintAddress', args.mintAddress)
+      )
+      .first()
+
+    const status = args.remainingAmount >= args.tokensPerPill ? 'active' : 'depleted'
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        poolAddress: args.poolAddress,
+        remainingAmount: args.remainingAmount,
+        totalAmount: args.totalAmount,
+        symbol: args.symbol,
+        name: args.name,
+        logoUri: args.logoUri,
+        decimals: args.decimals,
+        status,
+      })
+      return { id: existing._id, created: false }
+    }
+
+    const id = await ctx.db.insert('spaceDeposits', {
+      ...args,
+      txSignature: `recovered-${args.poolAddress.slice(0, 8)}`,
+      minLevel: 1,
+      maxLevel: 10,
+      spawnMode: 'steady',
+      spawnInterval: 30,
+      depositedAt: Date.now(),
+      status,
+    })
+    return { id, created: true }
+  },
+})
+
 export const decrementDeposit = internalMutation({
   args: {
     depositId: v.id('spaceDeposits'),
