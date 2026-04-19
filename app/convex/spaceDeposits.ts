@@ -263,12 +263,14 @@ export const confirmDepositFromChain = mutation({
     depositedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const { depositId, remainingAmount, tokensPerPill } = args
+    const { depositId, remainingAmount, tokensPerPill, ...fields } = args
     const deposit = await ctx.db.get(depositId)
     if (!deposit) throw new Error('Deposit not found')
 
     await ctx.db.patch(depositId, {
-      ...args,
+      ...fields,
+      remainingAmount,
+      tokensPerPill,
       status: remainingAmount < tokensPerPill ? 'depleted' : 'active',
     })
   },
