@@ -1,5 +1,5 @@
 // src/types/stores/overlay.ts
-import { Overlay } from '../core'
+import { Overlay } from '../overlay'
 
 export interface OverlayState {
   activeOverlay: Overlay | null

@@ -26,7 +26,7 @@ const PlayerProfile: React.FC<{ address: string }> = ({ address }) => {
   const scores = useQuery(api.scores.getScores)
 
   const topScore = scores?.find((s) => s.walletAddress === address)
-  const activeDeposits = deposits?.filter((d) => d.active && d.remainingAmount > 0) ?? []
+  const activeDeposits = deposits?.filter((d) => d.status === 'active' && d.remainingAmount > 0) ?? []
   const totalDeposited = deposits?.length ?? 0
 
   return (

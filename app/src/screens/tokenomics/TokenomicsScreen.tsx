@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { connection } from '@/lib/solana'
-import { getAssociatedTokenAddressSync } from '@solana/spl-token'
+import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { fetchVaultConfig } from '@/lib/spaceVault'
 import {
   Coins,
@@ -158,7 +158,7 @@ const useWalletBalance = (pubkey: PublicKey, fetchAstrds = false): WalletBalance
         let astrds: number | null = null
         if (fetchAstrds) {
           try {
-            const ata = getAssociatedTokenAddressSync(MINT, pubkey)
+            const ata = getAssociatedTokenAddressSync(MINT, pubkey, false, TOKEN_2022_PROGRAM_ID)
             const info = await connection.getTokenAccountBalance(ata)
             astrds = info.value.uiAmount
           } catch {

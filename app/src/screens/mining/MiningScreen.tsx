@@ -93,22 +93,6 @@ function groupDeposits(deposits: any[]): GroupedToken[] {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const Breadcrumb: React.FC<{ crumbs: { label: string; onClick: () => void }[] }> = ({ crumbs }) => (
-  <div className='flex items-center gap-1.5 font-mono text-[10px] text-white/25 mb-4'>
-    {crumbs.map((c, i) => (
-      <React.Fragment key={c.label}>
-        {i > 0 && <ChevronRight size={10} className='text-white/15' />}
-        <button
-          onClick={c.onClick}
-          className={i === crumbs.length - 1 ? 'text-white/50' : 'hover:text-white/50 transition-colors'}
-        >
-          {c.label}
-        </button>
-      </React.Fragment>
-    ))}
-  </div>
-)
-
 const TokenRow: React.FC<{ group: GroupedToken; onClick: () => void }> = ({ group, onClick }) => {
   const [market, setMarket] = useState<TokenMarketData | null>(null)
   const remaining = group.totalRemaining / 10 ** group.decimals
@@ -300,20 +284,6 @@ const MiningScreen = ({ onClose }: { onClose: () => void }) => {
 
   const groups = activeDeposits ? groupDeposits(activeDeposits) : []
   const currentGroup = view.type === 'token' ? groups.find((g) => g.mintAddress === view.mint) : null
-
-  const crumbs = () => {
-    const base = [{ label: 'Mining', onClick: () => setView({ type: 'list' }) }]
-    if (view.type === 'token' && currentGroup) {
-      base.push({ label: currentGroup.symbol, onClick: () => {} })
-    }
-    if (view.type === 'depositor') {
-      if (history.length > 1) {
-        // came from token — add token crumb back
-      }
-      base.push({ label: short(view.address), onClick: () => {} })
-    }
-    return base
-  }
 
   return (
     <div className='p-5'>

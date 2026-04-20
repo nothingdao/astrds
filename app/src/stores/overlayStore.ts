@@ -1,6 +1,6 @@
 // src/stores/overlayStore.ts
 import { create } from 'zustand'
-import { Overlay } from '@/types/core' // Keep Overlay in core
+import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import { OverlayStore } from '@/types/stores/overlay' // Move types to own file
 import { useStateMachine } from './stateMachine'
