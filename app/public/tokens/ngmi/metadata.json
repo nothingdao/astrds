@@ -2,6 +2,19 @@
   "name": "Not Gonna Make It",
   "symbol": "NGMI",
   "description": "Ser your portfolio is down 99%. Sold the top, bought the bottom, aped the rug. Still here though.",
-  "image": "https://astrds.ndao.computer/tokens/ngmi/logo.svg",
-  "attributes": [{ "trait_type": "Survival Odds", "value": "0%" }]
+  "image": "https://astrds.ndao.computer/tokens/ngmi/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Survival Odds",
+      "value": "0%"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/ngmi/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

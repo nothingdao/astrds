@@ -2,6 +2,19 @@
   "name": "Copium",
   "symbol": "COPE",
   "description": "Pure uncut copium for the degenerate soul. Price is down because of weak hands, not fundamentals. Bullish.",
-  "image": "https://astrds.ndao.computer/tokens/cope/logo.svg",
-  "attributes": [{ "trait_type": "Hopium Level", "value": "Maximum" }]
+  "image": "https://astrds.ndao.computer/tokens/cope/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Hopium Level",
+      "value": "Maximum"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/cope/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

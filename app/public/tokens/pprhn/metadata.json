@@ -2,6 +2,19 @@
   "name": "Paper Hands",
   "symbol": "PPRHN",
   "description": "Sold the bottom. Bought the top. Did it twice in the same week. My hands are so paper they're basically origami at this point.",
-  "image": "https://astrds.ndao.computer/tokens/pprhn/logo.svg",
-  "attributes": [{ "trait_type": "Hand Material", "value": "Tissue Paper" }]
+  "image": "https://astrds.ndao.computer/tokens/pprhn/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Hand Material",
+      "value": "Tissue Paper"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/pprhn/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

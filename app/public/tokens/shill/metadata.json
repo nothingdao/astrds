@@ -2,6 +2,19 @@
   "name": "Shill Token",
   "symbol": "SHILL",
   "description": "Have you heard about this hidden gem? My uncle works at Solana and said this is the next 1000x. NFA DYOR.",
-  "image": "https://astrds.ndao.computer/tokens/shill/logo.svg",
-  "attributes": [{ "trait_type": "Bags", "value": "Full" }]
+  "image": "https://astrds.ndao.computer/tokens/shill/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Bags",
+      "value": "Full"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/shill/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

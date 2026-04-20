@@ -2,6 +2,19 @@
   "name": "Pure Degen",
   "symbol": "DEGEN",
   "description": "Aped my life savings into this at 3am. No research. No sleep. Just vibes and a 100x dream. I regret nothing (I regret everything).",
-  "image": "https://astrds.ndao.computer/tokens/degen/logo.svg",
-  "attributes": [{ "trait_type": "Sleep Schedule", "value": "What is Sleep" }]
+  "image": "https://astrds.ndao.computer/tokens/degen/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Sleep Schedule",
+      "value": "What is Sleep"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/degen/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

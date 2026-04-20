@@ -2,6 +2,19 @@
   "name": "Gigabrain",
   "symbol": "GBRAIN",
   "description": "While others see a rug, I see a 4D chess move by the devs. My galaxy brain analysis predicted this exactly. I am never wrong, I just early.",
-  "image": "https://astrds.ndao.computer/tokens/gbrain/logo.svg",
-  "attributes": [{ "trait_type": "IQ", "value": "Galaxy" }]
+  "image": "https://astrds.ndao.computer/tokens/gbrain/logo.png",
+  "attributes": [
+    {
+      "trait_type": "IQ",
+      "value": "Galaxy"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/gbrain/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

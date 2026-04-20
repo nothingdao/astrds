@@ -2,6 +2,19 @@
   "name": "Smol Brain",
   "symbol": "SMOL",
   "description": "Big brain not required. Ape first, read the whitepaper never. The token is smol but the dreams are big.",
-  "image": "https://astrds.ndao.computer/tokens/smol/logo.svg",
-  "attributes": [{ "trait_type": "Brain Size", "value": "Smol" }]
+  "image": "https://astrds.ndao.computer/tokens/smol/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Brain Size",
+      "value": "Smol"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/smol/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }

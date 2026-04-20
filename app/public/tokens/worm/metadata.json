@@ -2,6 +2,19 @@
   "name": "Brain Worm",
   "symbol": "WORM",
   "description": "Something is living in my head rent free and it only buys dips. The worm has been there since the 2021 bull run.",
-  "image": "https://astrds.ndao.computer/tokens/worm/logo.svg",
-  "attributes": [{ "trait_type": "Host Status", "value": "Fully Infected" }]
+  "image": "https://astrds.ndao.computer/tokens/worm/logo.png",
+  "attributes": [
+    {
+      "trait_type": "Host Status",
+      "value": "Fully Infected"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://astrds.ndao.computer/tokens/worm/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
 }
