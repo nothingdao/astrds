@@ -8,7 +8,7 @@ import type {
   ScreenBounds,
   ShipSnapshot,
   Vector2D,
-} from './protocol'
+} from './protocol.js'
 
 const SHIP_RADIUS = 20
 const SHIP_ROTATION_SPEED = 6
