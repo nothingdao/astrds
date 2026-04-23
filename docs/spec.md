@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-19
+updated: 2026-04-23
 ---
 
 # ASTRDS — Product Spec
@@ -87,7 +87,7 @@ Feature source of truth. Update this as features ship, change, or get cut.
 ## Nice To Have
 
 - Mobile controls
-- Mainnet migration (economy design not settled)
+- Mainnet migration — economy design in progress, see `docs/economy.md`
 - Code splitting (bundle currently ~500KB+)
 - Error boundary / user-facing error UI for failed score submission or mint
 - Surface real $ASTRDS token balance in AccountScreen (currently fetched from chain but `getTokenBalances` util is minimal)

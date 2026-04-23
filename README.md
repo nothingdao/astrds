@@ -44,7 +44,8 @@ HELIUS_WEBHOOK_SECRET           # Shared secret validated on every webhook POST
 - **Symbol** — $ASTRDS
 - **Decimals** — 9
 - **Metadata URI** — https://astrds.ndao.computer/token.json
-- Minted 1:1 per token collected in-game (max 200/game)
+- Devnet: minted 1:1 per token collected in-game (max 200/game)
+- Mainnet emission model is in design — see [docs/economy.md](docs/economy.md)
 
 ## Tokens in Space
 
