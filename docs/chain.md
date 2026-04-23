@@ -35,6 +35,22 @@ Mint authority and freeze authority are both held by the Convex authority wallet
 
 ---
 
+## Liquidity Pool — Meteora DAMM v2 (devnet)
+
+| Field | Value |
+|---|---|
+| Pool address | `EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG` |
+| Pair | ASTRDS / SOL |
+| Initial price | 0.000016 SOL per ASTRDS (~$0.0024 at seed, ~$50K FDV) |
+| Seed | 50 ASTRDS + 0.0008 SOL |
+| Fee tier | 1% fixed, dynamic fee enabled |
+| Liquidity | Permanently locked |
+| Owner | Deployer wallet `jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE` |
+
+Note: devnet pool uses SOL as quote asset. Mainnet target is ASTRDS/USDC — see `docs/economy.md`.
+
+---
+
 ## Program-Derived Accounts (PDAs)
 
 PDAs are deterministic — derived from seeds + program ID. No keypair needed.
@@ -337,3 +353,4 @@ Hourly cron: reconcileAllPools
 - [Treasury / Convex Authority Wallet](https://orbmarkets.io/address/CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF?cluster=devnet)
 - [Meteora devnet](https://devnet.meteora.ag/)
 - [Meteora DAMM v2 docs](https://docs.meteora.ag/developer-guide/quick-launch/damm-v2-launch-pool)
+- [ASTRDS/SOL Pool (devnet)](https://orbmarkets.io/address/EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG?cluster=devnet)
