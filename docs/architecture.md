@@ -13,15 +13,15 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 
 ### Frontend (src/)
 
-- **Game engine** — canvas-based. Two modes: client-local (driven by `engineStore.ts`) and server-driven (driven by `ServerGameScreen.tsx` receiving `GameSnapshot` over WebSocket). Entity classes: `Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup` — all with separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods.
-- **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine. `GameScreen` switches to `ServerGameScreen` when `VITE_WS_URL` is set.
-- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`. In server mode, stores are hydrated from `GameSnapshot` on each tick.
+- **Game engine** — canvas-based renderer. `GameScreen` delegates unconditionally to `ServerGameScreen`, which receives `GameSnapshot` over WebSocket and calls `renderServerSnapshot`. Entity classes (`Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`) have separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods, enabling the simulation to run in Node without browser APIs.
+- **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
+- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`. Stores are hydrated from `GameSnapshot` on each server tick.
 - **Blockchain** — Solana wallet-adapter. Auth via wallet signature verified server-side in Convex. Space token claims via on-chain vault program (`spaceVault.ts`). ASTRDS minting via Convex actions calling SPL.
 - **Chat** — Reactive via Convex `useQuery(api.chat.getMessages)`. No Pusher.
 
 ### Game Server (server/)
 
-Optional Node.js WebSocket server that owns the authoritative game loop. When `VITE_WS_URL` is set, the client becomes a pure renderer.
+Required Node.js WebSocket server that owns the authoritative game loop. The client is a pure renderer — `GameScreen` always delegates to `ServerGameScreen`.
 
 - **`server/src/index.ts`** — HTTP health check + WebSocket upgrade, one `SessionHandler` per connection
 - **`server/src/ws/SessionHandler.ts`** — 30 tick/s `setInterval` loop; handles `hello`, `resize`, `input`, `pause`, `resume`, `reset`, `ping` messages; sends `welcome`, `state`, `gameOver` snapshots

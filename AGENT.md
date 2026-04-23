@@ -55,7 +55,7 @@ pnpm dev      # tsx watch, default port 3001
 Env vars in `app/.env.local`:
 - `VITE_CONVEX_URL`
 - `VITE_HELIUS_API_KEY`
-- `VITE_WS_URL` — optional; when set (e.g. `ws://localhost:3001`), `GameScreen` delegates to `ServerGameScreen` and the server owns the game loop
+- `VITE_WS_URL` — WebSocket server URL (default: `ws://localhost:3001`); `GameScreen` always delegates to `ServerGameScreen`
 
 Convex env vars (dashboard or `npx convex env set`):
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — authority keypair (ASTRDS minting + ed25519 claim signing)
