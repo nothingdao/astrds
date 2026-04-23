@@ -8,7 +8,6 @@ import {
   AsteroidConfig,
   AsteroidState,
   AsteroidMethods,
-  GameScreenState,
 } from '@/types/entities/asteroid'
 import { Vector2D } from '@/types/core'
 
@@ -69,13 +68,13 @@ export default class Asteroid implements AsteroidState, AsteroidMethods {
     }
   }
 
-  render(state: GameScreenState): void {
-    // Move
+  update(_dt: number): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
 
-    // Rotation
     this.rotation += this.rotationSpeed
+    const { width, height } = useEngineStore.getState().screen
+
     if (this.rotation >= 360) {
       this.rotation -= 360
     }
@@ -83,18 +82,17 @@ export default class Asteroid implements AsteroidState, AsteroidMethods {
       this.rotation += 360
     }
 
-    // Screen wrapping
-    if (this.position.x > state.screen.width + this.radius)
+    if (this.position.x > width + this.radius)
       this.position.x = -this.radius
     else if (this.position.x < -this.radius)
-      this.position.x = state.screen.width + this.radius
-    if (this.position.y > state.screen.height + this.radius)
+      this.position.x = width + this.radius
+    if (this.position.y > height + this.radius)
       this.position.y = -this.radius
     else if (this.position.y < -this.radius)
-      this.position.y = state.screen.height + this.radius
+      this.position.y = height + this.radius
+  }
 
-    // Draw
-    const context = state.context
+  render(context: CanvasRenderingContext2D): void {
     context.save()
     context.translate(this.position.x, this.position.y)
     context.rotate((this.rotation * Math.PI) / 180)

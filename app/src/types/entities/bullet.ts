@@ -26,13 +26,6 @@ export interface BulletState extends BaseEntity {
 export interface BulletMethods {
   init: (args: BulletConfig) => void
   destroy: () => void
-  render: (state: GameScreenState) => void
-}
-
-export interface GameScreenState {
-  context: CanvasRenderingContext2D
-  screen: {
-    width: number
-    height: number
-  }
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }

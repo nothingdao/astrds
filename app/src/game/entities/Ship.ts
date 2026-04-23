@@ -1,6 +1,5 @@
 // src/game/entities/Ship.ts
 import { rotatePoint } from '@/utils/helpers'
-import { useGameData } from '../../stores/gameData'
 import { usePowerupStore } from '../../stores/powerupStore'
 import { useEngineStore } from '../../stores/engineStore'
 import { useInventoryStore } from '../../stores/inventoryStore'
@@ -11,7 +10,6 @@ import {
   ShipConfig,
   ShipState,
   ShipMethods,
-  GameScreenState,
 } from '@/types/entities/ship'
 import { Vector2D } from '@/types/core'
 import { PowerupStore } from '@/types/stores/powerup'
@@ -124,6 +122,13 @@ export default class Ship implements ShipState, ShipMethods {
     }
   }
 
+  public stopThrust(): void {
+    if (this.isThrustActive) {
+      this.isThrustActive = false
+      audioService.stopSoundLoop('thrust')
+    }
+  }
+
   shootBullet(): void {
     const now = Date.now()
     const powerups = usePowerupStore.getState() as PowerupStore
@@ -143,27 +148,17 @@ export default class Ship implements ShipState, ShipMethods {
     }
   }
 
-  render(state: GameScreenState): void {
-    // Get context at the start
-    const context = state.context
-
+  update(_dt: number): void {
     if (this.isInvulnerable && Date.now() - this.invulnerabilityTime > 3000) {
       this.isInvulnerable = false
-    }
-
-    if (state.keys.left) this.rotate('LEFT')
-    if (state.keys.right) this.rotate('RIGHT')
-    if (state.keys.up) {
-      this.accelerate()
-    } else if (this.isThrustActive) {
-      this.isThrustActive = false
-      audioService.stopSoundLoop('thrust')
     }
 
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
     this.velocity.x *= this.inertia
     this.velocity.y *= this.inertia
+
+    const { width, height } = useEngineStore.getState().screen
 
     if (this.rotation >= 360) {
       this.rotation -= 360
@@ -172,10 +167,13 @@ export default class Ship implements ShipState, ShipMethods {
       this.rotation += 360
     }
 
-    if (this.position.x > state.screen.width) this.position.x = 0
-    else if (this.position.x < 0) this.position.x = state.screen.width
-    if (this.position.y > state.screen.height) this.position.y = 0
-    else if (this.position.y < 0) this.position.y = state.screen.height
+    if (this.position.x > width) this.position.x = 0
+    else if (this.position.x < 0) this.position.x = width
+    if (this.position.y > height) this.position.y = 0
+    else if (this.position.y < 0) this.position.y = height
+  }
+
+  render(context: CanvasRenderingContext2D): void {
 
     context.save()
     context.translate(this.position.x, this.position.y)

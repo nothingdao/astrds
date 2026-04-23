@@ -31,15 +31,8 @@ export interface TokenState extends BaseEntity {
 
 export interface TokenMethods {
   destroy: () => void
-  render: (state: GameScreenState) => void
-}
-
-export interface GameScreenState {
-  context: CanvasRenderingContext2D
-  screen: {
-    width: number
-    height: number
-  }
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }
 
 export const TOKEN_TYPES: { [key: string]: TokenMetadata } = {

@@ -6,9 +6,9 @@ import {
   BulletConfig,
   BulletState,
   BulletMethods,
-  GameScreenState,
 } from '@/types/entities/bullet'
 import { Vector2D } from '@/types/core'
+import { useEngineStore } from '@/stores/engineStore'
 
 export default class Bullet implements BulletState, BulletMethods {
   public id: string
@@ -74,36 +74,33 @@ export default class Bullet implements BulletState, BulletMethods {
     bulletSystem.releaseBullet(this)
   }
 
-  render(state: GameScreenState): void {
-    // Force cleanup old bullets
+  update(_dt: number): void {
     if (Date.now() - this.createTime > 1000) {
       this.destroy()
       return
     }
 
-    // Move
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
 
-    // Check lifespan
     if (this.lifeSpan && --this.lifeSpan <= 0) {
       this.destroy()
       return
     }
 
-    // Delete if it goes out of bounds
+    const { width, height } = useEngineStore.getState().screen
     if (
       this.position.x < 0 ||
       this.position.y < 0 ||
-      this.position.x > state.screen.width ||
-      this.position.y > state.screen.height
+      this.position.x > width ||
+      this.position.y > height
     ) {
       this.destroy()
       return
     }
+  }
 
-    // Draw
-    const context = state.context
+  render(context: CanvasRenderingContext2D): void {
     context.save()
     context.translate(this.position.x, this.position.y)
     context.rotate((this.rotation * Math.PI) / 180)

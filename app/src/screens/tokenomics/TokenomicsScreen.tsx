@@ -3,8 +3,18 @@ import { PublicKey } from '@solana/web3.js'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { connection } from '@/lib/solana'
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { fetchVaultConfig } from '@/lib/spaceVault'
+import {
+  ASTRDS_MINT,
+  BURNED_ASTRDS_STUB,
+  fetchMeteoraPoolSnapshot,
+  getEmissionTier,
+  METEORA_DAMM_POOL,
+  TOTAL_ASTRDS_SUPPLY_CAP,
+  TOTAL_GAMES_CAP,
+  type EmissionTier,
+  type MeteoraPoolSnapshot,
+} from '@/lib/tokenomics'
 import {
   Coins,
   Wallet,
@@ -13,11 +23,14 @@ import {
   Zap,
   ArrowRightLeft,
   BarChart3,
+  Flame,
+  Pill,
+  Waves,
+  Joystick,
 } from 'lucide-react'
 
-const MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
+const MINT = ASTRDS_MINT
 const TREASURY = new PublicKey('CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF')
-const DEPLOYER = new PublicKey('jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE')
 const EXPLORER = (addr: string) => `https://orbmarkets.io/address/${addr}?cluster=devnet`
 
 type Tab = 'astrds' | 'economy'
@@ -144,131 +157,179 @@ const AstrdsTab: React.FC = () => {
 
 // ── Economy tab ───────────────────────────────────────────────────────────────
 
-interface WalletBalance {
-  sol: number | null
-  astrds: number | null
+interface EconomyLiveData {
+  pool: MeteoraPoolSnapshot
+  tier: EmissionTier
+  circulatingSupply: number
+  totalBurned: number
 }
 
-const useWalletBalance = (pubkey: PublicKey, fetchAstrds = false): WalletBalance => {
-  const [bal, setBal] = useState<WalletBalance>({ sol: null, astrds: null })
+const useEconomyLiveData = (): {
+  data: EconomyLiveData | null
+  loading: boolean
+  error: string | null
+} => {
+  const [data, setData] = useState<EconomyLiveData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     const fetch = async () => {
       try {
-        const sol = await connection.getBalance(pubkey)
-        let astrds: number | null = null
-        if (fetchAstrds) {
-          try {
-            const ata = getAssociatedTokenAddressSync(MINT, pubkey, false, TOKEN_2022_PROGRAM_ID)
-            const info = await connection.getTokenAccountBalance(ata)
-            astrds = info.value.uiAmount
-          } catch {
-            astrds = 0
-          }
-        }
-        setBal({ sol: sol / 1e9, astrds })
+        setLoading(true)
+        setError(null)
+        const [pool, supply] = await Promise.all([
+          fetchMeteoraPoolSnapshot(),
+          connection.getTokenSupply(MINT),
+        ])
+        setData({
+          pool,
+          tier: getEmissionTier(pool.priceUsdPerAstrds),
+          circulatingSupply: supply.value.uiAmount ?? 0,
+          totalBurned: BURNED_ASTRDS_STUB,
+        })
       } catch {
-        setBal({ sol: null, astrds: null })
+        setError('Unable to read live pool state')
+      } finally {
+        setLoading(false)
       }
     }
     fetch()
-  }, [pubkey, fetchAstrds])
-  return bal
+  }, [])
+
+  return { data, loading, error }
 }
 
-const Bal: React.FC<{ val: number | null; suffix?: string; decimals?: number }> = ({ val, suffix = '', decimals = 3 }) =>
-  val === null
-    ? <span className='text-white/20'>...</span>
-    : <span className='text-white'>{val.toLocaleString(undefined, { maximumFractionDigits: decimals })}{suffix && <span className='text-white/30 ml-1 text-[10px]'>{suffix}</span>}</span>
-
 const EconomyTab: React.FC = () => {
-  const stats = useQuery(api.spaceDeposits.getEconomyStats)
-  const treasury = useWalletBalance(TREASURY, true)
-  const deployer = useWalletBalance(DEPLOYER)
+  const { data, loading, error } = useEconomyLiveData()
+  const totalGamesPlayed = useQuery(api.gameSessions.getTotalGamesPlayed)
 
-  const statCards = [
-    { label: 'Active Pools', value: stats?.activePools ?? null, sub: 'depositors' },
-    { label: 'Unique Mints', value: stats?.uniqueMints ?? null, sub: 'tokens in space' },
-    { label: 'Total Claims', value: stats?.totalClaims ?? null, sub: 'all time' },
-    { label: 'Claimers', value: stats?.uniqueClaimers ?? null, sub: 'unique wallets' },
+  const economyCards = [
+    {
+      icon: Coins,
+      label: 'Derived Price',
+      value: loading || !data ? '...' : `$${data.pool.priceUsdPerAstrds.toFixed(4)}`,
+      sub: loading || !data ? 'reading Meteora DAMM v2' : `${data.pool.priceSolPerAstrds.toFixed(8)} SOL per ASTRDS`,
+    },
+    {
+      icon: Pill,
+      label: 'Emission Tier',
+      value: loading || !data ? '...' : `${data.tier.tier} of 5`,
+      sub: loading || !data ? 'loading bands' : `${data.tier.pillsPerGame} pills / ${data.tier.astrdsPerPill} ASTRDS`,
+    },
+    {
+      icon: Waves,
+      label: 'Pool SOL Depth',
+      value: loading || !data ? '...' : `${data.pool.solReserve.toFixed(6)} SOL`,
+      sub: loading || !data ? 'reading reserve vaults' : `${data.pool.astrdsReserve.toLocaleString(undefined, { maximumFractionDigits: 2 })} ASTRDS paired`,
+    },
+    {
+      icon: Joystick,
+      label: 'Games Played',
+      value: totalGamesPlayed === undefined ? '...' : totalGamesPlayed.toLocaleString(),
+      sub: `${TOTAL_GAMES_CAP.toLocaleString()} total emission slots`,
+    },
+    {
+      icon: Coins,
+      label: 'Circulating Supply',
+      value: loading || !data ? '...' : data.circulatingSupply.toLocaleString(undefined, { maximumFractionDigits: 0 }),
+      sub: `${TOTAL_ASTRDS_SUPPLY_CAP.toLocaleString()} hard cap`,
+    },
+    {
+      icon: Flame,
+      label: 'Total Burned',
+      value: loading || !data ? '...' : data.totalBurned.toLocaleString(),
+      sub: 'stubbed to 0 until burn tracking lands',
+    },
   ]
 
   return (
     <div className='space-y-5'>
-
-      {/* Game stats */}
       <div>
-        <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Tokens in Space</div>
-        <div className='grid grid-cols-4 gap-2'>
-          {statCards.map(({ label, value, sub }) => (
-            <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-3 text-center'>
-              <div className='font-mono text-lg text-white'>{value === null ? '...' : value.toLocaleString()}</div>
-              <div className='font-mono text-[9px] text-white/30 uppercase tracking-widest mt-0.5'>{label}</div>
-              <div className='font-mono text-[8px] text-white/15 mt-0.5'>{sub}</div>
+        <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Live Economy</div>
+        <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
+          {economyCards.map(({ icon: Icon, label, value, sub }) => (
+            <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
+              <div className='flex items-center justify-between mb-3'>
+                <Icon size={14} className='text-game-blue/60' />
+              </div>
+              <div className='font-mono text-lg text-white'>{value}</div>
+              <div className='font-mono text-[10px] text-white/30 uppercase tracking-widest mt-1'>{label}</div>
+              <div className='font-mono text-[9px] text-white/20 mt-0.5'>{sub}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Wallet balances */}
       <div>
-        <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Wallet Balances</div>
-        <div className='space-y-1.5'>
-          {[
-            {
-              label: 'Treasury / Authority',
-              address: TREASURY.toString(),
-              sol: treasury.sol,
-              token: { label: '$ASTRDS', val: treasury.astrds },
-              note: 'Convex authority · holds deposited tokens',
-            },
-            {
-              label: 'Deployer',
-              address: DEPLOYER.toString(),
-              sol: deployer.sol,
-              token: null,
-              note: 'Upgrade authority · operational · operator · buyback',
-            },
-          ].map(({ label, address, sol, token, note }) => (
-            <div key={address} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
-              <div className='flex items-start justify-between gap-3'>
-                <div className='min-w-0'>
-                  <div className='flex items-center gap-2 mb-0.5'>
-                    <span className='font-mono text-xs text-white/70'>{label}</span>
-                    <a href={EXPLORER(address)} target='_blank' rel='noopener noreferrer' className='text-white/20 hover:text-white/60 transition-colors'>
-                      <ExternalLink size={10} />
-                    </a>
-                  </div>
-                  <div className='font-mono text-[9px] text-white/25 truncate'>{address}</div>
-                  <div className='font-mono text-[9px] text-white/15 mt-0.5'>{note}</div>
-                </div>
-                <div className='text-right shrink-0 space-y-0.5'>
-                  <div className='font-mono text-sm'><Bal val={sol} suffix='SOL' /></div>
-                  {token && <div className='font-mono text-xs'><Bal val={token.val} suffix={token.label} decimals={0} /></div>}
-                </div>
+        <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Emission Logic</div>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
+          <div className='flex items-start justify-between gap-4'>
+            <div>
+              <div className='font-mono text-xs text-white/70'>Current game payout band</div>
+              <div className='font-mono text-[10px] text-white/25 mt-1'>
+                {loading || !data
+                  ? 'Reading price band from the live devnet pool.'
+                  : `Tier ${data.tier.tier}: ${data.tier.pillsPerGame} pills per game at ${data.tier.astrdsPerPill} ASTRDS per pill.`}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+            {data && (
+              <a
+                href={EXPLORER(data.pool.poolAddress)}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-white/20 hover:text-white/60 transition-colors shrink-0'
+              >
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
 
-      {/* VaultConfig on-chain */}
-      <div>
-        <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>On-Chain Config</div>
-        <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 space-y-2'>
+          <div className='grid grid-cols-2 gap-3'>
+            <div className='border border-white/5 rounded-lg p-3'>
+              <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>Pool Address</div>
+              <div className='font-mono text-[10px] text-game-blue/60 break-all mt-1'>
+                {data?.pool.poolAddress ?? METEORA_DAMM_POOL.toBase58()}
+              </div>
+            </div>
+            <div className='border border-white/5 rounded-lg p-3'>
+              <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>Progress</div>
+              <div className='font-mono text-[10px] text-white/60 mt-1'>
+                {totalGamesPlayed === undefined
+                  ? '...'
+                  : `${((totalGamesPlayed / TOTAL_GAMES_CAP) * 100).toFixed(2)}% of the 420,000-game schedule`}
+              </div>
+            </div>
+          </div>
+
           {[
-            { label: 'Program', value: '4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB' },
-            { label: 'VaultConfig PDA', value: '6zsWYibNCYYQJikHv8BHXRNynEACgFKsZPNXqWqBPbvv' },
+            { label: 'Pool Pair', value: 'ASTRDS / SOL (devnet)' },
+            {
+              label: 'Price Source',
+              value: loading || !data
+                ? 'Reading Meteora vault balances'
+                : `${data.pool.astrdsReserve.toLocaleString(undefined, { maximumFractionDigits: 2 })} ASTRDS vs ${data.pool.solReserve.toFixed(6)} SOL`,
+            },
+            {
+              label: 'Tier Basis',
+              value: loading || !data
+                ? 'Waiting for SOL/USD conversion'
+                : `$${data.pool.priceUsdPerAstrds.toFixed(4)} using SOL/USD ${data.pool.solUsdPrice.toFixed(2)}`,
+            },
           ].map(({ label, value }) => (
             <div key={label} className='flex items-start justify-between gap-4'>
               <span className='font-mono text-[10px] text-white/30 shrink-0'>{label}</span>
-              <a href={EXPLORER(value)} target='_blank' rel='noopener noreferrer'
-                className='font-mono text-[10px] text-game-blue/50 hover:text-game-blue transition-colors break-all text-right'>
-                {value}
-              </a>
+              <span className='font-mono text-[10px] text-white/55 break-all text-right'>{value}</span>
             </div>
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className='font-mono text-[10px] text-red-300/70 border border-red-400/10 bg-red-950/20 rounded-lg p-3'>
+          {error}
+        </div>
+      )}
 
       <p className='font-mono text-[9px] text-white/10 text-center uppercase tracking-widest'>Devnet — not real money</p>
     </div>

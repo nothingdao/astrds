@@ -4,7 +4,6 @@ import {
   ParticleConfig,
   ParticleState,
   ParticleMethods,
-  GameScreenState,
 } from '@/types/entities/particle'
 import { Vector2D } from '@/types/core'
 
@@ -39,7 +38,7 @@ export default class Particle implements ParticleState, ParticleMethods {
     particleSystem.releaseParticle(this)
   }
 
-  render(state: GameScreenState): void {
+  update(_dt: number): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
     this.velocity.x *= this.inertia
@@ -52,11 +51,11 @@ export default class Particle implements ParticleState, ParticleMethods {
 
     if (this.lifeSpan-- < 0) {
       this.destroy()
-      return
     }
+  }
 
+  render(context: CanvasRenderingContext2D): void {
     if (!this.delete) {
-      const context = state.context
       context.save()
       context.translate(this.position.x, this.position.y)
       context.fillStyle = 'orange'

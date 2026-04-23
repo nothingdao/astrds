@@ -13,7 +13,8 @@ export interface Particle extends ParticleState, ParticleMethods {
   delete: boolean
   init: (args: ParticleConfig) => void
   destroy: () => void
-  render: (state: GameScreenState) => void
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }
 
 export interface ParticleConfig {
@@ -37,11 +38,8 @@ export interface ParticleState extends BaseEntity {
 export interface ParticleMethods {
   init: (args: ParticleConfig) => void
   destroy: () => void
-  render: (state: GameScreenState) => void
-}
-
-export interface GameScreenState {
-  context: CanvasRenderingContext2D
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }
 
 export interface ParticleSystemConfig {

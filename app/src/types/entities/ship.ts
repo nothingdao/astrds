@@ -21,20 +21,8 @@ export interface ShipMethods {
   destroy: () => void
   rotate: (direction: 'LEFT' | 'RIGHT') => void
   accelerate: () => void
+  stopThrust: () => void
   shootBullet: () => void
-  render: (state: GameScreenState) => void
-}
-
-export interface GameScreenState {
-  context: CanvasRenderingContext2D
-  screen: {
-    width: number
-    height: number
-  }
-  keys: {
-    left: number
-    right: number
-    up: number
-    space: number
-  }
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }

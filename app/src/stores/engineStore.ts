@@ -65,6 +65,7 @@ const INITIAL_STATE: EngineStoreState = {
 
 // Module-level RAF id — kept outside Zustand so we never call set() per frame
 let _rafId: number | null = null
+let _lastFrameTime: number | null = null
 
 export const useEngineStore = create<EngineStore>((set, get) => ({
   ...INITIAL_STATE,
@@ -83,6 +84,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       cancelAnimationFrame(_rafId)
       _rafId = null
     }
+    _lastFrameTime = null
     const state = get()
     if (state.powerupTimeout) {
       clearTimeout(state.powerupTimeout)
@@ -220,7 +222,9 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     const state = get()
     if (!state.context) return
 
-    const startTime = performance.now()
+    const now = performance.now()
+    const dt = _lastFrameTime === null ? 1 : Math.min((now - _lastFrameTime) / (1000 / 60), 2)
+    _lastFrameTime = now
 
     try {
       // Clear and setup context
@@ -259,36 +263,42 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       state.spawnToken()
       state.spawnShipPickup()
 
-      // Render pass + collect dead entities — ONE set() call per frame max
-      const nextEntities: Partial<EngineEntities> = {}
-      let hasDeleted = false
+      const ship = state.entities.ship[0]
+      if (ship && !ship.delete) {
+        if (state.keys.left) ship.rotate('LEFT')
+        if (state.keys.right) ship.rotate('RIGHT')
+        if (state.keys.up) {
+          ship.accelerate()
+        } else {
+          ship.stopThrust()
+        }
+      }
 
-      Object.entries(state.entities).forEach(([group, entities]) => {
-        const alive: typeof entities = []
+      Object.values(state.entities).forEach((entities) => {
         entities.forEach((entity) => {
-          if (entity.delete) {
-            hasDeleted = true
-          } else {
+          if (!entity.delete) {
+            entity.update(dt)
+          }
+        })
+      })
+
+      particleSystem.update(dt)
+
+      // Render pass
+      Object.entries(state.entities).forEach(([group, entities]) => {
+        entities.forEach((entity) => {
+          if (!entity.delete) {
             try {
-              entity.render(state)
-              alive.push(entity)
+              entity.render(state.context!)
             } catch (error) {
               console.error(`Error rendering ${group} entity:`, error)
-              hasDeleted = true
+              entity.delete = true
             }
           }
         })
-        if (alive.length !== entities.length) {
-          nextEntities[group as EntityGroup] = alive
-        }
       })
 
-      if (hasDeleted) {
-        set((s) => ({ entities: { ...s.entities, ...nextEntities } }))
-      }
-
-      // Update particle system
-      particleSystem.update()
+      particleSystem.render(state.context)
 
       // Handle input
       if (state.keys.space) {
@@ -297,6 +307,21 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
 
       // Check collisions
       state.checkCollisions()
+
+      const nextEntities: Partial<EngineEntities> = {}
+      let hasDeleted = false
+
+      Object.entries(get().entities).forEach(([group, entities]) => {
+        const alive = entities.filter((entity) => !entity.delete)
+        if (alive.length !== entities.length) {
+          nextEntities[group as EntityGroup] = alive
+          hasDeleted = true
+        }
+      })
+
+      if (hasDeleted) {
+        set((s) => ({ entities: { ...s.entities, ...nextEntities } }))
+      }
 
       state.context.restore()
     } catch (error) {
@@ -315,6 +340,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
     }
 
     _rafId = requestAnimationFrame(loop)
+    _lastFrameTime = null
     set({ gameLoopId: _rafId }) // mark as running — only set once
   },
 
@@ -341,6 +367,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       cancelAnimationFrame(_rafId)
       _rafId = null
     }
+    _lastFrameTime = null
     set({ gameLoopId: null })
   },
 

@@ -14,13 +14,6 @@ export interface ShipPickupState extends BaseEntity {
 
 export interface ShipPickupMethods {
   destroy: () => void
-  render: (state: GameScreenState) => void
-}
-
-export interface GameScreenState {
-  context: CanvasRenderingContext2D
-  screen: {
-    width: number
-    height: number
-  }
+  update: (dt: number) => void
+  render: (context: CanvasRenderingContext2D) => void
 }

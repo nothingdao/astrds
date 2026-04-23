@@ -36,13 +36,22 @@ export class ParticleSystemImpl implements ParticleSystem {
     return particle
   }
 
-  update() {
-    if (!this.context) return
-
+  update(dt = 1) {
     this.particles = this.particles.filter((particle) => {
       if (particle.delete) return false
-      particle.render({ context: this.context })
+      particle.update(dt)
       return true
+    })
+  }
+
+  render(context?: CanvasRenderingContext2D | null) {
+    const targetContext = context ?? this.context
+    if (!targetContext) return
+
+    this.particles.forEach((particle) => {
+      if (!particle.delete) {
+        particle.render(targetContext)
+      }
     })
   }
 

@@ -3,7 +3,6 @@ import {
   ShipPickupConfig,
   ShipPickupState,
   ShipPickupMethods,
-  GameScreenState,
 } from '@/types/entities/shipPickup'
 import { Vector2D } from '@/types/core'
 
@@ -31,9 +30,9 @@ export default class ShipPickup implements ShipPickupState, ShipPickupMethods {
     this.delete = true
   }
 
-  render(state: GameScreenState): void {
-    const context = state.context
+  update(_dt: number): void {}
 
+  render(context: CanvasRenderingContext2D): void {
     context.save()
     context.translate(this.position.x, this.position.y)
 

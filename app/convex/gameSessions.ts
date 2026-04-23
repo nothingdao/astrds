@@ -56,3 +56,11 @@ export const getByWallet = query({
       .take(50)
   },
 })
+
+export const getTotalGamesPlayed = query({
+  args: {},
+  handler: async (ctx) => {
+    const sessions = await ctx.db.query('gameSessions').collect()
+    return sessions.filter((session) => session.status === 'ended').length
+  },
+})

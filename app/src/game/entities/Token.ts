@@ -4,10 +4,10 @@ import {
   TokenConfig,
   TokenState,
   TokenMethods,
-  GameScreenState,
   TokenMetadata,
 } from '@/types/entities/token'
 import { Vector2D } from '@/types/core'
+import { useEngineStore } from '@/stores/engineStore'
 
 export default class Token implements TokenState, TokenMethods {
   public id: string
@@ -81,29 +81,27 @@ export default class Token implements TokenState, TokenMethods {
     this.delete = true
   }
 
-  render(state: GameScreenState): void {
-    // Move
+  update(_dt: number): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
 
-    // Screen wrapping
-    if (this.position.x > state.screen.width + this.radius)
+    const { width, height } = useEngineStore.getState().screen
+    if (this.position.x > width + this.radius)
       this.position.x = -this.radius
     else if (this.position.x < -this.radius)
-      this.position.x = state.screen.width + this.radius
-    if (this.position.y > state.screen.height + this.radius)
+      this.position.x = width + this.radius
+    if (this.position.y > height + this.radius)
       this.position.y = -this.radius
     else if (this.position.y < -this.radius)
-      this.position.y = state.screen.height + this.radius
+      this.position.y = height + this.radius
 
-    // Check if token should expire
     if (Date.now() - this.creation > this.timeToLive) {
       this.destroy()
       return
     }
+  }
 
-    // Draw simple outline (No pulse, no fill)
-    const context = state.context
+  render(context: CanvasRenderingContext2D): void {
     context.save()
     context.translate(this.position.x, this.position.y)
 

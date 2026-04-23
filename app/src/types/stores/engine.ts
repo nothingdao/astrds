@@ -7,7 +7,6 @@ import { PillState, PillMethods } from '../entities/pill'
 import { TokenState, TokenMethods } from '../entities/token'
 import { ShipState, ShipMethods } from '../entities/ship'
 import { ShipPickupState, ShipPickupMethods } from '../entities/shipPickup'
-import { GameScreenState } from '../entities/bullet'
 
 // Entity type combinations
 export type Ship = ShipState & ShipMethods
@@ -36,9 +35,10 @@ export interface EngineScreen {
   ratio: number
 }
 
-export interface EngineStoreState extends GameScreenState {
+export interface EngineStoreState {
   entities: EngineEntities
   screen: EngineScreen
+  context: CanvasRenderingContext2D | null
   keys: {
     left: number
     right: number
