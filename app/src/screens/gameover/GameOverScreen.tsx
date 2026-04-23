@@ -12,6 +12,8 @@ import ASTRDSMinting from '@/components/tokens/ASTRDSMinting'
 import SpaceTokenClaim from './SpaceTokenClaim'
 import { MachineState } from '@/types/machine'
 
+const WS_URL = import.meta.env.VITE_WS_URL
+
 const GameOverScreen: React.FC = () => {
   const wallet = useWallet()
   const score = useGameData((state) => state.score)
@@ -22,6 +24,9 @@ const GameOverScreen: React.FC = () => {
   const startTransition = useStateMachine((state) => state.startTransition)
 
   useEffect(() => {
+    if (WS_URL) {
+      return
+    }
     const walletAddress = wallet.publicKey?.toString()
     if (walletAddress) {
       submitFinalScore(walletAddress).catch(console.error)

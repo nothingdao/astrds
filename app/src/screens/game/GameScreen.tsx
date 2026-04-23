@@ -12,8 +12,15 @@ import SpacePoolSync from '@/components/space/SpacePoolSync'
 import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { MachineState } from '@/types/machine'
 import { GameScreenProps } from '@/types/components/layout'
+import ServerGameScreen from './ServerGameScreen'
+
+const WS_URL = import.meta.env.VITE_WS_URL
 
 const GameScreen: React.FC<GameScreenProps> = ({ className }) => {
+  if (WS_URL) {
+    return <ServerGameScreen className={className} />
+  }
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mountedRef = useRef(false)
 

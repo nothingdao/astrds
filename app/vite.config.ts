@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite-plus'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
@@ -29,6 +30,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/src',
+      '@shared': fileURLToPath(new URL('../shared', import.meta.url)),
     },
   },
 
