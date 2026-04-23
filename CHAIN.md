@@ -64,104 +64,258 @@ Each `DepositPool` owns an associated token account (`vaultAta`) derived as:
 
 ---
 
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  PLAYER                                                             │
+│  Solana wallet (Phantom, Solflare, etc.)                            │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+              ┌────────────┴────────────┐
+              │                        │
+              ▼                        ▼
+┌─────────────────────┐   ┌────────────────────────┐
+│  GAME CLIENT        │   │  CONVEX BACKEND         │
+│  React / Vite       │   │  (game state only)      │
+│  Canvas game        │   │                         │
+│  Wallet adapter     │   │  sessions, scores       │
+│  spaceVault.ts      │   │  chat, leaderboard      │
+│  (tx builders)      │   │  spawn tickets          │
+└──────────┬──────────┘   │  collections            │
+           │              │  claims table           │
+           │              │  prepareClaims (ed25519)│
+           │              └────────────┬────────────┘
+           │                          │
+           └──────────┬───────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  SOLANA (devnet → mainnet)                                          │
+│                                                                     │
+│  ┌──────────────────────────┐   ┌───────────────────────────────┐  │
+│  │  Space Vault Program     │   │  Meteora DAMM v2 Pool         │  │
+│  │  (Anchor)                │   │  ASTRDS / USDC                │  │
+│  │                          │   │  (mainnet target)             │  │
+│  │  VaultConfig PDA         │   │                               │  │
+│  │  DepositPool PDA(s)      │   │  LP tokens burned on mint     │  │
+│  │  ClaimRecord PDA(s)      │   │  Liquidity permanently locked │  │
+│  │                          │   │                               │  │
+│  │  game_payment ───────────┼──►│  buyback + LP add per quarter │  │
+│  │  deposit                 │   │                               │  │
+│  │  claim (ed25519)         │   └───────────────────────────────┘  │
+│  └──────────────────────────┘                                       │
+│                                                                     │
+│  ASTRDS Token-2022 Mint                                             │
+│  Mint authority: Convex authority wallet                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Flow Diagrams
 
 ### Insert Quarter (game payment)
 
 ```
 Player wallet
-    │  signs SOL transfer tx (≈$0.25 at current price)
-    ▼
-game_payment instruction
     │
-    ├─ 50% ──► operational_wallet
-    ├─ 30% ──► operator_wallet
-    └─ 20% ──► buyback_wallet
+    │  signs game_payment tx (~$0.25 SOL)
+    │
+    ▼
+Space Vault Program — game_payment instruction
+    │
+    │  reads VaultConfig weights
+    │
+    ├──► operational_wallet   (operationalBps — infra costs)
+    │
+    ├──► buyback_wallet       (buybackBps)
+    │         │
+    │         └──► [mainnet] Jupiter swap SOL → ASTRDS
+    │                    │
+    │                    └──► DAMM v2 pool (price rises)
+    │
+    └──► lp_wallet            (lpBps)
+              │
+              └──► [mainnet] add USDC liquidity to DAMM v2 pool
+                        │
+                        └──► LP tokens burned on receipt (locked forever)
 ```
+
+---
+
+### ASTRDS Emission (per game)
+
+```
+Game starts
+    │
+    ▼
+Convex reads DAMM v2 pool USDC value + total burned ASTRDS
+    │
+    │  price = pool_usdc / (21,000,000 - total_burned)
+    │
+    ▼
+Emission tier lookup → pills spawned this game, ASTRDS per pill
+    │
+    │  Tier 1 (floor):  5 pills × 10 ASTRDS = 50 allocated
+    │  Tier 2:         10 pills ×  5 ASTRDS = 50 allocated
+    │  Tier 3:         25 pills ×  2 ASTRDS = 50 allocated
+    │  Tier 4:         50 pills ×  1 ASTRDS = 50 allocated
+    │  Tier 5 (ceil): 100 pills × 0.5 ASTRDS = 50 allocated
+    │
+    ▼
+Pills spawn in asteroid field during gameplay
+    │
+    ├──► Player collects pill
+    │         │
+    │         ▼
+    │    collectFromDeposit (Convex — atomic)
+    │         └─ writes collections record (status: pending)
+    │         └─ ASTRDS minted to player at game over
+    │
+    └──► Pill despawns uncollected
+              │
+              ▼
+         ASTRDS allocation for that pill → burned
+              └─ total_burned increases
+              └─ denominator shrinks → price rises
+```
+
+---
 
 ### Token Deposit (Tokens in Space)
 
 ```
 Depositor wallet
+    │
     │  1. registerDepositIntent → Convex creates pending record
     │  2. buildSendToSpaceTransaction → registerPool + deposit instructions
-    │  3. Player signs and sends on-chain
+    │  3. Depositor signs and sends on-chain
+    │
     ▼
-DepositPool PDA (depositor + mint)
-    │  └─ vaultAta (ATA owned by DepositPool PDA)
-    │       └─ tokens land here, not in treasury wallet
+DepositPool PDA  (seeds: ["deposit-pool", depositor, mint])
     │
-    ├─ confirmDepositFromChain mutation → activates Convex record with poolAddress
+    └─ vaultAta  (ATA owned by DepositPool PDA — not treasury wallet)
+          │
+          └─ deposited tokens land here
     │
-    └─ verifyAndConfirmDeposit action (parallel)
-           └─ reads tx.meta.postTokenBalances - preTokenBalances
-           └─ overwrites Convex amount with verified on-chain value
+    ├──► confirmDepositFromChain mutation
+    │         └─ activates Convex record with poolAddress
+    │
+    └──► verifyAndConfirmDeposit action (parallel)
+              └─ reads tx.meta.postTokenBalances - preTokenBalances
+              └─ overwrites Convex amount with verified on-chain value
+              └─ client-provided amounts are never trusted
 ```
+
+---
 
 ### In-Game Token Spawn → Collection → Claim
 
 ```
-Spawn:
-    engineStore.spawnToken()
+SPAWN
+──────
+engineStore.spawnToken()
     │
     ▼
 requestSpawnTicket (Convex mutation)
-    └─ validates: active session, paid, per-player cooldown elapsed
-    └─ issues spawnTickets record (60s TTL)
-    └─ if valid ticket returned → Token entity spawned client-side
+    ├─ validates: active session, wallet paid, cooldown elapsed
+    ├─ issues spawnTickets record (60s TTL)
+    └─ if valid ticket → Token entity spawns client-side
 
-Collection:
-    Ship-token collision
+COLLECTION
+──────────
+Ship collides with Token entity
     │
     ▼
-collectFromDeposit (Convex mutation — atomic, serialized)
-    └─ validates + marks ticket used
-    └─ decrements remainingAmount in DepositPool record
-    └─ writes persistent collections record (status: pending)
+collectFromDeposit (Convex mutation — atomic, serialized per pool)
+    ├─ validates ticket + marks used
+    ├─ decrements remainingAmount in DepositPool record
+    └─ writes persistent collections record  (status: pending)
 
-Claim (game over screen or AccountScreen):
-    │
-    ▼
+CLAIM  (game over screen or AccountScreen)
+──────
 prepareClaims (Convex action)
-    │  1. Groups pending collections by deposit
-    │  2. Signs {player, pool, amount, claimId, expiry} with convex_authority
-    │  3. Returns signed claim data to client
-    ▼
-buildClaimTransaction (client — spaceVault.ts, per claim)
-    │  Ed25519Program.createInstructionWithPublicKey(convexAuthority, message, sig)
-    │  + claim instruction
-    ▼
-claim instruction (on-chain)
-    │  Verifies ed25519 pre-instruction against VaultConfig.convexAuthority
-    │  Creates ClaimRecord PDA (replay protection)
-    │  Transfers tokens: vaultAta → player ATA (init_if_needed)
-    ▼
-Player's wallet now holds the claimed token
+    ├─ groups pending collections by deposit
+    ├─ signs {player, pool, amount, claimId, expiry} with convex_authority ed25519
+    └─ returns signed claim data to client
     │
     ▼
-finalizeClaim mutation
-    └─ marks collections as claimed
+buildClaimTransaction (client — spaceVault.ts, one tx per claim)
+    ├─ Ed25519Program.createInstructionWithPublicKey(convexAuthority, message, sig)
+    └─ + claim instruction
+    │
+    ▼
+claim instruction (on-chain — Space Vault Program)
+    ├─ verifies ed25519 pre-instruction against VaultConfig.convexAuthority
+    ├─ creates ClaimRecord PDA  (replay protection — one per claimId)
+    └─ transfers tokens: vaultAta → player ATA  (init_if_needed)
+    │
+    ▼
+Player wallet holds claimed token
+    │
+    ▼
+finalizeClaim mutation (Convex)
+    ├─ marks collections as claimed
     └─ writes to claims table (with tx signature)
 ```
+
+---
 
 ### Drain Detection / Reconcile
 
 ```
 Helius webhook fires on any tx touching treasury wallet
     │
-    ├─ Inbound (deposit): handled by deposit flow above
+    ├──► Inbound transfer → deposit flow (above)
     │
-    └─ Outbound (transfer out):
-           Is it in the claims table? → expected, ignore
-           Not in claims table? → unknown drain
-               │
-               ▼
-           reconcilePool action
-               └─ fetches actual on-chain pool PDA remaining balance
-               └─ caps DepositPool.remainingAmount to on-chain reality
+    └──► Outbound transfer
+              │
+              ├─ found in claims table? → expected, ignore
+              │
+              └─ NOT in claims table → unknown drain
+                        │
+                        ▼
+                   reconcilePool action
+                        ├─ fetches actual on-chain DepositPool PDA balance
+                        └─ caps Convex remainingAmount to on-chain reality
 
 Hourly cron: reconcileAllPools
     └─ same reconcile logic across all active pools
+```
+
+---
+
+### Economy Pricing Loop (mainnet target)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│   DAMM v2 Pool state (on-chain, readable by anyone)         │
+│                                                              │
+│   pool_usdc_value ──┐                                        │
+│                     ├──► price = pool_usdc / (21M - burned) │
+│   total_burned  ────┘              │                         │
+│                                    │                         │
+│                          emission tier lookup                │
+│                                    │                         │
+│                    ┌───────────────┴──────────────┐         │
+│                    │                              │         │
+│              pills spawn                    ASTRDS/pill     │
+│                    │                              │         │
+│              player plays                         │         │
+│                    │                              │         │
+│         ┌──────────┴──────────┐                  │         │
+│         │                     │                  │         │
+│      collected             not collected          │         │
+│         │                     │                  │         │
+│    minted to player         burned                │         │
+│                                │                  │         │
+│                        total_burned grows         │         │
+│                                │                  │         │
+│                        price rises ───────────────┘         │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -181,3 +335,5 @@ Hourly cron: reconcileAllPools
 - [Program on Orb Markets](https://orbmarkets.io/address/4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB?cluster=devnet)
 - [ASTRDS Token Mint](https://orbmarkets.io/address/5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB?cluster=devnet)
 - [Treasury / Convex Authority Wallet](https://orbmarkets.io/address/CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF?cluster=devnet)
+- [Meteora devnet](https://devnet.meteora.ag/)
+- [Meteora DAMM v2 docs](https://docs.meteora.ag/developer-guide/quick-launch/damm-v2-launch-pool)
