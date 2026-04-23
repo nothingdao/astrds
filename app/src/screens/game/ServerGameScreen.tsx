@@ -126,6 +126,11 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   }, [ratio, snapshot])
 
   useEffect(() => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return
+    socketRef.current.send(JSON.stringify({ type: isPaused ? 'pause' : 'resume' } satisfies ClientToServerMessage))
+  }, [isPaused])
+
+  useEffect(() => {
     const handleResize = () => {
       const nextRatio = window.devicePixelRatio || 1
       const nextScreen = {

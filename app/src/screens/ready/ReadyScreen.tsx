@@ -4,8 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useAudio } from '../../hooks/useAudio'
 import { useAuth } from '@/hooks/useAuth'
 import { useStateMachine } from '@/stores/stateMachine'
-import { useEngineStore } from '@/stores/engineStore'
-import { useGameData } from '@/stores/gameData' // Add this
+import { useGameData } from '@/stores/gameData'
 import { SOUND_TYPES } from '../../services/audio/AudioTypes'
 import ScreenContainer from '@/components/common/ScreenContainer'
 import GameTitle from '@/components/common/GameTitle'
@@ -21,7 +20,6 @@ const ReadyScreen: React.FC = () => {
   const sequenceStartedRef = useRef(false)
   const mountedRef = useRef(true)
 
-  const resetEngine = useEngineStore((state) => state.resetEngine)
   const { playSound } = useAudio()
   const { clearAuth } = useAuth()
   const startTransition = useStateMachine(state => state.startTransition)
@@ -56,9 +54,6 @@ const ReadyScreen: React.FC = () => {
         if (!mountedRef.current) return
         setIsQuarterInserting(false)
 
-        // Reset the engine state before countdown
-        resetEngine()
-
         // Start countdown
         for (let i = 3; i >= 0; i--) {
           if (!mountedRef.current) return
@@ -89,7 +84,7 @@ const ReadyScreen: React.FC = () => {
     return () => {
       mountedRef.current = false
     }
-  }, [startTransition, resetEngine, playSound, clearAuth, wallet.publicKey, startGameSession])
+  }, [startTransition, playSound, clearAuth, wallet.publicKey, startGameSession])
 
   const handleReturnToTitle = async () => {
     try {

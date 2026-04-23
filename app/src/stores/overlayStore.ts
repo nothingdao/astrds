@@ -4,7 +4,6 @@ import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import { OverlayStore } from '@/types/stores/overlay' // Move types to own file
 import { useStateMachine } from './stateMachine'
-import { useEngineStore } from './engineStore'
 
 export const useOverlayStore = create<OverlayStore>((set, get) => ({
   activeOverlay: null,
@@ -22,7 +21,6 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
     }
 
     if (wasPlaying && !stateMachine.isPaused) {
-      useEngineStore.getState().stopGameLoop()
       stateMachine.setPause(true)
     }
 
@@ -39,7 +37,6 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
 
     if (wasGamePaused && stateMachine.currentState === MachineState.PAUSED) {
       stateMachine.setPause(false)
-      useEngineStore.getState().startGameLoop()
     }
 
     set({
