@@ -43,6 +43,28 @@ export class SessionHandler {
     }
   }
 
+  pause(): void {
+    if (this.loop) {
+      clearInterval(this.loop)
+      this.loop = null
+    }
+  }
+
+  resume(): void {
+    if (this.loop) return
+    this.lastTickAt = Date.now()
+    this.loop = setInterval(() => {
+      const now = Date.now()
+      const dt = Math.min((now - this.lastTickAt) / (1000 / 60), 2)
+      this.lastTickAt = now
+      const snapshot = this.session.update(dt, now)
+      this.send({
+        type: snapshot.status === 'gameOver' ? 'gameOver' : 'state',
+        snapshot,
+      })
+    }, FRAME_MS)
+  }
+
   handle(raw: string): void {
     let message: ClientToServerMessage
     try {
@@ -61,6 +83,12 @@ export class SessionHandler {
       }
       case 'input':
         this.session.mergeInput(message.input)
+        return
+      case 'pause':
+        this.pause()
+        return
+      case 'resume':
+        this.resume()
         return
       case 'reset': {
         const snapshot = this.session.reset()

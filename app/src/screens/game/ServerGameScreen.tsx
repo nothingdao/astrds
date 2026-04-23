@@ -40,6 +40,8 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   const [ratio, setRatio] = useState(window.devicePixelRatio || 1)
   const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed'>('connecting')
   const setMachineState = useStateMachine((state) => state.setState)
+  const setPause = useStateMachine((state) => state.setPause)
+  const isPaused = useStateMachine((state) => state.isPaused)
 
   useEffect(() => {
     useGameData.getState().resetGame()
@@ -162,6 +164,14 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
       }
 
       switch (event.code) {
+        case 'Escape': {
+          const pausing = !isPaused
+          setPause(pausing)
+          if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: pausing ? 'pause' : 'resume' } satisfies ClientToServerMessage))
+          }
+          break
+        }
         case 'ArrowLeft':
         case 'KeyA':
           updateInput({ left: true })

@@ -85,6 +85,8 @@ export type ClientToServerMessage =
   | { type: 'hello'; screen: ScreenBounds }
   | { type: 'resize'; screen: ScreenBounds }
   | { type: 'input'; input: Partial<InputState> }
+  | { type: 'pause' }
+  | { type: 'resume' }
   | { type: 'reset' }
   | { type: 'ping'; at: number }
 
