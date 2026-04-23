@@ -40,15 +40,14 @@ Deposited shitcoins are separate — chaotic, social, player-driven. Not part of
 
 ## Liquidity Layer — Meteora DAMM v2
 
-The market and liquidity layer is a **Meteora DAMM v2 pool: ASTRDS/USDC**.
+The market and liquidity layer is a **Meteora DAMM v2 pool: ASTRDS/SOL**.
 
-USDC (not SOL) as the quote asset keeps the pricing formula clean — pool value moves only from ASTRDS buying pressure and LP additions, not from SOL price volatility.
-
-- Pool is seeded at launch with minimum USDC to establish starting price
+- Pool is seeded at launch with minimum SOL to establish starting price
 - Every quarter's buyback slice buys ASTRDS from this pool via Jupiter
-- Every quarter's LP slice adds liquidity to this pool
+- Every quarter's LP slice adds SOL liquidity to this pool
 - LP tokens are burned on mint — liquidity is permanently locked, trustless, verifiable on-chain
 - All subsequent price movement is organic from gameplay
+- SOL/USD price read from Jupiter API to derive USD-denominated emission tiers
 
 **Why DAMM v2:**
 - Token-2022 compatible (ASTRDS is Token-2022)
@@ -253,8 +252,8 @@ FULL TRUSTLESS
 **LP token custody → burn**
 DAMM v2 supports permanently locked liquidity. LP tokens burned on mint. Liquidity can never be removed — verifiable on-chain. Irreversibility is a feature.
 
-**Quote asset → USDC (not SOL)**
-Keeps pricing formula isolated from SOL volatility. Pool value moves only from ASTRDS game activity.
+**Quote asset → SOL**
+SOL/USD price fetched from Jupiter API to derive USD-denominated emission tiers. Devnet pool validated this approach — overlay shows live derived price correctly.
 
 **Pool → Meteora DAMM v2**
 Token-2022 compatible, open source, locked liquidity support. DLMM rejected — concentrated liquidity adds complexity not needed at this stage.
