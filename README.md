@@ -38,6 +38,24 @@ HELIUS_WEBHOOK_SECRET           # Shared secret validated on every webhook POST
 
 `pnpm start` runs Vite only (no Convex) — useful for frontend-only changes.
 
+### Game Server (optional)
+
+An authoritative WebSocket server that owns the game loop. When enabled, the browser is a pure renderer.
+
+```bash
+cd server
+pnpm install
+pnpm dev       # starts on port 3001
+```
+
+Then add to `app/.env.local`:
+
+```
+VITE_WS_URL=ws://localhost:3001
+```
+
+Without `VITE_WS_URL`, the game runs in the default client-local mode.
+
 ## ASTRDS Token
 
 - **Mint** — `5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB` (devnet, Token-2022)

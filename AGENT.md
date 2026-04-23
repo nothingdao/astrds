@@ -18,6 +18,13 @@ Anchor monorepo:
     src/                                    — React frontend
     convex/                                 — Convex backend functions
     public/                                 — static assets, token metadata, sounds
+  server/
+    src/index.ts                            — WebSocket game server (Node, ws)
+    src/ws/SessionHandler.ts               — per-connection game loop + message handler
+    src/game/GameSession.ts                — wraps simulation, exposes snapshot/update/resize
+  shared/
+    game/protocol.ts                        — ClientToServerMessage / ServerToClientMessage / GameSnapshot types
+    game/simulation.ts                      — authoritative game logic (no browser APIs)
 ```
 
 ## Stack
@@ -26,8 +33,9 @@ Anchor monorepo:
 - **State**: Zustand (9 stores + typed state machine)
 - **Blockchain**: Solana web3.js, wallet-adapter, SPL Token (Token-2022 + legacy), Anchor 0.32.1
 - **Backend**: Convex (reactive DB, serverless actions, real-time queries, HTTP router)
+- **Game server**: Node.js WebSocket server (`server/`) — authoritative loop at 30 tick/s; client is renderer only
 - **Webhooks**: Helius Enhanced Transactions
-- **Package manager**: pnpm (app/), npm (Anchor root)
+- **Package manager**: pnpm (app/, server/), npm (Anchor root)
 
 ## Running Locally
 
@@ -37,9 +45,17 @@ pnpm dev      # Vite + Convex concurrently
 pnpm start    # Vite only
 ```
 
+Game server (optional — enables server-authoritative mode):
+
+```bash
+cd server && pnpm install
+pnpm dev      # tsx watch, default port 3001
+```
+
 Env vars in `app/.env.local`:
 - `VITE_CONVEX_URL`
 - `VITE_HELIUS_API_KEY`
+- `VITE_WS_URL` — optional; when set (e.g. `ws://localhost:3001`), `GameScreen` delegates to `ServerGameScreen` and the server owns the game loop
 
 Convex env vars (dashboard or `npx convex env set`):
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — authority keypair (ASTRDS minting + ed25519 claim signing)
@@ -55,12 +71,15 @@ app/src/stores/gameData.ts                            — score, session lifecyc
 app/src/stores/spaceTokenStore.ts                     — collected space tokens, claim state
 app/src/game/                                         — entity classes (Ship, Asteroid, Bullet, Pill, Token, etc.)
 app/src/screens/                                      — screen components (title, ready, game, gameover, leaderboard, account, tokenomics)
+app/src/screens/game/GameScreen.tsx                   — switches to ServerGameScreen when VITE_WS_URL is set
+app/src/screens/game/ServerGameScreen.tsx             — WebSocket client; renders snapshots, sends input, hydrates stores
 app/src/screens/game/components/GameStateManager.tsx  — drives screen routing from state machine
 app/src/components/space/SendToSpaceOverlay.tsx       — deposit flow UI (pick → configure → send → confirm)
 app/src/screens/gameover/SpaceTokenClaim.tsx          — claim UI (also used in AccountScreen)
 app/src/components/account/TokenBurnPanel.tsx         — burn + close token accounts to reclaim rent
 app/src/lib/spaceVault.ts                             — on-chain tx builders: deposit, claim, game payment
 app/src/lib/tokenColors.ts                            — deterministic color per mint address
+app/src/lib/tokenomics.ts                             — Meteora pool snapshot, SOL/USD price, emission tier lookup
 app/src/utils/walletTokens.ts                         — fetch all SPL token accounts for a wallet + DAS metadata
 app/convex/schema.ts                                  — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims
 app/convex/spaceDeposits.ts                           — queries + mutations for pools, spawn tickets, collections, claims
@@ -71,6 +90,11 @@ app/convex/http.ts                                    — HTTP router: /treasury
 app/convex/webhookHandlers.ts                         — Helius webhook handler (inbound deposits + outbound drain detection)
 app/convex/crons.ts                                   — hourly reconcileAllPools cron
 programs/space-vault-program/src/lib.rs               — on-chain vault: deposits, claims (ed25519), game payments, revenue split
+server/src/index.ts                                   — WebSocket server: HTTP health check + ws upgrade
+server/src/ws/SessionHandler.ts                       — per-connection 30 tick/s loop, pause/resume, message routing
+server/src/game/GameSession.ts                        — wraps simulation; exposes snapshot(), update(), resize(), reset()
+shared/game/protocol.ts                               — shared message + snapshot types (ClientToServerMessage, ServerToClientMessage, GameSnapshot)
+shared/game/simulation.ts                             — authoritative physics simulation (no browser/React/Convex deps)
 ```
 
 ## State Machine

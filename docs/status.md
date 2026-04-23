@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-19
+updated: 2026-04-23
 ---
 
 # Status
@@ -8,6 +8,8 @@ updated: 2026-04-19
 ## Working
 
 - Core game loop — ship, asteroids, bullets, collisions, particles, scoring
+- **Game server** (`server/`) — authoritative WebSocket server running locally at 30 tick/s; client is pure renderer when `VITE_WS_URL` is set. Pause/resume wired via message protocol. Entity classes refactored to separate `update(dt, screen)` (physics) from `render(ctx)` (canvas) so simulation runs in Node without browser APIs.
+- **Shared simulation** (`shared/game/simulation.ts`) — browser-free physics layer; same code runs on server and is renderable client-side
 - Solana wallet connection (Solana wallet-adapter) and signature-based auth ("Insert Quarter")
 - State machine with validated transitions across all five states
 - Screen flow: title → ready → game → gameover → leaderboard/account/tokenomics
@@ -65,6 +67,8 @@ updated: 2026-04-19
 
 ## Next
 
+- Game server Railway deployment + CI/CD pipeline (issue #8)
+- Wire Convex emission tiers + economic state into game server (issue #9) — prerequisite for trustless on-chain ASTRDS emission
 - Mainnet migration when economy design is settled
 - Mobile controls (Big fat maybe... [phonefags seething])
 - Webhook handler: check `accountData.tokenBalanceChanges` for `INITIALIZE_ACCOUNT` type deposits so all devnet inbound transfers auto-activate via webhook (not just via action fallback)

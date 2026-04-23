@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-19
+updated: 2026-04-23
 ---
 
 # Architecture
@@ -13,11 +13,29 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 
 ### Frontend (src/)
 
-- **Game engine** — canvas-based, driven by `engineStore.ts`. Entity classes: `Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`. Systems: `ParticleSystem`, collision detection in engine store.
-- **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
-- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`.
+- **Game engine** — canvas-based. Two modes: client-local (driven by `engineStore.ts`) and server-driven (driven by `ServerGameScreen.tsx` receiving `GameSnapshot` over WebSocket). Entity classes: `Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup` — all with separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods.
+- **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine. `GameScreen` switches to `ServerGameScreen` when `VITE_WS_URL` is set.
+- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`. In server mode, stores are hydrated from `GameSnapshot` on each tick.
 - **Blockchain** — Solana wallet-adapter. Auth via wallet signature verified server-side in Convex. Space token claims via on-chain vault program (`spaceVault.ts`). ASTRDS minting via Convex actions calling SPL.
 - **Chat** — Reactive via Convex `useQuery(api.chat.getMessages)`. No Pusher.
+
+### Game Server (server/)
+
+Optional Node.js WebSocket server that owns the authoritative game loop. When `VITE_WS_URL` is set, the client becomes a pure renderer.
+
+- **`server/src/index.ts`** — HTTP health check + WebSocket upgrade, one `SessionHandler` per connection
+- **`server/src/ws/SessionHandler.ts`** — 30 tick/s `setInterval` loop; handles `hello`, `resize`, `input`, `pause`, `resume`, `reset`, `ping` messages; sends `welcome`, `state`, `gameOver` snapshots
+- **`server/src/game/GameSession.ts`** — thin wrapper around `shared/game/simulation.ts`; exposes `snapshot()`, `update()`, `resize()`, `reset()`
+- **`shared/game/simulation.ts`** — authoritative physics: no React, canvas, Zustand, Convex, or browser APIs; safe to run in Node or browser
+- **`shared/game/protocol.ts`** — `ClientToServerMessage`, `ServerToClientMessage`, `GameSnapshot`, `InputState` types shared across client and server
+
+Running the game server locally:
+
+```bash
+cd server && pnpm install && pnpm dev   # default port 3001
+# then in app/.env.local:
+# VITE_WS_URL=ws://localhost:3001
+```
 
 ### State Machine
 
@@ -140,6 +158,7 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 - `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims
 - `VITE_CONVEX_URL` — Convex deployment URL (frontend)
 - `VITE_HELIUS_API_KEY` — Helius API key (network hardcoded in `src/lib/solana.ts`)
+- `VITE_WS_URL` — optional; when set, `GameScreen` delegates to `ServerGameScreen` (e.g. `ws://localhost:3001`)
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — SPL authority keypair JSON array (Convex env, never in frontend)
 - `SOLANA_RPC_ENDPOINT` — RPC used by Convex actions (Convex env)
 - `HELIUS_WEBHOOK_SECRET` — shared secret for webhook auth (Convex env)
