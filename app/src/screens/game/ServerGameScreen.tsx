@@ -42,6 +42,8 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   const setMachineState = useStateMachine((state) => state.setState)
   const setPause = useStateMachine((state) => state.setPause)
   const isPaused = useStateMachine((state) => state.isPaused)
+  const isPausedRef = useRef(isPaused)
+  isPausedRef.current = isPaused
 
   useEffect(() => {
     useGameData.getState().resetGame()
@@ -165,7 +167,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
 
       switch (event.code) {
         case 'Escape': {
-          const pausing = !isPaused
+          const pausing = !isPausedRef.current
           setPause(pausing)
           if (socketRef.current?.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify({ type: pausing ? 'pause' : 'resume' } satisfies ClientToServerMessage))
