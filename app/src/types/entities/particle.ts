@@ -1,5 +1,5 @@
 // src/types/entities/particle.ts
-import { BaseEntity, Vector2D } from '../core'
+import { BaseEntity, ScreenBounds, Vector2D } from '../core'
 
 // Updated Particle type to match the class implementation
 export interface Particle extends ParticleState, ParticleMethods {
@@ -13,7 +13,7 @@ export interface Particle extends ParticleState, ParticleMethods {
   delete: boolean
   init: (args: ParticleConfig) => void
   destroy: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }
 
@@ -38,7 +38,7 @@ export interface ParticleState extends BaseEntity {
 export interface ParticleMethods {
   init: (args: ParticleConfig) => void
   destroy: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }
 

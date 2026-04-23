@@ -5,8 +5,7 @@ import {
   PillState,
   PillMethods,
 } from '@/types/entities/pill'
-import { Vector2D } from '@/types/core'
-import { useEngineStore } from '@/stores/engineStore'
+import { ScreenBounds, Vector2D } from '@/types/core'
 
 export default class Pill implements PillState, PillMethods {
   public id: string
@@ -72,11 +71,11 @@ export default class Pill implements PillState, PillMethods {
     this.delete = true
   }
 
-  update(_dt: number): void {
+  update(_dt: number, screen: ScreenBounds): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
 
-    const { width, height } = useEngineStore.getState().screen
+    const { width, height } = screen
     if (this.position.x > width + this.radius)
       this.position.x = -this.radius
     else if (this.position.x < -this.radius)

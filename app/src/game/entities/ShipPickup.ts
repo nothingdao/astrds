@@ -4,7 +4,7 @@ import {
   ShipPickupState,
   ShipPickupMethods,
 } from '@/types/entities/shipPickup'
-import { Vector2D } from '@/types/core'
+import { ScreenBounds, Vector2D } from '@/types/core'
 
 export default class ShipPickup implements ShipPickupState, ShipPickupMethods {
   public id: string
@@ -30,7 +30,7 @@ export default class ShipPickup implements ShipPickupState, ShipPickupMethods {
     this.delete = true
   }
 
-  update(_dt: number): void {}
+  update(_dt: number, _screen: ScreenBounds): void {}
 
   render(context: CanvasRenderingContext2D): void {
     context.save()

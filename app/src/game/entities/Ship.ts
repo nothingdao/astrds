@@ -11,7 +11,7 @@ import {
   ShipState,
   ShipMethods,
 } from '@/types/entities/ship'
-import { Vector2D } from '@/types/core'
+import { ScreenBounds, Vector2D } from '@/types/core'
 import { PowerupStore } from '@/types/stores/powerup'
 
 export default class Ship implements ShipState, ShipMethods {
@@ -148,7 +148,7 @@ export default class Ship implements ShipState, ShipMethods {
     }
   }
 
-  update(_dt: number): void {
+  update(_dt: number, screen: ScreenBounds): void {
     if (this.isInvulnerable && Date.now() - this.invulnerabilityTime > 3000) {
       this.isInvulnerable = false
     }
@@ -158,7 +158,7 @@ export default class Ship implements ShipState, ShipMethods {
     this.velocity.x *= this.inertia
     this.velocity.y *= this.inertia
 
-    const { width, height } = useEngineStore.getState().screen
+    const { width, height } = screen
 
     if (this.rotation >= 360) {
       this.rotation -= 360

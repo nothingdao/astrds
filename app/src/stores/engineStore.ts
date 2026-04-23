@@ -277,12 +277,12 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       Object.values(state.entities).forEach((entities) => {
         entities.forEach((entity) => {
           if (!entity.delete) {
-            entity.update(dt)
+            entity.update(dt, state.screen)
           }
         })
       })
 
-      particleSystem.update(dt)
+      particleSystem.update(dt, state.screen)
 
       // Render pass
       Object.entries(state.entities).forEach(([group, entities]) => {

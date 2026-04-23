@@ -1,5 +1,5 @@
 // src/types/entities/pill.ts
-import { BaseEntity, Vector2D } from '../core'
+import { BaseEntity, ScreenBounds, Vector2D } from '../core'
 
 export interface PillConfig {
   screen: {
@@ -18,6 +18,6 @@ export interface PillState extends BaseEntity {
 
 export interface PillMethods {
   destroy: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }

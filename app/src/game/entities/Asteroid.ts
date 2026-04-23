@@ -9,7 +9,7 @@ import {
   AsteroidState,
   AsteroidMethods,
 } from '@/types/entities/asteroid'
-import { Vector2D } from '@/types/core'
+import { ScreenBounds, Vector2D } from '@/types/core'
 
 export default class Asteroid implements AsteroidState, AsteroidMethods {
   public id: string
@@ -68,12 +68,12 @@ export default class Asteroid implements AsteroidState, AsteroidMethods {
     }
   }
 
-  update(_dt: number): void {
+  update(_dt: number, screen: ScreenBounds): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
 
     this.rotation += this.rotationSpeed
-    const { width, height } = useEngineStore.getState().screen
+    const { width, height } = screen
 
     if (this.rotation >= 360) {
       this.rotation -= 360

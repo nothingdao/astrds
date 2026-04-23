@@ -7,8 +7,7 @@ import {
   BulletState,
   BulletMethods,
 } from '@/types/entities/bullet'
-import { Vector2D } from '@/types/core'
-import { useEngineStore } from '@/stores/engineStore'
+import { ScreenBounds, Vector2D } from '@/types/core'
 
 export default class Bullet implements BulletState, BulletMethods {
   public id: string
@@ -74,7 +73,7 @@ export default class Bullet implements BulletState, BulletMethods {
     bulletSystem.releaseBullet(this)
   }
 
-  update(_dt: number): void {
+  update(_dt: number, screen: ScreenBounds): void {
     if (Date.now() - this.createTime > 1000) {
       this.destroy()
       return
@@ -88,7 +87,7 @@ export default class Bullet implements BulletState, BulletMethods {
       return
     }
 
-    const { width, height } = useEngineStore.getState().screen
+    const { width, height } = screen
     if (
       this.position.x < 0 ||
       this.position.y < 0 ||

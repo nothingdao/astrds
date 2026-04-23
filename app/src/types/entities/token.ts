@@ -1,5 +1,5 @@
 // src/types/entities/token.ts
-import { BaseEntity } from '../core'
+import { BaseEntity, ScreenBounds } from '../core'
 
 export interface TokenMetadata {
   symbol: string
@@ -31,7 +31,7 @@ export interface TokenState extends BaseEntity {
 
 export interface TokenMethods {
   destroy: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }
 

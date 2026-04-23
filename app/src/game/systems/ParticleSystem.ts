@@ -4,7 +4,7 @@ import {
   ParticleConfig,
   ParticleSystemConfig,
 } from '@/types/entities/particle'
-import { Vector2D } from '@/types/core'
+import { ScreenBounds, Vector2D } from '@/types/core'
 import { randomNumBetween } from '@/utils/helpers'
 import Particle from '../entities/Particle'
 
@@ -36,10 +36,10 @@ export class ParticleSystemImpl implements ParticleSystem {
     return particle
   }
 
-  update(dt = 1) {
+  update(dt = 1, screen: ScreenBounds = { width: 0, height: 0 }) {
     this.particles = this.particles.filter((particle) => {
       if (particle.delete) return false
-      particle.update(dt)
+      particle.update(dt, screen)
       return true
     })
   }

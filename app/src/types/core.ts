@@ -7,6 +7,11 @@ export type Vector2D = {
   y: number
 }
 
+export interface ScreenBounds {
+  width: number
+  height: number
+}
+
 export interface BaseEntity {
   id: string
   position: Vector2D

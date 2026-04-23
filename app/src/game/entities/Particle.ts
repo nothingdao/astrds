@@ -5,7 +5,7 @@ import {
   ParticleState,
   ParticleMethods,
 } from '@/types/entities/particle'
-import { Vector2D } from '@/types/core'
+import { ScreenBounds, Vector2D } from '@/types/core'
 
 export default class Particle implements ParticleState, ParticleMethods {
   public id: string
@@ -38,7 +38,7 @@ export default class Particle implements ParticleState, ParticleMethods {
     particleSystem.releaseParticle(this)
   }
 
-  update(_dt: number): void {
+  update(_dt: number, _screen: ScreenBounds): void {
     this.position.x += this.velocity.x
     this.position.y += this.velocity.y
     this.velocity.x *= this.inertia

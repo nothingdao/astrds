@@ -1,5 +1,5 @@
 // src/types/entities/ship.ts
-import { BaseEntity, Vector2D } from '../core'
+import { BaseEntity, ScreenBounds, Vector2D } from '../core'
 
 export interface ShipConfig {
   position: Vector2D
@@ -23,6 +23,6 @@ export interface ShipMethods {
   accelerate: () => void
   stopThrust: () => void
   shootBullet: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }

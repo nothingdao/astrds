@@ -1,5 +1,5 @@
 // src/types/entities/bullet.ts
-import { BaseEntity, Vector2D } from '../core'
+import { BaseEntity, ScreenBounds, Vector2D } from '../core'
 
 export interface BulletConfig {
   ship: {
@@ -26,6 +26,6 @@ export interface BulletState extends BaseEntity {
 export interface BulletMethods {
   init: (args: BulletConfig) => void
   destroy: () => void
-  update: (dt: number) => void
+  update: (dt: number, screen: ScreenBounds) => void
   render: (context: CanvasRenderingContext2D) => void
 }
