@@ -1,0 +1,16 @@
+node_modules
+app/node_modules
+server/node_modules
+.pnpm-store
+dist
+server/dist
+app/dist
+.vite
+.vite-hooks
+.anchor
+target
+.netlify
+netlify
+app/public/raw
+.agents
+.claude
