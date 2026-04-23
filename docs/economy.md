@@ -154,9 +154,20 @@ Everything soft. Structure hard.
 - **Mainnet:** Seed LP, wire Jupiter swap for buyback + LP additions, emission tiers on-chain
 - **Full trustless:** All economic state on-chain. Convex handles only game state (sessions, scores, chat, leaderboard)
 
+## Parked / Decided
+
+**LP token custody → burn**
+Burning LP tokens makes liquidity permanently locked and trustless. Nobody can rug it. Fits the north star — players can verify on-chain that liquidity can never be removed. Irreversibility is a feature, not a bug, for a token where the story is "nothing controlled by the team."
+
+**Emission tier breakpoints → variable until on-chain hardening**
+Current table is directionally correct but values are placeholders. Will be calibrated against real launch price and seeded liquidity. Keep soft until the on-chain contract design is settled.
+
+**Revenue split → variable**
+50/30/20 (operational/buyback/LP) is a placeholder. Additional slices may be added (community treasury, depositor incentive, dev fund). Percentages will be adjusted once the full story is clear. Structure of the split is on-chain and admin-adjustable — changing values does not require a program upgrade.
+
 ## Open Questions
 
-- Exact price tier band values (current table is a starting point — needs calibration against real launch price)
-- Final revenue split percentages (50/30/20 is placeholder)
-- Who holds LP tokens — locked, burned, or protocol-owned multisig
-- Death spiral protection — is the floor tier (5 pills, 10 ASTRDS/pill) enough to keep the game worth playing in a prolonged bear market
+- Death spiral protection — is the floor tier (5 pills, 10 ASTRDS/pill) enough to keep the game worth playing in a prolonged bear market, or do we need an additional mechanism
+- Additional revenue split slices beyond operational/buyback/LP — candidates: community treasury, depositor incentive, dev fund
+- Exact tier band price breakpoints — to be set at mainnet launch once seed liquidity amount is decided
+- Game server architecture — required before emission can be fully trustless
