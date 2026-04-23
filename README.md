@@ -56,5 +56,6 @@ Deposit amounts are verified on-chain — the server reads `tx.meta` directly, n
 
 - [docs/architecture.md](docs/architecture.md) — system overview, layers, data flow
 - [docs/status.md](docs/status.md) — what's working, what's rough, what's next
-- [SPEC.md](SPEC.md) — full product spec and functional requirements
-- [CHAIN.md](CHAIN.md) — on-chain addresses, PDAs, flow diagrams
+- [docs/spec.md](docs/spec.md) — full product spec and functional requirements
+- [docs/chain.md](docs/chain.md) — on-chain addresses, PDAs, flow diagrams
+- [docs/economy.md](docs/economy.md) — token economy design, emission model, flywheel

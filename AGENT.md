@@ -143,6 +143,7 @@ Instructions: `initialize`, `set_weights`, `register_pool`, `deposit`, `claim` (
 
 - `docs/architecture.md` — system overview, layers, data flow, key config
 - `docs/status.md` — what's working, what's rough, known gaps, what's next
-- `SPEC.md` — product spec and functional requirements
-- `CHAIN.md` — on-chain addresses, PDAs, flow diagrams
-- `docs/AUDIO.md` — audio system framework, event triggers, bucket/playlist definitions
+- `docs/spec.md` — product spec and functional requirements
+- `docs/chain.md` — on-chain addresses, PDAs, flow diagrams
+- `docs/economy.md` — token economy design, emission model, flywheel
+- `docs/audio.md` — audio system framework, event triggers, bucket/playlist definitions
