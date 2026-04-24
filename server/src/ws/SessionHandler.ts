@@ -28,6 +28,8 @@ export class SessionHandler {
   private lastPoolRefreshAt = 0
   private lastPoolLevel = 1
   private refreshingPools: Promise<void> | null = null
+  private helloHandled = false
+  private helloVerifying = false
 
   constructor(socket: WebSocket, sessionId: string) {
     this.socket = socket
@@ -36,21 +38,6 @@ export class SessionHandler {
 
   start(): void {
     this.send({ type: 'welcome', sessionId: this.session.id, snapshot: this.session.snapshot() })
-
-    this.lastTickAt = Date.now()
-    this.loop = setInterval(() => {
-      const now = Date.now()
-      const dt = Math.min((now - this.lastTickAt) / (1000 / 60), 2)
-      this.lastTickAt = now
-      const { snapshot, events } = this.session.update(dt, now)
-      this.handleSimulationEvents(events, now)
-      this.maybeSubmitGameOver(snapshot)
-      this.maybeRefreshSpaceTokenPools(now, snapshot.level)
-      this.send({
-        type: snapshot.status === 'gameOver' ? 'gameOver' : 'state',
-        snapshot,
-      })
-    }, FRAME_MS)
   }
 
   stop(): void {
@@ -68,6 +55,7 @@ export class SessionHandler {
   }
 
   resume(): void {
+    if (!this.helloHandled) return
     if (this.loop) return
     this.lastTickAt = Date.now()
     this.loop = setInterval(() => {
@@ -96,21 +84,7 @@ export class SessionHandler {
 
     switch (message.type) {
       case 'hello': {
-        this.binding = { ...message.session }
-        void fetchEmissionTier()
-          .then((tier) => {
-            this.session.setEmissionTier(tier)
-          })
-          .catch((error) => {
-            console.error('Failed to fetch emission tier; falling back to tier 2', {
-              error,
-              sessionId: this.session.id,
-            })
-            this.session.setEmissionTier(FALLBACK_EMISSION_TIER)
-          })
-        this.refreshSpaceTokenPools(this.session.level)
-        const snapshot = this.session.resize(message.screen)
-        this.send({ type: 'state', snapshot })
+        void this.handleHello(message)
         return
       }
       case 'resize': {
@@ -146,6 +120,62 @@ export class SessionHandler {
   private send(message: ServerToClientMessage & { snapshot?: GameSnapshot }): void {
     if (this.socket.readyState !== WebSocket.OPEN) return
     this.socket.send(JSON.stringify(message))
+  }
+
+  private async handleHello(message: Extract<ClientToServerMessage, { type: 'hello' }>): Promise<void> {
+    if (this.helloHandled || this.helloVerifying) {
+      const snapshot = this.session.resize(message.screen)
+      this.send({ type: 'state', snapshot })
+      return
+    }
+
+    const walletAddress = message.session?.walletAddress
+    if (!walletAddress) {
+      this.send({ type: 'error', message: 'No active session. Please insert a quarter.' })
+      this.socket.close()
+      return
+    }
+
+    this.helloVerifying = true
+    let isVerified = true
+
+    try {
+      isVerified = await this.convex.isVerifiedSession({ walletAddress })
+    } catch (error) {
+      console.error('Failed to verify session; allowing gameplay to proceed', {
+        error,
+        sessionId: this.session.id,
+        walletAddress,
+      })
+      isVerified = true
+    } finally {
+      this.helloVerifying = false
+    }
+
+    if (!isVerified) {
+      this.send({ type: 'error', message: 'No active session. Please insert a quarter.' })
+      this.socket.close()
+      return
+    }
+
+    this.helloHandled = true
+    this.binding = { ...message.session, walletAddress }
+    void fetchEmissionTier()
+      .then((tier) => {
+        this.session.setEmissionTier(tier)
+      })
+      .catch((error) => {
+        console.error('Failed to fetch emission tier; falling back to tier 2', {
+          error,
+          sessionId: this.session.id,
+        })
+        this.session.setEmissionTier(FALLBACK_EMISSION_TIER)
+      })
+
+    this.refreshSpaceTokenPools(this.session.level)
+    const snapshot = this.session.resize(message.screen)
+    this.send({ type: 'state', snapshot })
+    this.resume()
   }
 
   private handleSimulationEvents(events: SimulationEvent[], now: number): void {

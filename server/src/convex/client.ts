@@ -7,6 +7,7 @@ const GAME_SESSIONS_INCREMENT_PILLS = 'gameSessions:incrementPillsCollected'
 const SPACE_DEPOSITS_COLLECT = 'spaceDeposits:collectFromDeposit'
 const SPACE_DEPOSITS_GET_ACTIVE_POOLS = 'spaceDeposits:getActivePoolsForLevel'
 const SPACE_DEPOSITS_REQUEST_SPAWN_TICKET = 'spaceDeposits:requestSpawnTicket'
+const SESSIONS_IS_VERIFIED = 'sessions:isVerified'
 
 type ConvexFunctionName =
   | typeof GAME_SESSIONS_UPDATE
@@ -14,7 +15,7 @@ type ConvexFunctionName =
   | typeof SPACE_DEPOSITS_COLLECT
   | typeof SPACE_DEPOSITS_REQUEST_SPAWN_TICKET
 
-type ConvexQueryName = typeof SPACE_DEPOSITS_GET_ACTIVE_POOLS
+type ConvexQueryName = typeof SPACE_DEPOSITS_GET_ACTIVE_POOLS | typeof SESSIONS_IS_VERIFIED
 
 export class ConvexServerClient {
   private readonly client: ConvexHttpClient | null
@@ -88,6 +89,11 @@ export class ConvexServerClient {
 
     const spawnId = (result as { spawnId?: unknown }).spawnId
     return { spawnId: typeof spawnId === 'string' ? spawnId : null }
+  }
+
+  async isVerifiedSession(args: { walletAddress: string }): Promise<boolean> {
+    const result = await this.query(SESSIONS_IS_VERIFIED, args)
+    return result === true
   }
 
   private async mutation(name: ConvexFunctionName, args: Record<string, unknown>): Promise<unknown> {
