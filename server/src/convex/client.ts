@@ -92,6 +92,7 @@ export class ConvexServerClient {
   }
 
   async isVerifiedSession(args: { walletAddress: string }): Promise<boolean> {
+    if (!this.client) return true  // no CONVEX_URL = local dev, allow through
     const result = await this.query(SESSIONS_IS_VERIFIED, args)
     return result === true
   }
