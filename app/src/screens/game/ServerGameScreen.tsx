@@ -9,6 +9,7 @@ import { useServerStore } from '@/stores/serverStore'
 import { MachineState } from '@/types/machine'
 import { renderServerSnapshot } from '@/game/renderServerSnapshot'
 import { particleSystem } from '@/game/systems/ParticleSystem'
+import { audioService } from '@/services/audio/AudioService'
 import { ShipIcon } from '@/components/icons/GameIcons'
 import type {
   ClientToServerMessage,
@@ -33,6 +34,10 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   const ratioRef = useRef(window.devicePixelRatio || 1)
   const prevAsteroidPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const prevShipRef = useRef<GameSnapshot['ship']>(null)
+  const prevBulletCountRef = useRef(0)
+  const prevPillsRef = useRef(0)
+  const prevTokensRef = useRef(0)
+  const prevThrustingRef = useRef(false)
   const levelTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [screen, setScreen] = useState<ScreenBounds>({
@@ -129,16 +134,37 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
       const snap = message.snapshot
       const prev = snapshotRef.current
 
-      // Explosion particles — detect what disappeared since last snapshot
+      // Detect events by diffing consecutive snapshots
       if (prev) {
+        // Asteroid explosions
         const newAsteroidIds = new Set(snap.asteroids.map((a) => a.id))
         for (const a of prev.asteroids) {
           if (!newAsteroidIds.has(a.id)) {
             particleSystem.createExplosion(a.position, a.radius, 15)
+            audioService.playSound('explosion')
           }
         }
+
+        // Ship death
         if (prev.ship && !snap.ship) {
           particleSystem.createExplosion(prev.ship.position, prev.ship.radius, 30)
+          audioService.playSound('explosion')
+        }
+
+        // Bullets fired — each new bullet ID is a shot
+        if (snap.bullets.length > prevBulletCountRef.current) {
+          const newCount = snap.bullets.length - prevBulletCountRef.current
+          for (let i = 0; i < newCount; i++) audioService.playSound('shoot')
+        }
+
+        // Pill collected
+        if (snap.pillsCollected > prevPillsRef.current) {
+          audioService.playSound('collect')
+        }
+
+        // Space token collected
+        if (snap.tokensCollected > prevTokensRef.current) {
+          audioService.playSound('collect')
         }
 
         // Level transition
@@ -154,6 +180,16 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
       } else {
         useLevelStore.setState({ level: snap.level })
       }
+
+      // Thruster loop — start/stop when thrust state changes
+      const nowThrusting = snap.ship?.isThrusting ?? false
+      if (nowThrusting && !prevThrustingRef.current) audioService.playSoundLoop('thrust')
+      if (!nowThrusting && prevThrustingRef.current) audioService.stopSoundLoop('thrust')
+      prevThrustingRef.current = nowThrusting
+
+      prevBulletCountRef.current = snap.bullets.length
+      prevPillsRef.current = snap.pillsCollected
+      prevTokensRef.current = snap.tokensCollected
 
       // Respawn overlay — ship just appeared with invulnerability
       const wasInvulnerable = prevShipRef.current?.isInvulnerable ?? false
@@ -194,6 +230,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
 
     socket.addEventListener('close', () => {
       setConnectionState('closed')
+      audioService.stopSoundLoop('thrust')
     })
 
     socket.addEventListener('error', () => {
