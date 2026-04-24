@@ -151,6 +151,7 @@ function createShip(screen: ScreenBounds, now: number): MutableShip {
     rotation: 0,
     radius: SHIP_RADIUS,
     isInvulnerable: false,
+    isThrusting: false,
     invulnerableUntil: 0,
     lastShotAt: 0,
   }
@@ -342,6 +343,7 @@ function updateShip(state: SimulationState, dt: number, now: number): void {
 
   if (state.input.left) ship.rotation -= SHIP_ROTATION_SPEED * dt
   if (state.input.right) ship.rotation += SHIP_ROTATION_SPEED * dt
+  ship.isThrusting = state.input.up
   if (state.input.up) {
     ship.velocity.x -= Math.sin((-ship.rotation * Math.PI) / 180) * SHIP_ACCELERATION * dt
     ship.velocity.y -= Math.cos((-ship.rotation * Math.PI) / 180) * SHIP_ACCELERATION * dt
@@ -674,6 +676,7 @@ export function simulationToSnapshot(state: SimulationState): GameSnapshot {
           rotation: state.ship.rotation,
           radius: state.ship.radius,
           isInvulnerable: state.ship.isInvulnerable,
+          isThrusting: state.ship.isThrusting,
         }
       : null,
     asteroids: state.asteroids.map((asteroid) => ({

@@ -8,6 +8,8 @@ import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { useServerStore } from '@/stores/serverStore'
 import { MachineState } from '@/types/machine'
 import { renderServerSnapshot } from '@/game/renderServerSnapshot'
+import { particleSystem } from '@/game/systems/ParticleSystem'
+import { ShipIcon } from '@/components/icons/GameIcons'
 import type {
   ClientToServerMessage,
   GameSnapshot,
@@ -27,17 +29,23 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const inputRef = useRef<InputState>(emptyInput)
-  const screenRef = useRef<ScreenBounds>({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  })
-  const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null)
+  const snapshotRef = useRef<GameSnapshot | null>(null)
+  const ratioRef = useRef(window.devicePixelRatio || 1)
+  const prevAsteroidPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
+  const prevShipRef = useRef<GameSnapshot['ship']>(null)
+  const levelTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [screen, setScreen] = useState<ScreenBounds>({
     width: window.innerWidth,
     height: window.innerHeight,
   })
-  const [ratio, setRatio] = useState(window.devicePixelRatio || 1)
+  const screenRef = useRef<ScreenBounds>({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  })
   const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed'>('connecting')
+  const [isRespawning, setIsRespawning] = useState(false)
+
   const setMachineState = useStateMachine((state) => state.setState)
   const setPause = useStateMachine((state) => state.setPause)
   const isPaused = useStateMachine((state) => state.isPaused)
@@ -45,14 +53,51 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   isPausedRef.current = isPaused
   const selectedLabel = useServerStore((s) => s.selectedLabel)
 
+  // Reset all game state on mount
   useEffect(() => {
     useGameData.getState().resetGame()
     useInventoryStore.getState().resetInventory()
     useLevelStore.getState().resetLevel()
     usePowerupStore.getState().deactivatePowerups()
     useSpaceTokenStore.getState().resetSession()
+    particleSystem.update = particleSystem.update.bind(particleSystem)
   }, [])
 
+  // rAF render loop — runs at display rate independent of server tick
+  useEffect(() => {
+    let animFrameId: number
+
+    const loop = () => {
+      const canvas = canvasRef.current
+      const snap = snapshotRef.current
+      if (canvas && snap) {
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          // Thruster particles — generated client-side from snapshot state
+          if (snap.ship?.isThrusting && Math.random() > 0.5) {
+            const r = (snap.ship.rotation * Math.PI) / 180
+            particleSystem.createThrusterParticle(snap.ship.position, {
+              x: -10 * Math.sin(r),
+              y:  10 * Math.cos(r),
+            })
+          }
+          particleSystem.update()
+          renderServerSnapshot(ctx, snap, ratioRef.current)
+          // Scale ctx to match ratio before rendering particles
+          ctx.save()
+          ctx.setTransform(ratioRef.current, 0, 0, ratioRef.current, 0, 0)
+          particleSystem.render(ctx)
+          ctx.restore()
+        }
+      }
+      animFrameId = requestAnimationFrame(loop)
+    }
+
+    animFrameId = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(animFrameId)
+  }, [])
+
+  // WebSocket connection
   useEffect(() => {
     const url = useServerStore.getState().selectedUrl ?? 'ws://localhost:3001'
     const socket = new WebSocket(url)
@@ -79,8 +124,71 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
 
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data) as ServerToClientMessage
-      if (message.type === 'state' || message.type === 'welcome' || message.type === 'gameOver') {
-        setSnapshot(message.snapshot)
+      if (message.type !== 'state' && message.type !== 'welcome' && message.type !== 'gameOver') return
+
+      const snap = message.snapshot
+      const prev = snapshotRef.current
+
+      // Explosion particles — detect what disappeared since last snapshot
+      if (prev) {
+        const newAsteroidIds = new Set(snap.asteroids.map((a) => a.id))
+        for (const a of prev.asteroids) {
+          if (!newAsteroidIds.has(a.id)) {
+            particleSystem.createExplosion(a.position, a.radius, 15)
+          }
+        }
+        if (prev.ship && !snap.ship) {
+          particleSystem.createExplosion(prev.ship.position, prev.ship.radius, 30)
+        }
+
+        // Level transition
+        if (snap.level !== prev.level) {
+          if (levelTransitionTimerRef.current) clearTimeout(levelTransitionTimerRef.current)
+          useLevelStore.setState({ level: snap.level, isLevelTransition: true })
+          levelTransitionTimerRef.current = setTimeout(() => {
+            useLevelStore.setState({ isLevelTransition: false })
+          }, 2000)
+        } else {
+          useLevelStore.setState({ level: snap.level })
+        }
+      } else {
+        useLevelStore.setState({ level: snap.level })
+      }
+
+      // Respawn overlay — ship just appeared with invulnerability
+      const wasInvulnerable = prevShipRef.current?.isInvulnerable ?? false
+      const nowInvulnerable = snap.ship?.isInvulnerable ?? false
+      if (!wasInvulnerable && nowInvulnerable) {
+        setIsRespawning(true)
+      } else if (wasInvulnerable && !nowInvulnerable) {
+        setIsRespawning(false)
+      }
+
+      prevShipRef.current = snap.ship
+      snapshotRef.current = snap
+
+      // Store updates
+      useGameData.getState().updateScore(snap.score)
+      useInventoryStore.setState({
+        items: {
+          ships: snap.lives,
+          tokens: snap.tokensCollected,
+          pills: snap.pillsCollected,
+        },
+      })
+      usePowerupStore.setState({
+        powerups: {
+          invincible: snap.powerups.invincible,
+          rapidFire: snap.powerups.rapidFire,
+        },
+        powerupExpiresAt: snap.powerups.expiresAt,
+      })
+
+      // Track asteroid positions for next frame's explosion detection
+      prevAsteroidPositionsRef.current = new Map(snap.asteroids.map((a) => [a.id, a.position]))
+
+      if (snap.status === 'gameOver') {
+        setMachineState(MachineState.GAME_OVER)
       }
     })
 
@@ -98,69 +206,29 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
     }
   }, [])
 
-  useEffect(() => {
-    if (!snapshot) return
-
-    useGameData.getState().updateScore(snapshot.score)
-    useInventoryStore.setState({
-      items: {
-        ships: snapshot.lives,
-        tokens: snapshot.tokensCollected,
-        pills: snapshot.pillsCollected,
-      },
-    })
-    useLevelStore.setState({
-      level: snapshot.level,
-      isLevelTransition: false,
-      isRespawning: false,
-    })
-    usePowerupStore.setState({
-      powerups: {
-        invincible: snapshot.powerups.invincible,
-        rapidFire: snapshot.powerups.rapidFire,
-      },
-      powerupExpiresAt: snapshot.powerups.expiresAt,
-    })
-
-    if (snapshot.status === 'gameOver') {
-      setMachineState(MachineState.GAME_OVER)
-    }
-  }, [snapshot, setMachineState])
-
-  useEffect(() => {
-    if (!snapshot || !canvasRef.current) return
-    const context = canvasRef.current.getContext('2d')
-    if (!context) return
-    renderServerSnapshot(context, snapshot, ratio)
-  }, [ratio, snapshot])
-
+  // Sync pause state to server whenever it changes
   useEffect(() => {
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return
     socketRef.current.send(JSON.stringify({ type: isPaused ? 'pause' : 'resume' } satisfies ClientToServerMessage))
   }, [isPaused])
 
+  // Window resize
   useEffect(() => {
     const handleResize = () => {
       const nextRatio = window.devicePixelRatio || 1
-      const nextScreen = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      }
+      const nextScreen = { width: window.innerWidth, height: window.innerHeight }
+      ratioRef.current = nextRatio
       screenRef.current = nextScreen
-      setRatio(nextRatio)
       setScreen(nextScreen)
-
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({ type: 'resize', screen: nextScreen } satisfies ClientToServerMessage))
       }
     }
-
     window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Keyboard input
   useEffect(() => {
     const updateInput = (patch: Partial<InputState>) => {
       inputRef.current = { ...inputRef.current, ...patch }
@@ -172,13 +240,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement
-      ) {
-        return
-      }
-
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
       switch (event.code) {
         case 'Escape': {
           const pausing = !isPausedRef.current
@@ -189,40 +251,24 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           break
         }
         case 'ArrowLeft':
-        case 'KeyA':
-          updateInput({ left: true })
-          break
+        case 'KeyA': updateInput({ left: true }); break
         case 'ArrowRight':
-        case 'KeyD':
-          updateInput({ right: true })
-          break
+        case 'KeyD': updateInput({ right: true }); break
         case 'ArrowUp':
-        case 'KeyW':
-          updateInput({ up: true })
-          break
-        case 'Space':
-          updateInput({ space: true })
-          break
+        case 'KeyW': updateInput({ up: true }); break
+        case 'Space': updateInput({ space: true }); break
       }
     }
 
     const handleKeyUp = (event: KeyboardEvent) => {
       switch (event.code) {
         case 'ArrowLeft':
-        case 'KeyA':
-          updateInput({ left: false })
-          break
+        case 'KeyA': updateInput({ left: false }); break
         case 'ArrowRight':
-        case 'KeyD':
-          updateInput({ right: false })
-          break
+        case 'KeyD': updateInput({ right: false }); break
         case 'ArrowUp':
-        case 'KeyW':
-          updateInput({ up: false })
-          break
-        case 'Space':
-          updateInput({ space: false })
-          break
+        case 'KeyW': updateInput({ up: false }); break
+        case 'Space': updateInput({ space: false }); break
       }
     }
 
@@ -234,20 +280,37 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
     }
   }, [])
 
+  const lives = snapshotRef.current?.lives ?? 0
+
   return (
     <>
       <canvas
         ref={canvasRef}
-        width={screen.width * ratio}
-        height={screen.height * ratio}
+        width={screen.width * ratioRef.current}
+        height={screen.height * ratioRef.current}
         className={`block bg-black absolute inset-0 w-full h-full ${className || ''}`}
       />
+
       {connectionState !== 'open' && (
         <div className='fixed inset-0 flex items-center justify-center z-40 pointer-events-none'>
           <div className='font-mono text-xs uppercase tracking-widest text-white/50'>
             {connectionState === 'connecting'
-            ? `Connecting to ${selectedLabel ?? 'game server'}…`
-            : 'Game server disconnected'}
+              ? `Connecting to ${selectedLabel ?? 'game server'}…`
+              : 'Game server disconnected'}
+          </div>
+        </div>
+      )}
+
+      {isRespawning && lives > 0 && (
+        <div className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none'>
+          <div className='bg-black/50 px-6 py-4 border border-game-blue animate-fadeIn flex flex-col items-center gap-3'>
+            <ShipIcon className='text-game-blue opacity-50 animate-[spin_2s_linear_infinite]' />
+            <div className='text-xl text-game-blue font-bold animate-pulse font-mono uppercase tracking-widest'>
+              Ship Deployed
+            </div>
+            <div className='text-sm text-white font-mono'>
+              {lives} {lives === 1 ? 'Ship' : 'Ships'} Remaining
+            </div>
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ export interface ShipSnapshot {
   rotation: number
   radius: number
   isInvulnerable: boolean
+  isThrusting: boolean
 }
 
 export interface AsteroidSnapshot {
