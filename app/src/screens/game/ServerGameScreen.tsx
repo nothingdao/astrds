@@ -5,6 +5,7 @@ import { useInventoryStore } from '@/stores/inventoryStore'
 import { useLevelStore } from '@/stores/levelStore'
 import { usePowerupStore } from '@/stores/powerupStore'
 import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
+import { useServerStore } from '@/stores/serverStore'
 import { MachineState } from '@/types/machine'
 import { renderServerSnapshot } from '@/game/renderServerSnapshot'
 import type {
@@ -14,8 +15,6 @@ import type {
   ScreenBounds,
   ServerToClientMessage,
 } from '@shared/game/protocol'
-
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001'
 
 const emptyInput: InputState = {
   left: false,
@@ -44,6 +43,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   const isPaused = useStateMachine((state) => state.isPaused)
   const isPausedRef = useRef(isPaused)
   isPausedRef.current = isPaused
+  const selectedLabel = useServerStore((s) => s.selectedLabel)
 
   useEffect(() => {
     useGameData.getState().resetGame()
@@ -54,7 +54,8 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   }, [])
 
   useEffect(() => {
-    const socket = new WebSocket(WS_URL)
+    const url = useServerStore.getState().selectedUrl ?? 'ws://localhost:3001'
+    const socket = new WebSocket(url)
     socketRef.current = socket
 
     const send = (message: ClientToServerMessage) => {
@@ -244,7 +245,9 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
       {connectionState !== 'open' && (
         <div className='fixed inset-0 flex items-center justify-center z-40 pointer-events-none'>
           <div className='font-mono text-xs uppercase tracking-widest text-white/50'>
-            {connectionState === 'connecting' ? 'Connecting to local game server…' : 'Game server disconnected'}
+            {connectionState === 'connecting'
+            ? `Connecting to ${selectedLabel ?? 'game server'}…`
+            : 'Game server disconnected'}
           </div>
         </div>
       )}

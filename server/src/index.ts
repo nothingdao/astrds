@@ -5,7 +5,11 @@ import { SessionHandler } from './ws/SessionHandler.js'
 const PORT = Number(process.env.PORT ?? 3001)
 
 const httpServer = createServer((_req, res) => {
-  res.writeHead(200, { 'content-type': 'application/json' })
+  res.writeHead(200, {
+    'content-type': 'application/json',
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET',
+  })
   res.end(JSON.stringify({ ok: true, service: 'astrds-game-server' }))
 })
 

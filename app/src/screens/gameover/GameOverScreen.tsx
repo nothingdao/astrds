@@ -11,8 +11,7 @@ import { useInventoryStore } from '@/stores/inventoryStore'
 import ASTRDSMinting from '@/components/tokens/ASTRDSMinting'
 import SpaceTokenClaim from './SpaceTokenClaim'
 import { MachineState } from '@/types/machine'
-
-const WS_URL = import.meta.env.VITE_WS_URL
+import { useServerStore } from '@/stores/serverStore'
 
 const GameOverScreen: React.FC = () => {
   const wallet = useWallet()
@@ -22,9 +21,10 @@ const GameOverScreen: React.FC = () => {
   const endGameSession = useGameData((state) => state.endGameSession)
   const submitFinalScore = useGameData((state) => state.submitFinalScore)
   const startTransition = useStateMachine((state) => state.startTransition)
+  const selectedUrl = useServerStore((s) => s.selectedUrl)
 
   useEffect(() => {
-    if (WS_URL) {
+    if (selectedUrl) {
       return
     }
     const walletAddress = wallet.publicKey?.toString()

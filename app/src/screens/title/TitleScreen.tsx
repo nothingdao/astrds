@@ -1,47 +1,42 @@
 import React, { memo, useCallback, useState, useEffect } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useStateMachine } from '@/stores/stateMachine'
+import { useServerStore } from '@/stores/serverStore'
 import { QuarterButton } from '@/components/common/Buttons'
 import { MachineState } from '@/types/machine'
 import { authService } from '@/auth/AuthService'
 
-const MAX_CAPACITY = 50
-
-type Region = {
+type ServerEntry = {
   id: string
   label: string
-  city: string
+  url: string
+}
+
+type ServerWithStatus = ServerEntry & {
   ping: number | null
-  players: number | null
+  online: boolean | null
 }
 
-const REGIONS: Region[] = [
-  { id: 'us-west', label: 'US West', city: 'Oregon', ping: null, players: null },
-  { id: 'us-east', label: 'US East', city: 'Virginia', ping: null, players: null },
-  { id: 'eu-west', label: 'EU West', city: 'Amsterdam', ping: null, players: null },
-  { id: 'ap-sea', label: 'Asia Pacific', city: 'Singapore', ping: null, players: null },
-]
+async function probeServer(wsUrl: string): Promise<{ online: boolean; ping: number | null }> {
+  const httpUrl = wsUrl.startsWith('wss://')
+    ? wsUrl.replace('wss://', 'https://')
+    : wsUrl.replace('ws://', 'http://')
+  const start = performance.now()
+  try {
+    const res = await fetch(httpUrl, { signal: AbortSignal.timeout(3000) })
+    const ping = Math.round(performance.now() - start)
+    return { online: res.ok, ping }
+  } catch {
+    return { online: false, ping: null }
+  }
+}
 
-const PingDot: React.FC<{ ping: number | null }> = ({ ping }) => {
-  if (ping === null) return <span className='w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse inline-block' />
-  if (ping < 80) return <span className='w-1.5 h-1.5 rounded-full bg-green-400 inline-block' />
-  if (ping < 150) return <span className='w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block' />
+const PingDot: React.FC<{ online: boolean | null; ping: number | null }> = ({ online, ping }) => {
+  if (online === null) return <span className='w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse inline-block' />
+  if (!online) return <span className='w-1.5 h-1.5 rounded-full bg-red-400/50 inline-block' />
+  if (ping !== null && ping < 80) return <span className='w-1.5 h-1.5 rounded-full bg-green-400 inline-block' />
+  if (ping !== null && ping < 150) return <span className='w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block' />
   return <span className='w-1.5 h-1.5 rounded-full bg-red-400 inline-block' />
-}
-
-const CapacityBar: React.FC<{ players: number | null }> = ({ players }) => {
-  if (players === null) return (
-    <div className='w-16 h-1 bg-white/10 rounded-full overflow-hidden'>
-      <div className='h-full w-full bg-white/10 animate-pulse' />
-    </div>
-  )
-  const pct = players / MAX_CAPACITY
-  const color = pct > 0.8 ? 'bg-red-400' : pct > 0.5 ? 'bg-yellow-400' : 'bg-green-400'
-  return (
-    <div className='w-16 h-1 bg-white/10 rounded-full overflow-hidden'>
-      <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct * 100}%` }} />
-    </div>
-  )
 }
 
 const TitleScreen: React.FC = () => {
@@ -49,25 +44,59 @@ const TitleScreen: React.FC = () => {
   const gameState = useStateMachine()
   const [isPaying, setIsPaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [regions, setRegions] = useState(REGIONS)
-  const [selectedRegion, setSelectedRegion] = useState('us-west')
+  const [servers, setServers] = useState<ServerWithStatus[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const setSelected = useServerStore((s) => s.setSelected)
 
   useEffect(() => {
-    const fakePing = (base: number) => base + Math.floor(Math.random() * 20)
-    const fakePlayers = (max: number) => Math.floor(Math.random() * max)
-    const timer = setTimeout(() => {
-      setRegions([
-        { id: 'us-west', label: 'US West', city: 'Oregon', ping: fakePing(18), players: fakePlayers(40) },
-        { id: 'us-east', label: 'US East', city: 'Virginia', ping: fakePing(42), players: fakePlayers(25) },
-        { id: 'eu-west', label: 'EU West', city: 'Amsterdam', ping: fakePing(110), players: fakePlayers(15) },
-        { id: 'ap-sea', label: 'Asia Pacific', city: 'Singapore', ping: fakePing(190), players: fakePlayers(8) },
-      ])
-    }, 1200)
-    return () => clearTimeout(timer)
-  }, [])
+    let cancelled = false
+
+    async function load() {
+      const res = await fetch('/servers.json')
+      const list: ServerEntry[] = await res.json()
+
+      const entries: ServerEntry[] = import.meta.env.DEV
+        ? [{ id: 'local', label: 'Local Dev', url: 'ws://localhost:3001' }, ...list]
+        : list
+
+      if (!cancelled) {
+        setServers(entries.map((e) => ({ ...e, ping: null, online: null })))
+      }
+
+      const results = await Promise.all(
+        entries.map(async (entry) => {
+          const status = await probeServer(entry.url)
+          return { ...entry, ...status }
+        })
+      )
+
+      if (!cancelled) {
+        setServers(results)
+        const first = results.find((r) => r.online)
+        if (first) {
+          setSelectedId(first.id)
+          setSelected(first.url, first.label)
+        }
+      }
+    }
+
+    load().catch(console.error)
+    return () => {
+      cancelled = true
+    }
+  }, [setSelected])
+
+  const handleSelect = useCallback(
+    (server: ServerWithStatus) => {
+      if (!server.online) return
+      setSelectedId(server.id)
+      setSelected(server.url, server.label)
+    },
+    [setSelected]
+  )
 
   const handlePlay = useCallback(async () => {
-    if (!wallet.connected || isPaying) return
+    if (!wallet.connected || isPaying || !selectedId) return
     setIsPaying(true)
     setError(null)
     try {
@@ -78,7 +107,7 @@ const TitleScreen: React.FC = () => {
     } finally {
       setIsPaying(false)
     }
-  }, [wallet, isPaying, gameState])
+  }, [wallet, isPaying, selectedId, gameState])
 
   return (
     <div className='fixed inset-0 overflow-hidden bg-black'>
@@ -158,45 +187,34 @@ const TitleScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Region picker */}
+        {/* Server picker */}
         <div className='flex flex-col items-center gap-2'>
           <p className='font-mono text-[9px] text-white/20 uppercase tracking-[0.5em] mb-1'>Select Server</p>
           <div className='flex gap-2 flex-wrap justify-center'>
-            {regions.map((r) => {
-              const full = r.players !== null && r.players >= MAX_CAPACITY
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => !full && setSelectedRegion(r.id)}
-                  disabled={full}
-                  className={`font-mono text-[9px] uppercase tracking-widest px-3 py-2 border transition-colors flex flex-col gap-1.5 text-left min-w-[120px] ${
-                    full
-                      ? 'border-white/5 text-white/15 cursor-not-allowed'
-                      : selectedRegion === r.id
-                      ? 'border-game-blue/60 text-game-blue bg-game-blue/10'
-                      : 'border-white/10 text-white/30 hover:border-white/25 hover:text-white/50'
-                  }`}
-                >
-                  <div className='flex items-center justify-between w-full gap-3'>
-                    <div className='flex items-center gap-1.5'>
-                      <PingDot ping={r.ping} />
-                      <span>{r.label}</span>
-                    </div>
-                    {full ? (
-                      <span className='text-red-400/60'>FULL</span>
-                    ) : r.ping !== null ? (
-                      <span className='text-white/20'>{r.ping}ms</span>
-                    ) : null}
-                  </div>
-                  <div className='flex items-center gap-2 w-full'>
-                    <CapacityBar players={r.players} />
-                    <span className='text-white/20 text-[8px]'>
-                      {r.players !== null ? `${r.players}/${MAX_CAPACITY}` : '...'}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
+            {servers.map((server) => (
+              <button
+                key={server.id}
+                onClick={() => handleSelect(server)}
+                disabled={server.online === false}
+                className={`font-mono text-[9px] uppercase tracking-widest px-3 py-2 border transition-colors flex items-center gap-2 min-w-[120px] ${
+                  server.online === false
+                    ? 'border-white/5 text-white/15 cursor-not-allowed'
+                    : selectedId === server.id
+                    ? 'border-game-blue/60 text-game-blue bg-game-blue/10'
+                    : 'border-white/10 text-white/30 hover:border-white/25 hover:text-white/50'
+                }`}
+              >
+                <PingDot online={server.online} ping={server.ping} />
+                <span className='flex-1 text-left'>{server.label}</span>
+                {server.online === false ? (
+                  <span className='text-red-400/60'>offline</span>
+                ) : server.ping !== null ? (
+                  <span className='opacity-40'>{server.ping}ms</span>
+                ) : (
+                  <span className='opacity-20'>...</span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -204,7 +222,7 @@ const TitleScreen: React.FC = () => {
         <div className='flex flex-col items-center gap-4'>
           {wallet.connected ? (
             <>
-              <QuarterButton onClick={handlePlay} disabled={isPaying}>
+              <QuarterButton onClick={handlePlay} disabled={isPaying || !selectedId}>
                 {isPaying ? 'Sending $0.25...' : 'Insert Quarter'}
               </QuarterButton>
               <p className='font-mono text-[10px] text-white/20 uppercase tracking-widest'>
