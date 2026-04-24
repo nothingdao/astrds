@@ -2,6 +2,7 @@ import type {
   AuthorizedSpaceTokenSpawn,
   AsteroidSnapshot,
   BulletSnapshot,
+  EmissionTier,
   GameSnapshot,
   InputState,
   PickupKind,
@@ -25,6 +26,11 @@ const TOKEN_SPAWN_DELAY_MS = 5000
 const SHIP_PICKUP_DELAY_MS = 20_000
 const SPACE_TOKEN_SPAWN_CHANCE = 0.25
 const STANDARD_TOKEN_COLOR = '#FF642D'
+const DEFAULT_EMISSION_TIER: EmissionTier = {
+  tier: 2,
+  pillsPerGame: 10,
+  astrdsPerPill: 5,
+}
 
 interface MutableShip extends ShipSnapshot {
   invulnerableUntil: number
@@ -68,6 +74,9 @@ export interface SimulationState {
   tokens: MutableTokenPickup[]
   shipPickups: MutablePickup[]
   spaceTokenPools: SpaceTokenPool[]
+  emissionTier: EmissionTier
+  pillsPerGameCap: number
+  pillsSpawned: number
   events: SimulationEvent[]
   powerups: {
     invincible: boolean
@@ -300,6 +309,9 @@ export function createInitialSimulationState(
     tokens: [],
     shipPickups: [],
     spaceTokenPools: [],
+    emissionTier: { ...DEFAULT_EMISSION_TIER },
+    pillsPerGameCap: DEFAULT_EMISSION_TIER.pillsPerGame,
+    pillsSpawned: 0,
     events: [],
     powerups: {
       invincible: false,
@@ -538,9 +550,10 @@ function maybeAdvanceLevel(state: SimulationState): void {
 }
 
 function maybeSpawnPickups(state: SimulationState, now: number): void {
-  if (now - state.lastPillSpawnAt >= PILL_SPAWN_DELAY_MS) {
+  if (state.pillsSpawned < state.pillsPerGameCap && now - state.lastPillSpawnAt >= PILL_SPAWN_DELAY_MS) {
     state.pills.push(createEdgePickup('pill', state.screen, '#4dc1f9', now))
     state.lastPillSpawnAt = now
+    state.pillsSpawned += 1
   }
 
   if (now - state.lastTokenSpawnAt >= TOKEN_SPAWN_DELAY_MS) {
@@ -621,6 +634,11 @@ export function drainSimulationEvents(state: SimulationState): SimulationEvent[]
 
 export function setSpaceTokenPools(state: SimulationState, pools: SpaceTokenPool[]): void {
   state.spaceTokenPools = pools.map((pool) => ({ ...pool }))
+}
+
+export function setEmissionTier(state: SimulationState, tier: EmissionTier): void {
+  state.emissionTier = { ...tier }
+  state.pillsPerGameCap = tier.pillsPerGame
 }
 
 export function injectAuthorizedSpaceToken(

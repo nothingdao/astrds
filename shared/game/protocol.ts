@@ -62,6 +62,12 @@ export interface PowerupSnapshot {
   expiresAt: number | null
 }
 
+export interface EmissionTier {
+  tier: 1 | 2 | 3 | 4 | 5
+  pillsPerGame: number
+  astrdsPerPill: number
+}
+
 export interface SpaceTokenPool {
   depositId: string
   mintAddress: string

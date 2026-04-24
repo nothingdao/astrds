@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws'
 import { GameSession } from '../game/GameSession.js'
+import { FALLBACK_EMISSION_TIER, fetchEmissionTier } from '../game/emissionTiers.js'
 import { ConvexServerClient } from '../convex/client.js'
 import type {
   AuthorizedSpaceTokenSpawn,
@@ -96,6 +97,17 @@ export class SessionHandler {
     switch (message.type) {
       case 'hello': {
         this.binding = { ...message.session }
+        void fetchEmissionTier()
+          .then((tier) => {
+            this.session.setEmissionTier(tier)
+          })
+          .catch((error) => {
+            console.error('Failed to fetch emission tier; falling back to tier 2', {
+              error,
+              sessionId: this.session.id,
+            })
+            this.session.setEmissionTier(FALLBACK_EMISSION_TIER)
+          })
         this.refreshSpaceTokenPools(this.session.level)
         const snapshot = this.session.resize(message.screen)
         this.send({ type: 'state', snapshot })

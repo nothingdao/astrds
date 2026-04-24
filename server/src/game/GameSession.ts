@@ -3,6 +3,7 @@ import {
   drainSimulationEvents,
   injectAuthorizedSpaceToken,
   resizeSimulation,
+  setEmissionTier,
   setSpaceTokenPools,
   simulationToSnapshot,
   updateSimulation,
@@ -10,6 +11,7 @@ import {
 } from '../../../shared/game/simulation.js'
 import type {
   AuthorizedSpaceTokenSpawn,
+  EmissionTier,
   GameSnapshot,
   InputState,
   ScreenBounds,
@@ -52,6 +54,10 @@ export class GameSession {
     setSpaceTokenPools(this.state, pools)
   }
 
+  setEmissionTier(tier: EmissionTier): void {
+    setEmissionTier(this.state, tier)
+  }
+
   spawnAuthorizedSpaceToken(spawn: AuthorizedSpaceTokenSpawn, now = Date.now()): void {
     injectAuthorizedSpaceToken(this.state, spawn, now)
   }
@@ -62,6 +68,7 @@ export class GameSession {
 
   reset(screen: ScreenBounds = this.state.screen): GameSnapshot {
     const nextState = createInitialSimulationState(this.id, screen)
+    setEmissionTier(nextState, this.state.emissionTier)
     setSpaceTokenPools(nextState, this.state.spaceTokenPools)
     this.state = nextState
     return this.snapshot()
