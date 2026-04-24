@@ -6,6 +6,7 @@ import type {
   PickupKind,
   PickupSnapshot,
   ScreenBounds,
+  SimulationEvent,
   ShipSnapshot,
   Vector2D,
 } from './protocol.js'
@@ -37,6 +38,13 @@ interface MutablePickup extends PickupSnapshot {
   expiresAt: number
 }
 
+interface MutableTokenPickup extends MutablePickup {
+  source: 'standard' | 'space'
+  spawnId?: string
+  depositId?: string
+  mintAddress?: string
+}
+
 export interface SimulationState {
   sessionId: string
   tick: number
@@ -53,8 +61,9 @@ export interface SimulationState {
   asteroids: MutableAsteroid[]
   bullets: MutableBullet[]
   pills: MutablePickup[]
-  tokens: MutablePickup[]
+  tokens: MutableTokenPickup[]
   shipPickups: MutablePickup[]
+  events: SimulationEvent[]
   powerups: {
     invincible: boolean
     rapidFire: boolean
@@ -219,6 +228,19 @@ function createEdgePickup(
   }
 }
 
+function createTokenPickup(
+  screen: ScreenBounds,
+  now: number,
+  source: 'standard' | 'space' = 'standard',
+  metadata?: Pick<MutableTokenPickup, 'spawnId' | 'depositId' | 'mintAddress'>
+): MutableTokenPickup {
+  return {
+    ...createEdgePickup('token', screen, '#FF642D', now),
+    source,
+    ...metadata,
+  }
+}
+
 function spawnAsteroids(screen: ScreenBounds, count: number, ship: MutableShip): MutableAsteroid[] {
   const asteroids: MutableAsteroid[] = []
   while (asteroids.length < count) {
@@ -258,6 +280,7 @@ export function createInitialSimulationState(
     pills: [],
     tokens: [],
     shipPickups: [],
+    events: [],
     powerups: {
       invincible: false,
       rapidFire: false,
@@ -356,6 +379,15 @@ function updatePickups(pickups: MutablePickup[], screen: ScreenBounds, dt: numbe
   })
 }
 
+function updateTokenPickups(
+  pickups: MutableTokenPickup[],
+  screen: ScreenBounds,
+  dt: number,
+  now: number
+): MutableTokenPickup[] {
+  return updatePickups(pickups, screen, dt, now) as MutableTokenPickup[]
+}
+
 function resolveBulletAsteroidCollisions(state: SimulationState): void {
   const nextBullets: MutableBullet[] = []
   const destroyedAsteroids = new Set<string>()
@@ -411,6 +443,26 @@ function resolveShipPickupCollision(
       return false
     }
     return true
+  })
+}
+
+function resolveShipTokenCollision(state: SimulationState): MutableTokenPickup[] {
+  if (!state.ship) return state.tokens
+
+  return state.tokens.filter((pickup) => {
+    if (!checkCollision(state.ship!, pickup)) {
+      return true
+    }
+
+    state.tokensCollected += 1
+    state.events.push({
+      type: 'tokenCollected',
+      source: pickup.source,
+      spawnId: pickup.spawnId,
+      depositId: pickup.depositId,
+      mintAddress: pickup.mintAddress,
+    })
+    return false
   })
 }
 
@@ -472,7 +524,7 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
   }
 
   if (now - state.lastTokenSpawnAt >= TOKEN_SPAWN_DELAY_MS) {
-    state.tokens.push(createEdgePickup('token', state.screen, '#FF642D', now))
+    state.tokens.push(createTokenPickup(state.screen, now))
     state.lastTokenSpawnAt = now
   }
 
@@ -489,12 +541,13 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
   if (state.status === 'gameOver') return
 
   state.tick += 1
+  state.events = []
   updatePowerups(state, now)
   updateShip(state, dt, now)
   updateAsteroids(state, dt)
   updateBullets(state, dt, now)
   state.pills = updatePickups(state.pills, state.screen, dt, now)
-  state.tokens = updatePickups(state.tokens, state.screen, dt, now)
+  state.tokens = updateTokenPickups(state.tokens, state.screen, dt, now)
   state.shipPickups = updatePickups(state.shipPickups, state.screen, dt, now)
 
   maybeShootBullet(state, now)
@@ -502,6 +555,7 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
 
   state.pills = resolveShipPickupCollision(state, state.pills, () => {
     state.pillsCollected += 1
+    state.events.push({ type: 'pillCollected' })
     state.powerups = {
       invincible: true,
       rapidFire: true,
@@ -509,12 +563,11 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
     }
   })
 
-  state.tokens = resolveShipPickupCollision(state, state.tokens, () => {
-    state.tokensCollected += 1
-  })
+  state.tokens = resolveShipTokenCollision(state)
 
   state.shipPickups = resolveShipPickupCollision(state, state.shipPickups, () => {
     state.lives = Math.min(MAX_LIVES, state.lives + 1)
+    state.events.push({ type: 'shipPickupCollected' })
   })
 
   handleShipAsteroidCollisions(state, now)
@@ -528,6 +581,12 @@ export function resizeSimulation(state: SimulationState, screen: ScreenBounds): 
     state.ship.position.x = Math.min(state.ship.position.x, screen.width)
     state.ship.position.y = Math.min(state.ship.position.y, screen.height)
   }
+}
+
+export function drainSimulationEvents(state: SimulationState): SimulationEvent[] {
+  const events = state.events
+  state.events = []
+  return events
 }
 
 export function simulationToSnapshot(state: SimulationState): GameSnapshot {

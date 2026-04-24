@@ -9,8 +9,10 @@ app/dist
 .vite-hooks
 .anchor
 target
-.netlify
-netlify
 app/public/raw
 .agents
 .claude
+.netlify
+netlify
+Cargo.lock
+app/convex/_generated

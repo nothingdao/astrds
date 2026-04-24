@@ -1,11 +1,17 @@
 import {
   createInitialSimulationState,
+  drainSimulationEvents,
   resizeSimulation,
   simulationToSnapshot,
   updateSimulation,
   type SimulationState,
 } from '../../../shared/game/simulation.js'
-import type { GameSnapshot, InputState, ScreenBounds } from '../../../shared/game/protocol.js'
+import type {
+  GameSnapshot,
+  InputState,
+  ScreenBounds,
+  SimulationEvent,
+} from '../../../shared/game/protocol.js'
 
 const DEFAULT_SCREEN: ScreenBounds = {
   width: 1280,
@@ -21,9 +27,12 @@ export class GameSession {
     this.state = createInitialSimulationState(id, screen)
   }
 
-  update(dt: number, now = Date.now()): GameSnapshot {
+  update(dt: number, now = Date.now()): { snapshot: GameSnapshot; events: SimulationEvent[] } {
     updateSimulation(this.state, dt, now)
-    return simulationToSnapshot(this.state)
+    return {
+      snapshot: simulationToSnapshot(this.state),
+      events: drainSimulationEvents(this.state),
+    }
   }
 
   resize(screen: ScreenBounds): GameSnapshot {

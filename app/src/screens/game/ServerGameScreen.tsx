@@ -65,7 +65,15 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
 
     socket.addEventListener('open', () => {
       setConnectionState('open')
-      send({ type: 'hello', screen: screenRef.current })
+      const { currentSessionId, walletAddress } = useGameData.getState()
+      send({
+        type: 'hello',
+        screen: screenRef.current,
+        session: {
+          gameSessionId: currentSessionId,
+          walletAddress,
+        },
+      })
     })
 
     socket.addEventListener('message', (event) => {

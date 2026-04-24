@@ -8,6 +8,7 @@ export const create = mutation({
       walletAddress,
       score: 0,
       levelReached: 1,
+      pillsCollected: 0,
       sessionStart: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       status: 'active',
@@ -20,6 +21,7 @@ export const update = mutation({
     sessionId: v.id('gameSessions'),
     score: v.optional(v.number()),
     levelReached: v.optional(v.number()),
+    pillsCollected: v.optional(v.number()),
     status: v.optional(
       v.union(v.literal('active'), v.literal('ending'), v.literal('ended'))
     ),
@@ -31,12 +33,32 @@ export const update = mutation({
     const updates: Record<string, unknown> = { lastUpdated: new Date().toISOString() }
     if (fields.score !== undefined) updates.score = fields.score
     if (fields.levelReached !== undefined) updates.levelReached = fields.levelReached
+    if (fields.pillsCollected !== undefined) updates.pillsCollected = fields.pillsCollected
     if (fields.status !== undefined) {
       updates.status = fields.status
       if (fields.status === 'ended') updates.sessionEnd = new Date().toISOString()
     }
 
     await ctx.db.patch(sessionId, updates)
+    return await ctx.db.get(sessionId)
+  },
+})
+
+export const incrementPillsCollected = mutation({
+  args: {
+    sessionId: v.id('gameSessions'),
+    amount: v.optional(v.number()),
+  },
+  handler: async (ctx, { sessionId, amount }) => {
+    const session = await ctx.db.get(sessionId)
+    if (!session) throw new Error('Session not found')
+
+    const nextAmount = Math.max(0, amount ?? 1)
+    await ctx.db.patch(sessionId, {
+      pillsCollected: session.pillsCollected + nextAmount,
+      lastUpdated: new Date().toISOString(),
+    })
+
     return await ctx.db.get(sessionId)
   },
 })

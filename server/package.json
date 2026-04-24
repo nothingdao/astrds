@@ -9,6 +9,7 @@
     "start": "node dist/server/src/index.js"
   },
   "dependencies": {
+    "convex": "^1.28.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

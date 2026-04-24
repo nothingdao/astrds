@@ -81,8 +81,24 @@ export interface GameSnapshot {
   powerups: PowerupSnapshot
 }
 
+export interface SessionBinding {
+  walletAddress?: string | null
+  gameSessionId?: string | null
+}
+
+export type SimulationEvent =
+  | { type: 'pillCollected' }
+  | { type: 'shipPickupCollected' }
+  | {
+      type: 'tokenCollected'
+      source: 'standard' | 'space'
+      spawnId?: string
+      depositId?: string
+      mintAddress?: string
+    }
+
 export type ClientToServerMessage =
-  | { type: 'hello'; screen: ScreenBounds }
+  | { type: 'hello'; screen: ScreenBounds; session?: SessionBinding }
   | { type: 'resize'; screen: ScreenBounds }
   | { type: 'input'; input: Partial<InputState> }
   | { type: 'pause' }
