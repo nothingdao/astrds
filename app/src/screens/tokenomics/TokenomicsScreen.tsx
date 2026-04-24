@@ -6,7 +6,6 @@ import { connection } from '@/lib/solana'
 import { fetchVaultConfig } from '@/lib/spaceVault'
 import {
   ASTRDS_MINT,
-  BURNED_ASTRDS_STUB,
   fetchMeteoraPoolSnapshot,
   getEmissionTier,
   METEORA_DAMM_POOL,
@@ -23,14 +22,17 @@ import {
   Zap,
   ArrowRightLeft,
   BarChart3,
-  Flame,
   Pill,
   Waves,
   Joystick,
+  Server,
+  Users,
+  Database,
 } from 'lucide-react'
 
 const MINT = ASTRDS_MINT
-const TREASURY = new PublicKey('CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF')
+const TREASURY = 'CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF'
+const VAULT_PROGRAM = '4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB'
 const EXPLORER = (addr: string) => `https://orbmarkets.io/address/${addr}?cluster=devnet`
 
 type Tab = 'astrds' | 'economy'
@@ -39,21 +41,20 @@ type Tab = 'astrds' | 'economy'
 
 const AstrdsTab: React.FC = () => {
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ totalSupply: 0, holders: 0, treasurySol: 0 })
+  const [stats, setStats] = useState({ totalSupply: 0, treasurySol: 0 })
   const [weights, setWeights] = useState({ op: 50, operator: 30, buyback: 20 })
+  const totalGamesPlayed = useQuery(api.gameSessions.getTotalGamesPlayed)
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       try {
-        const [supply, accounts, sol, config] = await Promise.all([
+        const [supply, sol, config] = await Promise.all([
           connection.getTokenSupply(MINT),
-          connection.getTokenLargestAccounts(MINT),
-          connection.getBalance(TREASURY),
+          connection.getBalance(new PublicKey(TREASURY)),
           fetchVaultConfig(connection).catch(() => null),
         ])
         setStats({
           totalSupply: supply.value.uiAmount || 0,
-          holders: accounts.value.length,
           treasurySol: sol / 1e9,
         })
         if (config) {
@@ -69,16 +70,34 @@ const AstrdsTab: React.FC = () => {
         setLoading(false)
       }
     }
-    fetch()
+    load()
   }, [])
 
   return (
     <div className='space-y-5'>
       <div className='grid grid-cols-3 gap-3'>
         {[
-          { icon: Coins, label: 'Total Supply', value: loading ? '...' : stats.totalSupply.toLocaleString(), sub: '$ASTRDS minted', link: EXPLORER(MINT.toString()) },
-          { icon: Wallet, label: 'Holders', value: loading ? '...' : stats.holders.toLocaleString(), sub: 'unique wallets', link: null },
-          { icon: ArrowRightLeft, label: 'Treasury', value: loading ? '...' : `${stats.treasurySol.toFixed(3)} SOL`, sub: 'vault balance', link: EXPLORER(TREASURY.toString()) },
+          {
+            icon: Coins,
+            label: 'Total Supply',
+            value: loading ? '...' : stats.totalSupply.toLocaleString(),
+            sub: `of ${TOTAL_ASTRDS_SUPPLY_CAP.toLocaleString()} hard cap`,
+            link: EXPLORER(MINT.toString()),
+          },
+          {
+            icon: Joystick,
+            label: 'Games Played',
+            value: totalGamesPlayed === undefined ? '...' : totalGamesPlayed.toLocaleString(),
+            sub: `of ${TOTAL_GAMES_CAP.toLocaleString()} emission slots`,
+            link: null,
+          },
+          {
+            icon: Wallet,
+            label: 'Treasury',
+            value: loading ? '...' : `${stats.treasurySol.toFixed(3)} SOL`,
+            sub: 'vault balance',
+            link: EXPLORER(TREASURY),
+          },
         ].map(({ icon: Icon, label, value, sub, link }) => (
           <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
             <div className='flex items-center justify-between mb-3'>
@@ -102,9 +121,18 @@ const AstrdsTab: React.FC = () => {
             <Zap size={13} /> How $ASTRDS Works
           </h3>
           <div className='space-y-3 font-mono text-xs text-white/50'>
-            <div className='flex gap-3'><span className='text-game-blue/60 shrink-0'>01</span><span>Pay ~$0.25 in SOL to insert a quarter and start a game</span></div>
-            <div className='flex gap-3'><span className='text-game-blue/60 shrink-0'>02</span><span>Collect $ASTRDS tokens floating in the asteroid field during gameplay</span></div>
-            <div className='flex gap-3'><span className='text-game-blue/60 shrink-0'>03</span><span>On game over, collected tokens are minted to your wallet — 1 collected = 1 $ASTRDS. No pre-mine. No team allocation. 100% earned through play.</span></div>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>01</span>
+              <span>Pay ~$0.25 in SOL to insert a quarter and start a game</span>
+            </div>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>02</span>
+              <span>Collect $ASTRDS pills floating in the asteroid field during gameplay</span>
+            </div>
+            <div className='flex gap-3'>
+              <span className='text-game-blue/60 shrink-0'>03</span>
+              <span>At game over, collected pills are minted to your wallet at the current emission rate — determined by the live $ASTRDS price in the Meteora pool. No pre-mine. No team allocation. 100% earned through play.</span>
+            </div>
           </div>
         </div>
 
@@ -132,20 +160,31 @@ const AstrdsTab: React.FC = () => {
           </p>
         </div>
 
-        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
+        <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4 md:col-span-2'>
           <h3 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
             <Shield size={13} /> On-Chain Vault
           </h3>
-          <p className='font-mono text-xs text-white/50'>Your tokens never pass through our hands. Every deposit, claim, and payment settles directly on Solana — verifiable by anyone.</p>
-          <div className='space-y-1.5 font-mono text-[10px]'>
-            <div>
-              <div className='text-white/25 mb-0.5'>$ASTRDS Mint</div>
-              <a href={EXPLORER(MINT.toString())} target='_blank' rel='noopener noreferrer' className='text-game-blue/60 hover:text-game-blue transition-colors break-all'>{MINT.toString()}</a>
-            </div>
-            <div>
-              <div className='text-white/25 mb-0.5'>Vault Program</div>
-              <a href={EXPLORER('4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB')} target='_blank' rel='noopener noreferrer' className='text-game-blue/60 hover:text-game-blue transition-colors break-all'>4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB</a>
-            </div>
+          <p className='font-mono text-xs text-white/50'>
+            Your tokens never pass through our hands. Every deposit, claim, and payment settles directly on Solana — verifiable by anyone.
+          </p>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-[10px]'>
+            {[
+              { label: '$ASTRDS Mint', addr: MINT.toString() },
+              { label: 'Vault Program', addr: VAULT_PROGRAM },
+              { label: 'Treasury', addr: TREASURY },
+            ].map(({ label, addr }) => (
+              <div key={label}>
+                <div className='text-white/25 mb-0.5'>{label}</div>
+                <a
+                  href={EXPLORER(addr)}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-game-blue/60 hover:text-game-blue transition-colors break-all'
+                >
+                  {addr}
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -161,20 +200,15 @@ interface EconomyLiveData {
   pool: MeteoraPoolSnapshot
   tier: EmissionTier
   circulatingSupply: number
-  totalBurned: number
 }
 
-const useEconomyLiveData = (): {
-  data: EconomyLiveData | null
-  loading: boolean
-  error: string | null
-} => {
+const useEconomyLiveData = () => {
   const [data, setData] = useState<EconomyLiveData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       try {
         setLoading(true)
         setError(null)
@@ -186,7 +220,6 @@ const useEconomyLiveData = (): {
           pool,
           tier: getEmissionTier(pool.priceUsdPerAstrds),
           circulatingSupply: supply.value.uiAmount ?? 0,
-          totalBurned: BURNED_ASTRDS_STUB,
         })
       } catch {
         setError('Unable to read live pool state')
@@ -194,7 +227,7 @@ const useEconomyLiveData = (): {
         setLoading(false)
       }
     }
-    fetch()
+    load()
   }, [])
 
   return { data, loading, error }
@@ -203,43 +236,56 @@ const useEconomyLiveData = (): {
 const EconomyTab: React.FC = () => {
   const { data, loading, error } = useEconomyLiveData()
   const totalGamesPlayed = useQuery(api.gameSessions.getTotalGamesPlayed)
+  const economyStats = useQuery(api.spaceDeposits.getEconomyStats)
 
-  const economyCards = [
+  const cards = [
     {
       icon: Coins,
       label: 'Derived Price',
       value: loading || !data ? '...' : `$${data.pool.priceUsdPerAstrds.toFixed(4)}`,
-      sub: loading || !data ? 'reading Meteora DAMM v2' : `${data.pool.priceSolPerAstrds.toFixed(8)} SOL per ASTRDS`,
+      sub: loading || !data ? 'reading Meteora DAMM v2' : `${data.pool.priceSolPerAstrds.toFixed(8)} SOL`,
     },
     {
       icon: Pill,
       label: 'Emission Tier',
       value: loading || !data ? '...' : `${data.tier.tier} of 5`,
-      sub: loading || !data ? 'loading bands' : `${data.tier.pillsPerGame} pills / ${data.tier.astrdsPerPill} ASTRDS`,
+      sub: loading || !data ? 'loading bands' : `${data.tier.pillsPerGame} pills · ${data.tier.astrdsPerPill} ASTRDS each`,
     },
     {
       icon: Waves,
       label: 'Pool SOL Depth',
-      value: loading || !data ? '...' : `${data.pool.solReserve.toFixed(6)} SOL`,
-      sub: loading || !data ? 'reading reserve vaults' : `${data.pool.astrdsReserve.toLocaleString(undefined, { maximumFractionDigits: 2 })} ASTRDS paired`,
-    },
-    {
-      icon: Joystick,
-      label: 'Games Played',
-      value: totalGamesPlayed === undefined ? '...' : totalGamesPlayed.toLocaleString(),
-      sub: `${TOTAL_GAMES_CAP.toLocaleString()} total emission slots`,
+      value: loading || !data ? '...' : `${data.pool.solReserve.toFixed(4)} SOL`,
+      sub: loading || !data ? 'reading reserve' : `${data.pool.astrdsReserve.toLocaleString(undefined, { maximumFractionDigits: 0 })} ASTRDS paired`,
     },
     {
       icon: Coins,
       label: 'Circulating Supply',
       value: loading || !data ? '...' : data.circulatingSupply.toLocaleString(undefined, { maximumFractionDigits: 0 }),
-      sub: `${TOTAL_ASTRDS_SUPPLY_CAP.toLocaleString()} hard cap`,
+      sub: `of ${TOTAL_ASTRDS_SUPPLY_CAP.toLocaleString()} hard cap`,
     },
     {
-      icon: Flame,
-      label: 'Total Burned',
-      value: loading || !data ? '...' : data.totalBurned.toLocaleString(),
-      sub: 'stubbed to 0 until burn tracking lands',
+      icon: Joystick,
+      label: 'Games Played',
+      value: totalGamesPlayed === undefined ? '...' : totalGamesPlayed.toLocaleString(),
+      sub: totalGamesPlayed === undefined ? '' : `${((totalGamesPlayed / TOTAL_GAMES_CAP) * 100).toFixed(2)}% of emission schedule`,
+    },
+    {
+      icon: Database,
+      label: 'Active Token Pools',
+      value: economyStats === undefined ? '...' : economyStats.activePools.toLocaleString(),
+      sub: economyStats === undefined ? '' : `${economyStats.uniqueMints} token${economyStats.uniqueMints !== 1 ? 's' : ''} · ${economyStats.totalClaims} claims`,
+    },
+    {
+      icon: Users,
+      label: 'Unique Claimers',
+      value: economyStats === undefined ? '...' : economyStats.uniqueClaimers.toLocaleString(),
+      sub: 'wallets that have claimed space tokens',
+    },
+    {
+      icon: Server,
+      label: 'Emission Model',
+      value: 'Server',
+      sub: 'authoritative · enforced on-chain',
     },
   ]
 
@@ -247,10 +293,10 @@ const EconomyTab: React.FC = () => {
     <div className='space-y-5'>
       <div>
         <div className='font-mono text-[10px] text-white/25 uppercase tracking-widest mb-3'>Live Economy</div>
-        <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
-          {economyCards.map(({ icon: Icon, label, value, sub }) => (
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+          {cards.map(({ icon: Icon, label, value, sub }) => (
             <div key={label} className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
-              <div className='flex items-center justify-between mb-3'>
+              <div className='mb-3'>
                 <Icon size={14} className='text-game-blue/60' />
               </div>
               <div className='font-mono text-lg text-white'>{value}</div>
@@ -266,11 +312,11 @@ const EconomyTab: React.FC = () => {
         <div className='bg-neutral-800 border border-white/10 rounded-lg p-5 space-y-4'>
           <div className='flex items-start justify-between gap-4'>
             <div>
-              <div className='font-mono text-xs text-white/70'>Current game payout band</div>
+              <div className='font-mono text-xs text-white/70'>How emission rate is determined</div>
               <div className='font-mono text-[10px] text-white/25 mt-1'>
                 {loading || !data
                   ? 'Reading price band from the live devnet pool.'
-                  : `Tier ${data.tier.tier}: ${data.tier.pillsPerGame} pills per game at ${data.tier.astrdsPerPill} ASTRDS per pill.`}
+                  : `Tier ${data.tier.tier}: ${data.tier.pillsPerGame} pills per game at ${data.tier.astrdsPerPill} ASTRDS per pill. As $ASTRDS price rises, fewer tokens mint per game.`}
               </div>
             </div>
             {data && (
@@ -285,39 +331,24 @@ const EconomyTab: React.FC = () => {
             )}
           </div>
 
-          <div className='grid grid-cols-2 gap-3'>
-            <div className='border border-white/5 rounded-lg p-3'>
-              <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>Pool Address</div>
-              <div className='font-mono text-[10px] text-game-blue/60 break-all mt-1'>
-                {data?.pool.poolAddress ?? METEORA_DAMM_POOL.toBase58()}
-              </div>
-            </div>
-            <div className='border border-white/5 rounded-lg p-3'>
-              <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>Progress</div>
-              <div className='font-mono text-[10px] text-white/60 mt-1'>
-                {totalGamesPlayed === undefined
-                  ? '...'
-                  : `${((totalGamesPlayed / TOTAL_GAMES_CAP) * 100).toFixed(2)}% of the 420,000-game schedule`}
-              </div>
-            </div>
-          </div>
-
           {[
-            { label: 'Pool Pair', value: 'ASTRDS / SOL (devnet)' },
+            { label: 'Price source', value: loading || !data ? '...' : `Meteora DAMM v2 reserve ratio` },
             {
-              label: 'Price Source',
-              value: loading || !data
-                ? 'Reading Meteora vault balances'
-                : `${data.pool.astrdsReserve.toLocaleString(undefined, { maximumFractionDigits: 2 })} ASTRDS vs ${data.pool.solReserve.toFixed(6)} SOL`,
+              label: 'Rate enforcement',
+              value: 'Game server reads pool at session start, enforces pill cap for the session',
             },
             {
-              label: 'Tier Basis',
+              label: 'SOL/USD conversion',
               value: loading || !data
-                ? 'Waiting for SOL/USD conversion'
-                : `$${data.pool.priceUsdPerAstrds.toFixed(4)} using SOL/USD ${data.pool.solUsdPrice.toFixed(2)}`,
+                ? '...'
+                : `$${data.pool.solUsdPrice.toFixed(2)} (Jupiter, 60s cache)`,
+            },
+            {
+              label: 'Pool address',
+              value: data?.pool.poolAddress ?? METEORA_DAMM_POOL.toBase58(),
             },
           ].map(({ label, value }) => (
-            <div key={label} className='flex items-start justify-between gap-4'>
+            <div key={label} className='flex items-start justify-between gap-4 border-t border-white/5 pt-3'>
               <span className='font-mono text-[10px] text-white/30 shrink-0'>{label}</span>
               <span className='font-mono text-[10px] text-white/55 break-all text-right'>{value}</span>
             </div>
