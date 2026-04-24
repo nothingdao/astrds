@@ -20,7 +20,7 @@ export default defineSchema({
     walletAddress: v.string(),
     score: v.number(),
     levelReached: v.number(),
-    pillsCollected: v.number(),
+    pillsCollected: v.optional(v.number()),
     sessionStart: v.string(),
     lastUpdated: v.string(),
     sessionEnd: v.optional(v.string()),

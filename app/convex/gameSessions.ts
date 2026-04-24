@@ -55,7 +55,7 @@ export const incrementPillsCollected = mutation({
 
     const nextAmount = Math.max(0, amount ?? 1)
     await ctx.db.patch(sessionId, {
-      pillsCollected: session.pillsCollected + nextAmount,
+      pillsCollected: (session.pillsCollected ?? 0) + nextAmount,
       lastUpdated: new Date().toISOString(),
     })
 
