@@ -8,6 +8,7 @@ import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
 import { ASTRDS_COLOR } from '@/lib/tokenColors'
 import { ShipIcon, PillIcon } from '@/components/icons/GameIcons'
 import { Shield, Zap } from 'lucide-react'
+import { useServerStore } from '@/stores/serverStore'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
@@ -23,6 +24,7 @@ export const GameHUD: React.FC = () => {
   const powerups = usePowerupStore((state) => state.powerups)
   const powerupExpiresAt = usePowerupStore((state) => state.powerupExpiresAt)
   const spaceCollected = useSpaceTokenStore((s) => s.collectedThisSession)
+  const selectedLabel = useServerStore((s) => s.selectedLabel)
   const [powerupProgress, setPowerupProgress] = useState(0)
   const wallet = useWallet()
   const walletAddress = wallet.publicKey?.toString() ?? ''
@@ -64,12 +66,17 @@ export const GameHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* Level + audio widget */}
+        {/* Level + server + audio widget */}
         <div className='flex flex-col items-center gap-1'>
           <div className='text-center'>
             <div className='font-mono text-lg leading-none text-game-blue'>{level}</div>
             <div className='font-mono text-xs text-white/30 mt-0.5'>LEVEL</div>
           </div>
+          {selectedLabel && (
+            <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>
+              {selectedLabel}
+            </div>
+          )}
           <AudioWidget compact />
         </div>
 
