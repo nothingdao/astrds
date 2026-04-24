@@ -62,6 +62,22 @@ export interface PowerupSnapshot {
   expiresAt: number | null
 }
 
+export interface SpaceTokenPool {
+  depositId: string
+  mintAddress: string
+  symbol: string
+  remainingAmount: number
+  tokensPerPill: number
+  color: string
+}
+
+export interface AuthorizedSpaceTokenSpawn {
+  depositId: string
+  mintAddress: string
+  spawnId: string
+  color: string
+}
+
 export interface GameSnapshot {
   sessionId: string
   tick: number
@@ -89,6 +105,10 @@ export interface SessionBinding {
 export type SimulationEvent =
   | { type: 'pillCollected' }
   | { type: 'shipPickupCollected' }
+  | {
+      type: 'spaceTokenSpawnRequested'
+      pool: SpaceTokenPool
+    }
   | {
       type: 'tokenCollected'
       source: 'standard' | 'space'

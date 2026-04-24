@@ -2,15 +2,18 @@ import { WebSocket } from 'ws'
 import { GameSession } from '../game/GameSession.js'
 import { ConvexServerClient } from '../convex/client.js'
 import type {
+  AuthorizedSpaceTokenSpawn,
   ClientToServerMessage,
   GameSnapshot,
   SessionBinding,
   SimulationEvent,
+  SpaceTokenPool,
   ServerToClientMessage,
 } from '../../../shared/game/protocol.js'
 
 const TICK_RATE = 30
 const FRAME_MS = 1000 / TICK_RATE
+const POOL_REFRESH_MS = 10_000
 
 export class SessionHandler {
   private readonly socket: WebSocket
@@ -20,6 +23,10 @@ export class SessionHandler {
   private lastTickAt = Date.now()
   private binding: SessionBinding = {}
   private didSubmitGameOver = false
+  private activeSpaceTokenPools: SpaceTokenPool[] = []
+  private lastPoolRefreshAt = 0
+  private lastPoolLevel = 1
+  private refreshingPools: Promise<void> | null = null
 
   constructor(socket: WebSocket, sessionId: string) {
     this.socket = socket
@@ -35,8 +42,9 @@ export class SessionHandler {
       const dt = Math.min((now - this.lastTickAt) / (1000 / 60), 2)
       this.lastTickAt = now
       const { snapshot, events } = this.session.update(dt, now)
-      this.handleSimulationEvents(events)
+      this.handleSimulationEvents(events, now)
       this.maybeSubmitGameOver(snapshot)
+      this.maybeRefreshSpaceTokenPools(now, snapshot.level)
       this.send({
         type: snapshot.status === 'gameOver' ? 'gameOver' : 'state',
         snapshot,
@@ -66,8 +74,9 @@ export class SessionHandler {
       const dt = Math.min((now - this.lastTickAt) / (1000 / 60), 2)
       this.lastTickAt = now
       const { snapshot, events } = this.session.update(dt, now)
-      this.handleSimulationEvents(events)
+      this.handleSimulationEvents(events, now)
       this.maybeSubmitGameOver(snapshot)
+      this.maybeRefreshSpaceTokenPools(now, snapshot.level)
       this.send({
         type: snapshot.status === 'gameOver' ? 'gameOver' : 'state',
         snapshot,
@@ -87,6 +96,7 @@ export class SessionHandler {
     switch (message.type) {
       case 'hello': {
         this.binding = { ...message.session }
+        this.refreshSpaceTokenPools(this.session.level)
         const snapshot = this.session.resize(message.screen)
         this.send({ type: 'state', snapshot })
         return
@@ -108,6 +118,8 @@ export class SessionHandler {
       case 'reset': {
         this.didSubmitGameOver = false
         const snapshot = this.session.reset()
+        this.session.setSpaceTokenPools(this.activeSpaceTokenPools)
+        this.refreshSpaceTokenPools(this.session.level)
         this.send({ type: 'state', snapshot })
         return
       }
@@ -124,10 +136,15 @@ export class SessionHandler {
     this.socket.send(JSON.stringify(message))
   }
 
-  private handleSimulationEvents(events: SimulationEvent[]): void {
+  private handleSimulationEvents(events: SimulationEvent[], now: number): void {
     for (const event of events) {
       if (event.type === 'pillCollected') {
         this.incrementPillsCollected()
+        continue
+      }
+
+      if (event.type === 'spaceTokenSpawnRequested') {
+        this.requestSpaceTokenSpawn(event.pool, now)
         continue
       }
 
@@ -153,6 +170,65 @@ export class SessionHandler {
         continue
       }
     }
+  }
+
+  private maybeRefreshSpaceTokenPools(now: number, level: number): void {
+    if (this.refreshingPools) return
+    if (level !== this.lastPoolLevel || now - this.lastPoolRefreshAt >= POOL_REFRESH_MS) {
+      this.refreshSpaceTokenPools(level)
+    }
+  }
+
+  private refreshSpaceTokenPools(level: number): void {
+    this.lastPoolLevel = level
+    this.refreshingPools = this.convex
+      .getActivePoolsForLevel({ level })
+      .then((pools) => {
+        this.activeSpaceTokenPools = pools
+        this.session.setSpaceTokenPools(pools)
+        this.lastPoolRefreshAt = Date.now()
+      })
+      .catch((error) => {
+        console.error('Failed to refresh active space-token pools', {
+          error,
+          sessionId: this.session.id,
+          level,
+        })
+      })
+      .finally(() => {
+        this.refreshingPools = null
+      })
+  }
+
+  private requestSpaceTokenSpawn(pool: SpaceTokenPool, now: number): void {
+    const { walletAddress, gameSessionId } = this.binding
+    if (!walletAddress || !gameSessionId) return
+
+    void this.convex
+      .requestSpawnTicket({
+        depositId: pool.depositId,
+        playerWalletAddress: walletAddress,
+        gameSessionId,
+      })
+      .then(({ spawnId }) => {
+        if (!spawnId) return
+
+        const spawn: AuthorizedSpaceTokenSpawn = {
+          depositId: pool.depositId,
+          mintAddress: pool.mintAddress,
+          spawnId,
+          color: pool.color,
+        }
+        this.session.spawnAuthorizedSpaceToken(spawn, now)
+      })
+      .catch((error) => {
+        console.error('Failed to request spawn ticket for space token', {
+          error,
+          sessionId: this.session.id,
+          convexSessionId: gameSessionId,
+          depositId: pool.depositId,
+        })
+      })
   }
 
   private incrementPillsCollected(): void {

@@ -1,4 +1,5 @@
 import type {
+  AuthorizedSpaceTokenSpawn,
   AsteroidSnapshot,
   BulletSnapshot,
   GameSnapshot,
@@ -7,6 +8,7 @@ import type {
   PickupSnapshot,
   ScreenBounds,
   SimulationEvent,
+  SpaceTokenPool,
   ShipSnapshot,
   Vector2D,
 } from './protocol.js'
@@ -21,6 +23,8 @@ const MAX_LIVES = 5
 const PILL_SPAWN_DELAY_MS = 3000
 const TOKEN_SPAWN_DELAY_MS = 5000
 const SHIP_PICKUP_DELAY_MS = 20_000
+const SPACE_TOKEN_SPAWN_CHANCE = 0.25
+const STANDARD_TOKEN_COLOR = '#FF642D'
 
 interface MutableShip extends ShipSnapshot {
   invulnerableUntil: number
@@ -63,6 +67,7 @@ export interface SimulationState {
   pills: MutablePickup[]
   tokens: MutableTokenPickup[]
   shipPickups: MutablePickup[]
+  spaceTokenPools: SpaceTokenPool[]
   events: SimulationEvent[]
   powerups: {
     invincible: boolean
@@ -231,14 +236,28 @@ function createEdgePickup(
 function createTokenPickup(
   screen: ScreenBounds,
   now: number,
+  color = STANDARD_TOKEN_COLOR,
   source: 'standard' | 'space' = 'standard',
   metadata?: Pick<MutableTokenPickup, 'spawnId' | 'depositId' | 'mintAddress'>
 ): MutableTokenPickup {
   return {
-    ...createEdgePickup('token', screen, '#FF642D', now),
+    ...createEdgePickup('token', screen, color, now),
     source,
     ...metadata,
   }
+}
+
+function chooseWeightedPool(pools: SpaceTokenPool[]): SpaceTokenPool | null {
+  const totalWeight = pools.reduce((sum, pool) => sum + Math.max(0, pool.remainingAmount), 0)
+  if (totalWeight <= 0) return null
+
+  let roll = Math.random() * totalWeight
+  for (const pool of pools) {
+    roll -= Math.max(0, pool.remainingAmount)
+    if (roll <= 0) return pool
+  }
+
+  return pools[pools.length - 1] ?? null
 }
 
 function spawnAsteroids(screen: ScreenBounds, count: number, ship: MutableShip): MutableAsteroid[] {
@@ -280,6 +299,7 @@ export function createInitialSimulationState(
     pills: [],
     tokens: [],
     shipPickups: [],
+    spaceTokenPools: [],
     events: [],
     powerups: {
       invincible: false,
@@ -524,7 +544,17 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
   }
 
   if (now - state.lastTokenSpawnAt >= TOKEN_SPAWN_DELAY_MS) {
-    state.tokens.push(createTokenPickup(state.screen, now))
+    const pool = chooseWeightedPool(state.spaceTokenPools)
+    const shouldRequestSpaceToken = Boolean(pool) && Math.random() < SPACE_TOKEN_SPAWN_CHANCE
+
+    if (pool && shouldRequestSpaceToken) {
+      state.events.push({
+        type: 'spaceTokenSpawnRequested',
+        pool,
+      })
+    } else {
+      state.tokens.push(createTokenPickup(state.screen, now))
+    }
     state.lastTokenSpawnAt = now
   }
 
@@ -587,6 +617,24 @@ export function drainSimulationEvents(state: SimulationState): SimulationEvent[]
   const events = state.events
   state.events = []
   return events
+}
+
+export function setSpaceTokenPools(state: SimulationState, pools: SpaceTokenPool[]): void {
+  state.spaceTokenPools = pools.map((pool) => ({ ...pool }))
+}
+
+export function injectAuthorizedSpaceToken(
+  state: SimulationState,
+  spawn: AuthorizedSpaceTokenSpawn,
+  now = Date.now()
+): void {
+  state.tokens.push(
+    createTokenPickup(state.screen, now, spawn.color, 'space', {
+      spawnId: spawn.spawnId,
+      depositId: spawn.depositId,
+      mintAddress: spawn.mintAddress,
+    })
+  )
 }
 
 export function simulationToSnapshot(state: SimulationState): GameSnapshot {

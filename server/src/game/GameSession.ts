@@ -1,16 +1,20 @@
 import {
   createInitialSimulationState,
   drainSimulationEvents,
+  injectAuthorizedSpaceToken,
   resizeSimulation,
+  setSpaceTokenPools,
   simulationToSnapshot,
   updateSimulation,
   type SimulationState,
 } from '../../../shared/game/simulation.js'
 import type {
+  AuthorizedSpaceTokenSpawn,
   GameSnapshot,
   InputState,
   ScreenBounds,
   SimulationEvent,
+  SpaceTokenPool,
 } from '../../../shared/game/protocol.js'
 
 const DEFAULT_SCREEN: ScreenBounds = {
@@ -44,8 +48,22 @@ export class GameSession {
     this.state.input = { ...this.state.input, ...input }
   }
 
+  setSpaceTokenPools(pools: SpaceTokenPool[]): void {
+    setSpaceTokenPools(this.state, pools)
+  }
+
+  spawnAuthorizedSpaceToken(spawn: AuthorizedSpaceTokenSpawn, now = Date.now()): void {
+    injectAuthorizedSpaceToken(this.state, spawn, now)
+  }
+
+  get level(): number {
+    return this.state.level
+  }
+
   reset(screen: ScreenBounds = this.state.screen): GameSnapshot {
-    this.state = createInitialSimulationState(this.id, screen)
+    const nextState = createInitialSimulationState(this.id, screen)
+    setSpaceTokenPools(nextState, this.state.spaceTokenPools)
+    this.state = nextState
     return this.snapshot()
   }
 
