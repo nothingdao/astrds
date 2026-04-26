@@ -273,3 +273,11 @@ Placeholder: operational/buyback/LP. Additional slices possible. On-chain weight
 - Death spiral protection — is the floor tier (5 pills, 10 ASTRDS/pill) enough in a prolonged bear market
 - Game server architecture and Railway cost estimates
 - Whether DAMM v2 locked-liquidity mode is functionally equivalent to burning LP tokens (verify before committing to the narrative)
+
+## 💰 Bounty Contribution
+
+- **Task:** Economy: harden emission model and migrate economic state on-chain
+- **Reward:** $105000
+- **Source:** GitHub-Paid
+- **Date:** 2026-04-27
+
