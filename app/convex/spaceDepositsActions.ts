@@ -20,8 +20,6 @@ import {
 } from '@solana/spl-token'
 import nacl from 'tweetnacl'
 
-const TREASURY_WALLET = 'CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF'
-
 const loadAuthority = (): Keypair => {
   const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY
   if (!raw) throw new Error('PROGRAM_AUTHORITY_PRIVATE_KEY not set')
@@ -34,63 +32,10 @@ const getConnection = (): Connection => {
   return new Connection(rpcEndpoint, 'confirmed')
 }
 
-// Poll until tx is confirmed, up to maxAttempts × 2s.
-const fetchConfirmedTx = async (connection: Connection, sig: string, maxAttempts = 5) => {
-  for (let i = 0; i < maxAttempts; i++) {
-    const tx = await connection.getTransaction(sig, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0,
-    })
-    if (tx) return tx
-    await new Promise((r) => setTimeout(r, 2000))
-  }
-  return null
-}
-
-// Parse the actual token amount received by the treasury wallet from a tx.
-// Derives the treasury ATA addresses for both token programs and matches by
-// account index in the tx — never relies on the optional 'owner' field.
-const parseTreasuryTokenDelta = (
-  tx: Awaited<ReturnType<Connection['getTransaction']>>,
-  mintAddress: string
-): bigint => {
-  const pre = tx?.meta?.preTokenBalances ?? []
-  const post = tx?.meta?.postTokenBalances ?? []
-  const accountKeys =
-    tx?.transaction.message.staticAccountKeys?.map((k: PublicKey) => k.toString()) ?? []
-
-  const mintPubkey = new PublicKey(mintAddress)
-  const authorityPubkey = new PublicKey(TREASURY_WALLET)
-
-  let bestDelta = BigInt(0)
-  for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
-    try {
-      const ata = getAssociatedTokenAddressSync(
-        mintPubkey, authorityPubkey, false, programId, ASSOCIATED_TOKEN_PROGRAM_ID
-      )
-      const idx = accountKeys.indexOf(ata.toString())
-      if (idx === -1) continue
-
-      const preEntry = pre.find((b) => b.accountIndex === idx)
-      const postEntry = post.find((b) => b.accountIndex === idx)
-
-      const postRaw = BigInt(postEntry?.uiTokenAmount.amount ?? '0')
-      const preRaw = BigInt(preEntry?.uiTokenAmount.amount ?? '0')
-      const delta = postRaw - preRaw
-      if (delta > bestDelta) bestDelta = delta
-    } catch {
-      // Invalid mint or ATA derivation failed — skip
-    }
-  }
-
-  return bestDelta
-}
-
 // ── verifyAndConfirmDeposit ───────────────────────────────────────────────────
-// Called by SendToSpaceOverlay after submitting the tx signature to Convex.
-// Verifies the tx on-chain, reads the actual token delta, and activates the
-// pending deposit. This is the fallback path when the Helius webhook hasn't
-// fired yet (or as the primary path if webhook is not configured).
+// Server-side verification of a deposit. Reads the vault ATA balance directly
+// from chain using the poolAddress set by confirmDepositFromChain. Called after
+// the client-side confirmDepositFromChain as an independent cross-check.
 export const verifyAndConfirmDeposit = action({
   args: {
     depositId: v.id('spaceDeposits'),
@@ -99,57 +44,64 @@ export const verifyAndConfirmDeposit = action({
     const deposit = await ctx.runQuery(internal.spaceDeposits.getDeposit, { depositId })
     if (!deposit) throw new Error('Deposit not found')
     if (deposit.status === 'active') return { success: true, totalAmount: deposit.totalAmount }
-    if (!deposit.txSignature) throw new Error('No tx signature on deposit — call submitDepositTransaction first')
+    if (!deposit.poolAddress) throw new Error('No pool address — confirmDepositFromChain must run first')
 
     const connection = getConnection()
-    const tx = await fetchConfirmedTx(connection, deposit.txSignature)
-    if (!tx) throw new Error('Transaction not found after retries')
-    if (tx.meta?.err) throw new Error('Transaction failed on-chain')
+    const mintPubkey = new PublicKey(deposit.mintAddress)
+    const depositPoolPubkey = new PublicKey(deposit.poolAddress)
+    const programId = deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
 
-    const accountKeys =
-      tx.transaction.message.staticAccountKeys?.map((k: PublicKey) => k.toString()) ?? []
-    if (!accountKeys.includes(TREASURY_WALLET)) {
-      throw new Error('Transaction did not involve treasury wallet')
+    const vaultAta = getAssociatedTokenAddressSync(
+      mintPubkey, depositPoolPubkey, true, programId, ASSOCIATED_TOKEN_PROGRAM_ID
+    )
+
+    let onChainBalance = 0
+    try {
+      const acct = await getAccount(connection, vaultAta, 'confirmed', programId)
+      onChainBalance = Number(acct.amount)
+    } catch {
+      throw new Error('Vault ATA not found — deposit may not have confirmed on-chain yet')
     }
 
-    const delta = parseTreasuryTokenDelta(tx, deposit.mintAddress)
-    if (delta <= BigInt(0)) throw new Error('No tokens received by treasury in this transaction')
+    if (onChainBalance <= 0) throw new Error('Vault ATA is empty')
 
-    const totalAmount = Number(delta)
     await ctx.runMutation(internal.spaceDeposits.confirmDeposit, {
       depositId,
-      totalAmount,
-      depositedAt: (tx.blockTime ?? Math.floor(Date.now() / 1000)) * 1000,
+      totalAmount: onChainBalance,
+      depositedAt: Date.now(),
     })
 
-    return { success: true, totalAmount }
+    return { success: true, totalAmount: onChainBalance }
   },
 })
 
 // ── reconcilePool ─────────────────────────────────────────────────────────────
+// Reads the vault ATA balance owned by the DepositPool PDA and caps Convex's
+// remainingAmount to on-chain reality. Triggered by webhook drain detection or
+// called directly for maintenance.
 export const reconcilePool = internalAction({
   args: { mintAddress: v.string() },
   handler: async (ctx, { mintAddress }) => {
-    const connection = getConnection()
-    const mintPubkey = new PublicKey(mintAddress)
-    const authorityPubkey = new PublicKey(TREASURY_WALLET)
-
-    let onChainBalance = 0
-    for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
-      try {
-        const ata = getAssociatedTokenAddressSync(
-          mintPubkey, authorityPubkey, false, programId, ASSOCIATED_TOKEN_PROGRAM_ID
-        )
-        const acct = await getAccount(connection, ata, 'confirmed', programId)
-        onChainBalance = Number(acct.amount)
-        break
-      } catch {
-        // ATA doesn't exist for this program — try next
-      }
-    }
-
     const deposit = await ctx.runQuery(internal.spaceDeposits.getDepositByMint, { mintAddress })
     if (!deposit) return { reconciled: false, reason: 'no active pool' }
+    if (!deposit.poolAddress) return { reconciled: false, reason: 'no pool address on record' }
+
+    const connection = getConnection()
+    const mintPubkey = new PublicKey(mintAddress)
+    const depositPoolPubkey = new PublicKey(deposit.poolAddress)
+    const programId = deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
+
+    const vaultAta = getAssociatedTokenAddressSync(
+      mintPubkey, depositPoolPubkey, true, programId, ASSOCIATED_TOKEN_PROGRAM_ID
+    )
+
+    let onChainBalance = 0
+    try {
+      const acct = await getAccount(connection, vaultAta, 'confirmed', programId)
+      onChainBalance = Number(acct.amount)
+    } catch {
+      // Vault ATA doesn't exist — pool is empty
+    }
 
     await ctx.runMutation(internal.spaceDeposits.reconcilePoolBalance, {
       depositId: deposit._id,
@@ -169,22 +121,22 @@ export const reconcileAllPools = internalAction({
 
     for (const deposit of deposits) {
       if (deposit.txSignature.startsWith('dev-seed-')) continue
+      if (!deposit.poolAddress) continue
 
       const mintPubkey = new PublicKey(deposit.mintAddress)
-      const authorityPubkey = new PublicKey(TREASURY_WALLET)
+      const depositPoolPubkey = new PublicKey(deposit.poolAddress)
+      const programId = deposit.programId === 'TOKEN_2022' ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID
+
+      const vaultAta = getAssociatedTokenAddressSync(
+        mintPubkey, depositPoolPubkey, true, programId, ASSOCIATED_TOKEN_PROGRAM_ID
+      )
 
       let onChainBalance = 0
-      for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
-        try {
-          const ata = getAssociatedTokenAddressSync(
-            mintPubkey, authorityPubkey, false, programId, ASSOCIATED_TOKEN_PROGRAM_ID
-          )
-          const acct = await getAccount(connection, ata, 'confirmed', programId)
-          onChainBalance = Number(acct.amount)
-          break
-        } catch {
-          // ATA doesn't exist for this program — try next
-        }
+      try {
+        const acct = await getAccount(connection, vaultAta, 'confirmed', programId)
+        onChainBalance = Number(acct.amount)
+      } catch {
+        // Vault ATA doesn't exist — pool is empty
       }
 
       await ctx.runMutation(internal.spaceDeposits.reconcilePoolBalance, {
