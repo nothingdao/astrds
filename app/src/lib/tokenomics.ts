@@ -1,5 +1,7 @@
 import { PublicKey } from '@solana/web3.js'
 import { connection } from '@/lib/solana'
+import { convex } from '@/lib/convex'
+import { api } from '../../convex/_generated/api'
 
 export const ASTRDS_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 export const METEORA_DAMM_POOL = new PublicKey('EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG')
@@ -7,7 +9,6 @@ export const TOTAL_GAMES_CAP = 420_000
 export const TOTAL_ASTRDS_SUPPLY_CAP = 21_000_000
 export const BURNED_ASTRDS_STUB = 0
 
-const SOL_FALLBACK_USD = 150
 const SOL_PRICE_CACHE_TTL_MS = 60_000
 const POOL_ACCOUNT_DISCRIMINATOR_SIZE = 8
 const POOL_FEES_STRUCT_SIZE = 160
@@ -59,21 +60,14 @@ async function fetchSolPriceUsd(): Promise<number> {
     return solPriceCache.usd
   }
 
-  try {
-    const response = await fetch(
-      'https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112'
-    )
-    const json = await response.json()
-    const price = Number(json?.data?.['So11111111111111111111111111111111111111112']?.price)
-    if (Number.isFinite(price) && price > 0) {
-      solPriceCache = { usd: price, fetchedAt: now }
-      return price
-    }
-  } catch {
-    // Fall back below.
+  const result = await convex.action(api.prices.getSolUsdPrice, { maxAgeMs: SOL_PRICE_CACHE_TTL_MS })
+  const price = Number(result.priceUsd)
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error('Unable to fetch a valid SOL/USD price')
   }
 
-  return solPriceCache?.usd ?? SOL_FALLBACK_USD
+  solPriceCache = { usd: price, fetchedAt: now }
+  return price
 }
 
 async function getVaultUiAmount(vault: PublicKey): Promise<number> {
