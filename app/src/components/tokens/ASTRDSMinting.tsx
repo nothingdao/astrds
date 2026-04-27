@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useAction } from 'convex/react'
+import { useAction, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { connection as solanaConnection } from '@/lib/solana'
@@ -13,6 +14,14 @@ const ASTRDSMinting: React.FC<{ tokenCount: number; gameSessionId?: string | nul
 }) => {
   const { publicKey, signTransaction, sendTransaction } = useWallet()
   const prepareMint = useAction(api.tokens.prepareMint)
+
+  // Reactively watch session so we know when the game server has written astrdsEarned.
+  const session = useQuery(
+    api.gameSessions.get,
+    gameSessionId ? { sessionId: gameSessionId as Id<'gameSessions'> } : 'skip'
+  )
+  const serverSettled = !gameSessionId || session?.astrdsEarned !== undefined
+
   const [status, setStatus] = useState<{
     loading: boolean
     error: string | null
@@ -82,18 +91,20 @@ const ASTRDSMinting: React.FC<{ tokenCount: number; gameSessionId?: string | nul
         variant={status.signature ? 'ghost' : 'quarter'}
         size='lg'
         onClick={handleClaim}
-        disabled={status.loading || !publicKey || !gameSessionId || !!status.signature}
+        disabled={status.loading || !publicKey || !gameSessionId || !serverSettled || !!status.signature}
         className='w-full'
       >
         {!publicKey
           ? 'Connect wallet to claim'
           : !gameSessionId
             ? 'No session to claim'
-            : status.loading
-              ? 'Minting...'
-              : status.signature
-                ? 'Claimed!'
-                : `Claim ${tokenCount} $ASTRDS`}
+            : !serverSettled
+              ? 'Waiting for server...'
+              : status.loading
+                ? 'Minting...'
+                : status.signature
+                  ? 'Claimed!'
+                  : `Claim ${tokenCount} $ASTRDS`}
       </Button>
 
       {status.error && (

@@ -137,12 +137,16 @@ export const prepareMint = action({
       throw new Error(`Invalid token count: must be a whole number between 1 and ${MAX_ASTRDS_PER_GAME}`)
     }
 
-    const session = await ctx.runQuery(internal.gameSessions.getInternal, {
-      sessionId: gameSessionId,
-    })
+    // Poll until the game server writes astrdsEarned (it does so async after game over).
+    let session = null
+    for (let attempt = 0; attempt < 8; attempt++) {
+      session = await ctx.runQuery(internal.gameSessions.getInternal, { sessionId: gameSessionId })
+      if (session?.astrdsEarned !== undefined) break
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
     if (!session) throw new Error('Game session not found')
     if (session.astrdsEarned === undefined) {
-      throw new Error('ASTRDS amount not yet recorded — game server may still be submitting game over')
+      throw new Error('Game server has not submitted your final score yet — please wait a moment and try again')
     }
     if (tokenCount > session.astrdsEarned) {
       throw new Error(`Claimed amount (${tokenCount}) exceeds earned amount (${session.astrdsEarned})`)
