@@ -21,6 +21,7 @@ export default defineSchema({
     score: v.number(),
     levelReached: v.number(),
     pillsCollected: v.optional(v.number()),
+    astrdsEarned: v.optional(v.number()),  // authoritative ASTRDS to mint, written by game server at game over
     sessionStart: v.string(),
     lastUpdated: v.string(),
     sessionEnd: v.optional(v.string()),
@@ -123,4 +124,35 @@ export default defineSchema({
     .index('by_signature', ['txSignature'])
     .index('by_deposit', ['depositId'])
     .index('by_player_wallet', ['playerWalletAddress']),
+
+  // Singleton — at most one document. Version increments on every write so the
+  // game server can detect changes and optionally apply them to running sessions.
+  gameConfig: defineTable({
+    version: v.number(),
+    applyToRunning: v.boolean(),
+    powerupSpawnDelayMs: v.number(),
+    shipPickupSpawnDelayMs: v.number(),
+    maxPowerupsOnScreen: v.number(),
+    powerupDurationMs: v.number(),
+    maxLives: v.number(),
+    // Economy config — admin-adjustable, read by game server and client display
+    quarterUsd: v.optional(v.number()),                  // $USD cost per play
+    tierBreakpointsUsd: v.optional(v.array(v.number())), // 4 values: upper-bound of tiers 1–4
+    pillsPerTier: v.optional(v.array(v.number())),       // 5 values: pills spawned per tier
+    astrdsPerPill: v.optional(v.array(v.number())),      // 5 values: ASTRDS awarded per pill per tier
+  }),
+
+  economySnapshots: defineTable({
+    timestamp: v.number(),
+    source: v.union(v.literal('manual'), v.literal('crank'), v.literal('cron')),
+    poolAddress: v.string(),
+    solUsdPrice: v.number(),
+    astrdsReserve: v.number(),
+    solReserve: v.number(),
+    priceSolPerAstrds: v.number(),
+    priceUsdPerAstrds: v.number(),
+    totalSupply: v.number(),
+    pendingBuybackSol: v.number(),
+    crankTxSignature: v.optional(v.string()),
+  }).index('by_timestamp', ['timestamp']),
 })

@@ -12,8 +12,24 @@ import { api } from '../../convex/_generated/api'
 import { buildGamePaymentTransaction, sendSignedTransaction } from '@/lib/spaceVault'
 
 const TOKEN_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
-const QUARTER_USD = 0.25 // $0.25 per play
 const TOKEN_COST = 1000
+
+let _quarterUsdCache: { value: number; fetchedAt: number } | null = null
+
+async function getQuarterUsd(): Promise<number> {
+  const now = Date.now()
+  if (_quarterUsdCache && now - _quarterUsdCache.fetchedAt < 60_000) {
+    return _quarterUsdCache.value
+  }
+  try {
+    const config = await convex.query(api.admin.getGameConfig, {})
+    const value = config?.quarterUsd ?? 0.25
+    _quarterUsdCache = { value, fetchedAt: now }
+    return value
+  } catch {
+    return _quarterUsdCache?.value ?? 0.25
+  }
+}
 
 // Simple price cache — avoid refetching on every call within the same session
 let _solPriceCache: { usd: number; fetchedAt: number } | null = null
@@ -25,27 +41,19 @@ async function getSolPriceUsd(): Promise<number> {
     return _solPriceCache.usd
   }
 
-  try {
-    const res = await fetch(
-      'https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112'
-    )
-    const json = await res.json()
-    const price = json?.data?.['So11111111111111111111111111111111111111112']?.price as number
-    if (price && price > 0) {
-      _solPriceCache = { usd: price, fetchedAt: now }
-      return price
-    }
-  } catch {
-    // fall through to fallback
+  const result = await convex.action(api.prices.getSolUsdPrice, { maxAgeMs: PRICE_CACHE_TTL })
+  const price = Number(result.priceUsd)
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error('Unable to fetch a valid SOL/USD price')
   }
 
-  // Fallback: use cached value if we have one, otherwise a conservative estimate
-  return _solPriceCache?.usd ?? 150
+  _solPriceCache = { usd: price, fetchedAt: now }
+  return price
 }
 
 async function getSolCostLamports(): Promise<number> {
-  const solPrice = await getSolPriceUsd()
-  const solAmount = QUARTER_USD / solPrice
+  const [solPrice, quarterUsd] = await Promise.all([getSolPriceUsd(), getQuarterUsd()])
+  const solAmount = quarterUsd / solPrice
   return Math.ceil(solAmount * 1e9) // round up so we never under-charge
 }
 
@@ -110,19 +118,42 @@ class AuthService {
       }
     }
 
+    console.log('[insert-quarter] building game payment transaction')
     const built = await buildGamePaymentTransaction({
       connection: this.connection,
       player: wallet.publicKey,
       lamports: await getSolCostLamports(),
     })
     const transaction = built.transaction
-    const signedTx = await wallet.signTransaction(transaction)
-    const txSignature = await sendSignedTransaction({
-      connection: this.connection,
-      signedTransaction: signedTx,
-      blockhash: built.blockhash,
-      lastValidBlockHeight: built.lastValidBlockHeight,
+    console.log('[insert-quarter] built transaction, requesting wallet signature', {
+      instructions: transaction.instructions.length,
+      wallet: wallet.publicKey.toString(),
     })
+
+    let txSignature: string
+    if (wallet.sendTransaction) {
+      txSignature = await wallet.sendTransaction(transaction, this.connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      })
+      await this.connection.confirmTransaction(
+        {
+          signature: txSignature,
+          blockhash: built.blockhash,
+          lastValidBlockHeight: built.lastValidBlockHeight,
+        },
+        'confirmed'
+      )
+    } else {
+      const signedTx = await wallet.signTransaction(transaction)
+      txSignature = await sendSignedTransaction({
+        connection: this.connection,
+        signedTransaction: signedTx,
+        blockhash: built.blockhash,
+        lastValidBlockHeight: built.lastValidBlockHeight,
+      })
+    }
+    console.log('[insert-quarter] payment transaction confirmed', txSignature)
 
     await convex.action(api.verifyPayment.verifyPayment, {
       txSignature,

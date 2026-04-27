@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws'
 import { GameSession } from '../game/GameSession.js'
-import { FALLBACK_EMISSION_TIER, fetchEmissionTier } from '../game/emissionTiers.js'
+import { fetchEmissionTier, getFallbackEmissionTier } from '../game/emissionTiers.js'
+import { DEFAULT_GAME_CONFIG, type GameConfig } from '../game/gameConfig.js'
 import { ConvexServerClient } from '../convex/client.js'
 import type {
   AuthorizedSpaceTokenSpawn,
@@ -28,6 +29,9 @@ export class SessionHandler {
   private lastPoolRefreshAt = 0
   private lastPoolLevel = 1
   private refreshingPools: Promise<void> | null = null
+  private gameConfig: GameConfig = DEFAULT_GAME_CONFIG
+  private lastConfigRefreshAt = 0
+  private refreshingConfig: Promise<void> | null = null
   private helloHandled = false
   private helloVerifying = false
 
@@ -66,6 +70,7 @@ export class SessionHandler {
       this.handleSimulationEvents(events, now)
       this.maybeSubmitGameOver(snapshot)
       this.maybeRefreshSpaceTokenPools(now, snapshot.level)
+      this.maybeRefreshGameConfig(now)
       this.send({
         type: snapshot.status === 'gameOver' ? 'gameOver' : 'state',
         snapshot,
@@ -105,6 +110,7 @@ export class SessionHandler {
         this.didSubmitGameOver = false
         const snapshot = this.session.reset()
         this.session.setSpaceTokenPools(this.activeSpaceTokenPools)
+        this.session.applyConfig(this.gameConfig)
         this.refreshSpaceTokenPools(this.session.level)
         this.send({ type: 'state', snapshot })
         return
@@ -160,7 +166,7 @@ export class SessionHandler {
 
     this.helloHandled = true
     this.binding = { ...message.session, walletAddress }
-    void fetchEmissionTier()
+    void fetchEmissionTier(this.gameConfig)
       .then((tier) => {
         this.session.setEmissionTier(tier)
       })
@@ -169,9 +175,10 @@ export class SessionHandler {
           error,
           sessionId: this.session.id,
         })
-        this.session.setEmissionTier(FALLBACK_EMISSION_TIER)
+        this.session.setEmissionTier(getFallbackEmissionTier(this.gameConfig))
       })
 
+    this.refreshGameConfig()
     this.refreshSpaceTokenPools(this.session.level)
     const snapshot = this.session.resize(message.screen)
     this.send({ type: 'state', snapshot })
@@ -212,6 +219,36 @@ export class SessionHandler {
         continue
       }
     }
+  }
+
+  private maybeRefreshGameConfig(now: number): void {
+    if (this.refreshingConfig) return
+    if (now - this.lastConfigRefreshAt >= POOL_REFRESH_MS) {
+      this.refreshGameConfig()
+    }
+  }
+
+  private refreshGameConfig(): void {
+    this.refreshingConfig = this.convex
+      .getGameConfig()
+      .then((config) => {
+        const prevVersion = this.gameConfig.version
+        this.gameConfig = config
+        this.lastConfigRefreshAt = Date.now()
+
+        if (config.version !== prevVersion && config.applyToRunning) {
+          this.session.applyConfig(config)
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to refresh game config', {
+          error,
+          sessionId: this.session.id,
+        })
+      })
+      .finally(() => {
+        this.refreshingConfig = null
+      })
   }
 
   private maybeRefreshSpaceTokenPools(now: number, level: number): void {
@@ -293,12 +330,14 @@ export class SessionHandler {
     if (!gameSessionId) return
 
     this.didSubmitGameOver = true
+    const astrdsEarned = Math.floor(snapshot.pillsCollected * snapshot.emissionTier.astrdsPerPill)
     void this.convex
       .updateGameSession({
         sessionId: gameSessionId,
         score: snapshot.score,
         levelReached: snapshot.level,
         pillsCollected: snapshot.pillsCollected,
+        astrdsEarned,
         status: 'ended',
       })
       .catch((error) => {

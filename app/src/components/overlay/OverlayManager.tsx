@@ -1,46 +1,50 @@
 // src/components/overlay/OverlayManager.tsx
-import React, { useEffect } from 'react'
-import { Coins, MessageSquare, Trophy, User, Rocket, Pickaxe, FlaskConical } from 'lucide-react'
+import React, { useEffect, useMemo } from 'react'
+import { Coins, MessageSquare, Trophy, User, Pickaxe, HelpCircle, Settings } from 'lucide-react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { useOverlayStore } from '@/stores/overlayStore'
 import { useStateMachine, selectMachineState } from '@/stores/stateMachine'
 import { Overlay } from '@/types/overlay'
 import { MachineState } from '@/types/machine'
 import { Kbd } from '@/components/ui/kbd'
+import { isDevWallet } from '@/config/devWallets'
 import SoundSettings from '../sound/SoundSettings'
 import AccountScreen from '@/screens/account/AccountScreen'
 import FullChat from '@/components/chat/FullChat'
 import LeaderboardScreen from '@/screens/leaderboard/LeaderboardScreen'
 import TokenomicsScreen from '@/screens/tokenomics/TokenomicsScreen'
 import MiningScreen from '@/screens/mining/MiningScreen'
-import KeyboardShortcutsOverlay from '@/components/common/KeyboardShortcutsOverlay'
+import HelpScreen from '@/screens/help/HelpScreen'
+import AdminScreen from '@/screens/admin/AdminScreen'
 import SendToSpaceOverlay from '@/components/space/SendToSpaceOverlay'
-import DevTools from '@/components/dev/DevTools'
 
-// Primary overlays — shown in the tab bar and cycled by [ and ]
-const OVERLAY_TABS = [
-  { overlay: Overlay.ASTRDS,      label: '$ASTRDS',     key: 'T', icon: Coins,         devOnly: false },
-  { overlay: Overlay.CHAT,        label: 'Chat',        key: 'F', icon: MessageSquare,  devOnly: false },
-  { overlay: Overlay.LEADERBOARD, label: 'Leaderboard', key: 'L', icon: Trophy,         devOnly: false },
-  { overlay: Overlay.ACCOUNT,     label: 'Account',     key: 'A', icon: User,           devOnly: false },
-  { overlay: Overlay.SPACE,       label: 'Space',       key: 'R', icon: Rocket,         devOnly: false },
-  { overlay: Overlay.MINING,      label: 'Mining',      key: 'M', icon: Pickaxe,        devOnly: false },
-  { overlay: Overlay.DEV,         label: 'Dev',         key: 'D', icon: FlaskConical,   devOnly: true  },
-].filter(t => !t.devOnly || import.meta.env.DEV) as { overlay: Overlay; label: string; key: string; icon: React.ElementType }[]
+// Base overlay tabs — always shown
+const BASE_OVERLAY_TABS = [
+  { overlay: Overlay.ASTRDS,      label: '$ASTRDS',     key: 'T', icon: Coins        },
+  { overlay: Overlay.CHAT,        label: 'Chat',        key: 'F', icon: MessageSquare },
+  { overlay: Overlay.LEADERBOARD, label: 'Leaderboard', key: 'L', icon: Trophy        },
+  { overlay: Overlay.ACCOUNT,     label: 'Account',     key: 'A', icon: User          },
+  { overlay: Overlay.MINING,      label: 'Mining',      key: 'M', icon: Pickaxe       },
+  { overlay: Overlay.HELP,        label: 'Help',        key: '?', icon: HelpCircle    },
+] as { overlay: Overlay; label: string; key: string; icon: React.ElementType }[]
+
+const ADMIN_TAB = { overlay: Overlay.ADMIN, label: 'Admin', key: '`', icon: Settings }
 
 // Overlays blocked while actively playing
-const PLAYING_RESTRICTED = new Set([Overlay.ASTRDS, Overlay.LEADERBOARD, Overlay.SPACE])
+const PLAYING_RESTRICTED = new Set([Overlay.ASTRDS, Overlay.LEADERBOARD])
 
 const OVERLAY_MAX_WIDTH: Record<Overlay, string> = {
-  [Overlay.NONE]:        'max-w-4xl',
+  [Overlay.NONE]:        'max-w-3xl',
   [Overlay.SOUND]:       'max-w-lg',
-  [Overlay.ACCOUNT]:     'max-w-5xl',
-  [Overlay.CHAT]:        'max-w-2xl',
-  [Overlay.LEADERBOARD]: 'max-w-4xl',
-  [Overlay.ASTRDS]:      'max-w-4xl',
-  [Overlay.MINING]:      'max-w-3xl',
-  [Overlay.SHORTCUTS]:   'max-w-lg',
+  [Overlay.ACCOUNT]:     'max-w-3xl',
+  [Overlay.CHAT]:        'max-w-lg',
+  [Overlay.LEADERBOARD]: 'max-w-xl',
+  [Overlay.ASTRDS]:      'max-w-2xl',
+  [Overlay.MINING]:      'max-w-2xl',
+  [Overlay.HELP]:        'max-w-lg',
   [Overlay.SPACE]:       'max-w-2xl',
   [Overlay.DEV]:         'max-w-2xl',
+  [Overlay.ADMIN]:       'max-w-6xl',
 }
 
 interface OverlayContentProps {
@@ -87,14 +91,14 @@ const OverlayContent: React.FC<OverlayContentProps> = ({ type, onClose }) => {
     case Overlay.MINING:
       return <MiningScreen onClose={onClose} />
 
-    case Overlay.SHORTCUTS:
-      return <KeyboardShortcutsOverlay onClose={onClose} />
-
     case Overlay.SPACE:
       return <SendToSpaceOverlay onClose={onClose} />
 
-    case Overlay.DEV:
-      return <DevTools />
+    case Overlay.HELP:
+      return <HelpScreen onClose={onClose} />
+
+    case Overlay.ADMIN:
+      return <AdminScreen onClose={onClose} />
 
     default:
       return null
@@ -106,6 +110,13 @@ const OverlayManager: React.FC = () => {
   const closeOverlay = useOverlayStore((state) => state.closeOverlay)
   const openOverlay = useOverlayStore((state) => state.openOverlay)
   const currentState = useStateMachine(selectMachineState)
+  const { publicKey } = useWallet()
+
+  const OVERLAY_TABS = useMemo(() => {
+    const tabs = [...BASE_OVERLAY_TABS]
+    if (isDevWallet(publicKey?.toString())) tabs.push(ADMIN_TAB)
+    return tabs
+  }, [publicKey])
 
   const isTabDisabled = (overlay: Overlay) =>
     currentState === MachineState.PLAYING && PLAYING_RESTRICTED.has(overlay)
@@ -132,7 +143,6 @@ const OverlayManager: React.FC = () => {
         const currentIdx = enabled.findIndex(t => t.overlay === activeOverlay)
 
         if (currentIdx === -1) {
-          // No active tab in list — open first or last depending on direction
           openOverlay(e.key === ']' ? enabled[0].overlay : enabled[enabled.length - 1].overlay)
         } else {
           const nextIdx = e.key === ']'
@@ -153,11 +163,11 @@ const OverlayManager: React.FC = () => {
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-4'>
-      <div className='absolute inset-0 bg-black/80' onClick={closeOverlay} />
-      <div className={`relative z-10 w-full ${maxWidth} max-h-[88vh] bg-neutral-900 border border-white/25 flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.9)]`}>
+      <div className='absolute inset-0 bg-surface-overlay' onClick={closeOverlay} />
+      <div className={`relative z-10 w-full ${maxWidth} max-h-[80vh] bg-card text-card-foreground border border-border flex flex-col shadow-2xl`}>
 
         {/* Tab bar */}
-        <div className='flex items-stretch border-b border-white/15 shrink-0'>
+        <div className='flex items-stretch border-b border-border shrink-0'>
           <div className='flex items-stretch overflow-x-auto flex-1 min-w-0'>
             {OVERLAY_TABS.map(({ overlay, label, key, icon: Icon }) => {
               const isActive = activeOverlay === overlay
@@ -170,28 +180,28 @@ const OverlayManager: React.FC = () => {
                   title={disabled ? `${label} (unavailable during gameplay)` : `${label} [${key}]`}
                   className={`flex items-center gap-1.5 px-3 py-2.5 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap border-b-2 -mb-px transition-colors
                     ${isActive
-                      ? 'border-game-blue text-white'
+                      ? 'border-primary text-foreground'
                       : disabled
-                        ? 'border-transparent text-white/15 cursor-not-allowed'
-                        : 'border-transparent text-white/35 hover:text-white/65'
+                        ? 'border-transparent text-tx-dim cursor-not-allowed'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   <Icon size={10} />
                   <span>{label}</span>
-                  <span className={`text-[8px] normal-case tracking-normal font-mono ${isActive ? 'text-white/25' : 'text-white/15'}`}>{key}</span>
+                  <span className={`text-[8px] normal-case tracking-normal font-mono ${isActive ? 'text-tx-dim' : 'text-tx-dim'}`}>{key}</span>
                 </button>
               )
             })}
           </div>
 
           {/* Cycle hint + close */}
-          <div className='flex items-center gap-2.5 px-3 shrink-0 border-l border-white/10'>
-            <span className='hidden sm:flex items-center gap-0.5 font-mono text-[9px] text-white/20'>
+          <div className='flex items-center gap-2.5 px-3 shrink-0 border-l border-border'>
+            <span className='hidden sm:flex items-center gap-0.5 font-mono text-[9px] text-tx-dim'>
               <Kbd>[</Kbd><Kbd>]</Kbd>
             </span>
             <button
               onClick={closeOverlay}
-              className='flex items-center gap-1.5 font-mono text-[10px] text-white/30 hover:text-white transition-colors'
+              className='flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors'
               aria-label='Close'
             >
               close <Kbd>Esc</Kbd>

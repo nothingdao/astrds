@@ -1,4 +1,5 @@
 import {
+  applySimulationConfig,
   createInitialSimulationState,
   drainSimulationEvents,
   injectAuthorizedSpaceToken,
@@ -7,6 +8,7 @@ import {
   setSpaceTokenPools,
   simulationToSnapshot,
   updateSimulation,
+  type SimulationConfig,
   type SimulationState,
 } from '../../../shared/game/simulation.js'
 import type {
@@ -56,6 +58,10 @@ export class GameSession {
 
   setEmissionTier(tier: EmissionTier): void {
     setEmissionTier(this.state, tier)
+  }
+
+  applyConfig(config: SimulationConfig): void {
+    applySimulationConfig(this.state, config)
   }
 
   spawnAuthorizedSpaceToken(spawn: AuthorizedSpaceTokenSpawn, now = Date.now()): void {

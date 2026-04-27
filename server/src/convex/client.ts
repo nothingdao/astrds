@@ -1,6 +1,8 @@
 import { ConvexHttpClient } from 'convex/browser'
 import type { FunctionReference } from 'convex/server'
 import type { SpaceTokenPool } from '../../../shared/game/protocol.js'
+import type { GameConfig } from '../game/gameConfig.js'
+import { DEFAULT_GAME_CONFIG } from '../game/gameConfig.js'
 
 const GAME_SESSIONS_UPDATE = 'gameSessions:update'
 const GAME_SESSIONS_INCREMENT_PILLS = 'gameSessions:incrementPillsCollected'
@@ -8,6 +10,7 @@ const SPACE_DEPOSITS_COLLECT = 'spaceDeposits:collectFromDeposit'
 const SPACE_DEPOSITS_GET_ACTIVE_POOLS = 'spaceDeposits:getActivePoolsForLevel'
 const SPACE_DEPOSITS_REQUEST_SPAWN_TICKET = 'spaceDeposits:requestSpawnTicket'
 const SESSIONS_IS_VERIFIED = 'sessions:isVerified'
+const ADMIN_GET_GAME_CONFIG = 'admin:getGameConfig'
 
 type ConvexFunctionName =
   | typeof GAME_SESSIONS_UPDATE
@@ -15,7 +18,10 @@ type ConvexFunctionName =
   | typeof SPACE_DEPOSITS_COLLECT
   | typeof SPACE_DEPOSITS_REQUEST_SPAWN_TICKET
 
-type ConvexQueryName = typeof SPACE_DEPOSITS_GET_ACTIVE_POOLS | typeof SESSIONS_IS_VERIFIED
+type ConvexQueryName =
+  | typeof SPACE_DEPOSITS_GET_ACTIVE_POOLS
+  | typeof SESSIONS_IS_VERIFIED
+  | typeof ADMIN_GET_GAME_CONFIG
 
 export class ConvexServerClient {
   private readonly client: ConvexHttpClient | null
@@ -30,6 +36,7 @@ export class ConvexServerClient {
     score?: number
     levelReached?: number
     pillsCollected?: number
+    astrdsEarned?: number
     status?: 'active' | 'ending' | 'ended'
   }): Promise<void> {
     await this.mutation(GAME_SESSIONS_UPDATE, args)
@@ -95,6 +102,30 @@ export class ConvexServerClient {
     if (!this.client) return true  // no CONVEX_URL = local dev, allow through
     const result = await this.query(SESSIONS_IS_VERIFIED, args)
     return result === true
+  }
+
+  async getGameConfig(): Promise<GameConfig> {
+    const result = await this.query(ADMIN_GET_GAME_CONFIG, {})
+    if (!result || typeof result !== 'object') return DEFAULT_GAME_CONFIG
+
+    const r = result as Record<string, unknown>
+    const numArr = (key: keyof GameConfig): number[] => {
+      const v = r[key]
+      return Array.isArray(v) && v.every(x => typeof x === 'number') ? v as number[] : DEFAULT_GAME_CONFIG[key] as number[]
+    }
+    return {
+      version: typeof r.version === 'number' ? r.version : 0,
+      applyToRunning: Boolean(r.applyToRunning),
+      powerupSpawnDelayMs: typeof r.powerupSpawnDelayMs === 'number' ? r.powerupSpawnDelayMs : DEFAULT_GAME_CONFIG.powerupSpawnDelayMs,
+      shipPickupSpawnDelayMs: typeof r.shipPickupSpawnDelayMs === 'number' ? r.shipPickupSpawnDelayMs : DEFAULT_GAME_CONFIG.shipPickupSpawnDelayMs,
+      maxPowerupsOnScreen: typeof r.maxPowerupsOnScreen === 'number' ? r.maxPowerupsOnScreen : DEFAULT_GAME_CONFIG.maxPowerupsOnScreen,
+      powerupDurationMs: typeof r.powerupDurationMs === 'number' ? r.powerupDurationMs : DEFAULT_GAME_CONFIG.powerupDurationMs,
+      maxLives: typeof r.maxLives === 'number' ? r.maxLives : DEFAULT_GAME_CONFIG.maxLives,
+      quarterUsd: typeof r.quarterUsd === 'number' ? r.quarterUsd : DEFAULT_GAME_CONFIG.quarterUsd,
+      tierBreakpointsUsd: numArr('tierBreakpointsUsd'),
+      pillsPerTier: numArr('pillsPerTier'),
+      astrdsPerPill: numArr('astrdsPerPill'),
+    }
   }
 
   private async mutation(name: ConvexFunctionName, args: Record<string, unknown>): Promise<unknown> {

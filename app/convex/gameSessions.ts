@@ -1,5 +1,6 @@
-import { mutation, query } from './_generated/server'
+import { internalQuery, mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+import { Id } from './_generated/dataModel'
 
 export const create = mutation({
   args: { walletAddress: v.string() },
@@ -22,6 +23,7 @@ export const update = mutation({
     score: v.optional(v.number()),
     levelReached: v.optional(v.number()),
     pillsCollected: v.optional(v.number()),
+    astrdsEarned: v.optional(v.number()),
     status: v.optional(
       v.union(v.literal('active'), v.literal('ending'), v.literal('ended'))
     ),
@@ -34,6 +36,7 @@ export const update = mutation({
     if (fields.score !== undefined) updates.score = fields.score
     if (fields.levelReached !== undefined) updates.levelReached = fields.levelReached
     if (fields.pillsCollected !== undefined) updates.pillsCollected = fields.pillsCollected
+    if (fields.astrdsEarned !== undefined) updates.astrdsEarned = fields.astrdsEarned
     if (fields.status !== undefined) {
       updates.status = fields.status
       if (fields.status === 'ended') updates.sessionEnd = new Date().toISOString()
@@ -66,6 +69,13 @@ export const incrementPillsCollected = mutation({
 export const get = query({
   args: { sessionId: v.id('gameSessions') },
   handler: async (ctx, { sessionId }) => ctx.db.get(sessionId),
+})
+
+export const getInternal = internalQuery({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    return ctx.db.get(sessionId as Id<'gameSessions'>)
+  },
 })
 
 export const getByWallet = query({

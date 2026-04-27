@@ -1,5 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { EmissionTier } from '../../../shared/game/protocol.js'
+import type { GameConfig } from './gameConfig.js'
+import { DEFAULT_GAME_CONFIG } from './gameConfig.js'
 
 const ASTRDS_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const METEORA_DAMM_POOL = new PublicKey('EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG')
@@ -13,20 +15,6 @@ const TOKEN_A_MINT_OFFSET = POOL_ACCOUNT_DISCRIMINATOR_SIZE + POOL_FEES_STRUCT_S
 const TOKEN_B_MINT_OFFSET = TOKEN_A_MINT_OFFSET + PUBLIC_KEY_SIZE
 const TOKEN_A_VAULT_OFFSET = TOKEN_B_MINT_OFFSET + PUBLIC_KEY_SIZE
 const TOKEN_B_VAULT_OFFSET = TOKEN_A_VAULT_OFFSET + PUBLIC_KEY_SIZE
-
-const FALLBACK_EMISSION_TIER: EmissionTier = {
-  tier: 2,
-  pillsPerGame: 10,
-  astrdsPerPill: 5,
-}
-
-const EMISSION_TIERS: EmissionTier[] = [
-  { tier: 1, pillsPerGame: 5, astrdsPerPill: 10 },
-  { tier: 2, pillsPerGame: 10, astrdsPerPill: 5 },
-  { tier: 3, pillsPerGame: 25, astrdsPerPill: 2 },
-  { tier: 4, pillsPerGame: 50, astrdsPerPill: 1 },
-  { tier: 5, pillsPerGame: 100, astrdsPerPill: 0.5 },
-]
 
 let connection: Connection | null = null
 let cachedTier: { value: EmissionTier; fetchedAt: number } | null = null
@@ -43,12 +31,22 @@ function readPublicKey(data: Uint8Array, offset: number): PublicKey {
   return new PublicKey(data.subarray(offset, offset + PUBLIC_KEY_SIZE))
 }
 
-function deriveEmissionTier(priceUsdPerAstrds: number): EmissionTier {
-  if (priceUsdPerAstrds < 0.0024) return EMISSION_TIERS[0]
-  if (priceUsdPerAstrds < 0.01) return EMISSION_TIERS[1]
-  if (priceUsdPerAstrds < 0.05) return EMISSION_TIERS[2]
-  if (priceUsdPerAstrds < 0.1) return EMISSION_TIERS[3]
-  return EMISSION_TIERS[4]
+function deriveEmissionTier(priceUsdPerAstrds: number, config: GameConfig): EmissionTier {
+  const bp = config.tierBreakpointsUsd
+  const pills = config.pillsPerTier
+  const astrds = config.astrdsPerPill
+
+  // Tier index: 0-4 based on breakpoints
+  let idx = 0
+  for (let i = 0; i < bp.length; i++) {
+    if (priceUsdPerAstrds >= bp[i]) idx = i + 1
+  }
+
+  return {
+    tier: (idx + 1) as 1 | 2 | 3 | 4 | 5,
+    pillsPerGame: pills[idx],
+    astrdsPerPill: astrds[idx],
+  }
 }
 
 async function fetchSolPriceUsd(): Promise<number> {
@@ -79,7 +77,7 @@ async function getVaultUiAmount(vault: PublicKey): Promise<number> {
   return balance.value.uiAmount ?? 0
 }
 
-async function fetchTierUncached(): Promise<EmissionTier> {
+async function fetchTierUncached(config: GameConfig): Promise<EmissionTier> {
   const accountInfo = await getConnection().getAccountInfo(METEORA_DAMM_POOL, 'confirmed')
   if (!accountInfo) {
     throw new Error('Meteora DAMM v2 pool account not found on devnet')
@@ -112,18 +110,25 @@ async function fetchTierUncached(): Promise<EmissionTier> {
   const priceSolPerAstrds = solReserve / astrdsReserve
   const priceUsdPerAstrds = priceSolPerAstrds * solUsdPrice
 
-  return deriveEmissionTier(priceUsdPerAstrds)
+  return deriveEmissionTier(priceUsdPerAstrds, config)
 }
 
-export async function fetchEmissionTier(): Promise<EmissionTier> {
+export async function fetchEmissionTier(config: GameConfig = DEFAULT_GAME_CONFIG): Promise<EmissionTier> {
   const now = Date.now()
   if (cachedTier && now - cachedTier.fetchedAt < CACHE_TTL_MS) {
     return cachedTier.value
   }
 
-  const tier = await fetchTierUncached()
+  const tier = await fetchTierUncached(config)
   cachedTier = { value: tier, fetchedAt: now }
   return tier
 }
 
-export { FALLBACK_EMISSION_TIER }
+export function getFallbackEmissionTier(config: GameConfig = DEFAULT_GAME_CONFIG): EmissionTier {
+  // Default to tier 2 (middle of the road)
+  return {
+    tier: 2,
+    pillsPerGame: config.pillsPerTier[1] ?? 10,
+    astrdsPerPill: config.astrdsPerPill[1] ?? 5,
+  }
+}
