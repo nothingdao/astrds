@@ -267,6 +267,16 @@ export const confirmDepositFromChain = mutation({
     const deposit = await ctx.db.get(depositId)
     if (!deposit) throw new Error('Deposit not found')
 
+    // Only the depositor can confirm their own deposit.
+    if (deposit.walletAddress !== args.walletAddress) {
+      throw new Error('Unauthorized: deposit belongs to a different wallet')
+    }
+
+    // Sanity-check amounts — can't claim more than deposited or negative values.
+    if (remainingAmount < 0 || tokensPerPill <= 0 || remainingAmount > args.totalAmount) {
+      throw new Error('Invalid deposit amounts')
+    }
+
     await ctx.db.patch(depositId, {
       ...fields,
       remainingAmount,
@@ -545,6 +555,14 @@ export const finalizeClaim = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
+    // Verify every collection belongs to the calling player before touching anything.
+    for (const id of args.collectionIds) {
+      const col = await ctx.db.get(id)
+      if (!col || col.playerWalletAddress !== args.playerWalletAddress) {
+        throw new Error('Unauthorized: collection does not belong to this player')
+      }
+    }
+
     await ctx.db.insert('claims', {
       depositId: args.depositId,
       playerWalletAddress: args.playerWalletAddress,

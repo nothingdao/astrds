@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useMutation, useQuery } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { isDevWallet } from '@/config/devWallets'
 import LevelBandEditor from './LevelBandEditor'
@@ -43,9 +43,9 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('config')
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('admin_api_key') ?? '')
 
   const configDoc = useQuery(api.admin.getGameConfig)
-  const saveConfig = useMutation(api.admin.setGameConfig)
   const [draft, setDraft] = useState<ConfigFields | null>(null)
 
   const currentConfig: ConfigFields | null = draft ?? (configDoc
@@ -82,11 +82,17 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
   }
 
   const handleSave = async () => {
-    if (!currentConfig || !walletAddress) return
+    if (!currentConfig || !apiKey) return
     setSaving(true)
     setStatus('')
     try {
-      await saveConfig({ walletAddress, ...currentConfig })
+      const siteUrl = import.meta.env.VITE_CONVEX_URL?.replace('.convex.cloud', '.convex.site') ?? ''
+      const resp = await fetch(`${siteUrl}/admin/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify(currentConfig),
+      })
+      if (!resp.ok) throw new Error(`${resp.status} ${await resp.text()}`)
       setStatus('Saved')
       setDraft(null)
     } catch (err) {
@@ -263,19 +269,31 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
             </div>
 
             {/* Save */}
-            <div className='flex items-center gap-3 pt-1 border-t border-border'>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className='bg-primary/20 border border-primary/40 text-primary px-6 py-2 hover:bg-primary/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-widest'
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-              {status && (
-                <span className={`text-[10px] font-mono ${status.startsWith('Error') ? 'text-destructive' : 'text-tx-success'}`}>
-                  {status}
-                </span>
-              )}
+            <div className='flex flex-col gap-2 pt-1 border-t border-border'>
+              <div className='flex items-center gap-2'>
+                <span className='text-[9px] uppercase tracking-widest text-muted-foreground w-16 shrink-0'>API Key</span>
+                <input
+                  type='password'
+                  value={apiKey}
+                  onChange={e => { setApiKey(e.target.value); localStorage.setItem('admin_api_key', e.target.value) }}
+                  placeholder='ADMIN_API_KEY'
+                  className='flex-1 bg-transparent border border-border text-[10px] font-mono px-2 py-1 text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60'
+                />
+              </div>
+              <div className='flex items-center gap-3'>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !apiKey}
+                  className='bg-primary/20 border border-primary/40 text-primary px-6 py-2 hover:bg-primary/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-widest'
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                {status && (
+                  <span className={`text-[10px] font-mono ${status.startsWith('Error') ? 'text-destructive' : 'text-tx-success'}`}>
+                    {status}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

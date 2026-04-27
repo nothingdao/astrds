@@ -60,21 +60,6 @@ const CONFIG_ARGS = {
 // Public mutation — wallet address is validated against DEV_WALLETS.
 // Not cryptographically secure (any Convex client can pass any address), but
 // acceptable for a dev tool on devnet. HTTP endpoint is the secure path for prod.
-export const setGameConfig = mutation({
-  args: { walletAddress: v.string(), ...CONFIG_ARGS },
-  handler: async (ctx, { walletAddress, ...args }) => {
-    if (!DEV_WALLETS.has(walletAddress)) {
-      throw new Error('Unauthorized')
-    }
-    const existing = await ctx.db.query('gameConfig').first()
-    if (existing) {
-      await ctx.db.patch(existing._id, { ...args, version: existing.version + 1 })
-    } else {
-      await ctx.db.insert('gameConfig', { ...args, version: 1 })
-    }
-  },
-})
-
 // Internal version — used by the HTTP endpoint.
 export const setGameConfigInternal = internalMutation({
   args: CONFIG_ARGS,
