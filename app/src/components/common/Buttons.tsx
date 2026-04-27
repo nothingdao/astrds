@@ -1,6 +1,6 @@
 // src/components/common/Buttons.tsx
 // Re-exports from shadcn Button with game-specific convenience wrappers
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 
 export { Button }
@@ -17,12 +17,32 @@ export const QuarterButton = ({
   const label = children?.toString() ?? ''
   const isLoading = disabled && (label.includes('Sending') || label.includes('Inserting') || label.includes('...'))
 
+  const [coinDisplay, setCoinDisplay] = useState('25¢')
+  const [playDisplay, setPlayDisplay] = useState('PLAY')
+
+  useEffect(() => {
+    if (!isLoading) {
+      setCoinDisplay('25¢')
+      setPlayDisplay('PLAY')
+      return
+    }
+    const coinFrames = ['25¢', '??¢', '**¢', '18¢', '33¢', '07¢', '99¢', '25¢']
+    const playFrames = ['PLAY', 'PL4Y', 'PL▲Y', '████', 'PL▪Y', '....', 'PLAY', 'PL∆Y']
+    let i = 0
+    const id = setInterval(() => {
+      i++
+      setCoinDisplay(coinFrames[i % coinFrames.length])
+      setPlayDisplay(playFrames[i % playFrames.length])
+    }, 110)
+    return () => clearInterval(id)
+  }, [isLoading])
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={[
-        'relative p-2 rounded-xl select-none transition-all duration-75',
+        'relative p-4 rounded-xl select-none transition-all duration-75',
         // Translucent plastic: warm top highlight fading to deep red — light bleeding through
         'bg-gradient-to-b from-orange-500 via-red-700 to-red-900',
         // Outer glow (backlit halo) + top specular edge + subtle inner warmth + physical drop
@@ -43,33 +63,29 @@ export const QuarterButton = ({
         {/* Quarter slot column */}
         <div className="flex flex-col items-center justify-center w-6 shrink-0 gap-3">
           {/* Coin slot opening — horizontal slit */}
-          <div className="w-5 h-1 rounded-sm bg-neutral-950 shadow-[inset_0_1px_4px_rgba(0,0,0,1),0_1px_0_rgba(255,140,0,0.15)] border border-orange-950/80" />
-          {/* Tiny label below slot */}
-          <span className="text-orange-900 [font-size:5px] tracking-wider [font-family:Impact,'Arial_Narrow',sans-serif] [writing-mode:vertical-rl] [text-orientation:mixed] rotate-180">
-            25¢
-          </span>
+          <div className="w-5 h-44 rounded-sm bg-neutral-950 shadow-[inset_0_1px_4px_rgba(0,0,0,1),0_1px_0_rgba(255,140,0,0.15)] border border-orange-950/80" />
         </div>
 
         {/* Inner dark display panel */}
-        <div className="bg-neutral-950 rounded-lg px-6 py-4 flex flex-col items-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.95)]">
-          {isLoading ? (
-            <div className="text-orange-400 text-[10px] tracking-widest text-center py-6 leading-loose font-mono">
-              {label}
-            </div>
-          ) : (
-            <>
-              <div className="text-amber-300 text-3xl leading-none mb-2 tracking-wide [font-family:Impact,'Arial_Narrow',sans-serif] [text-shadow:0_0_10px_rgba(255,150,0,0.9),0_0_22px_rgba(255,80,0,0.5)]">
-                25¢
-              </div>
-              <div className="w-full h-px bg-orange-900/60 mb-2" />
-              <div className="text-orange-500 text-[10px] tracking-[0.18em] text-center leading-snug [font-family:Impact,'Arial_Narrow',sans-serif]">
-                INSERT COIN TO
-              </div>
-              <div className="text-amber-300 text-[44px] leading-none tracking-wide [font-family:Impact,'Arial_Narrow',sans-serif] [text-shadow:0_0_12px_rgba(255,150,0,0.9),0_0_28px_rgba(255,80,0,0.5)]">
-                PLAY
-              </div>
-            </>
-          )}
+        <div className="bg-neutral-950 rounded-lg px-6 py-6 flex flex-col items-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.95)]">
+          <div className={[
+            'text-amber-300 text-5xl leading-none mb-2 tracking-wide [font-family:Impact,"Arial_Narrow",sans-serif]',
+            '[text-shadow:0_0_10px_rgba(255,150,0,0.9),0_0_22px_rgba(255,80,0,0.5)]',
+            isLoading ? 'animate-pulse' : '',
+          ].join(' ')}>
+            {coinDisplay}
+          </div>
+          <div className="w-full h-px bg-orange-900/60 mb-2" />
+          <div className="text-orange-500 text-[10px] tracking-[0.18em] text-center leading-snug [font-family:Impact,'Arial_Narrow',sans-serif] transition-all duration-200">
+            {isLoading ? 'SIGN IN WALLET TO' : 'INSERT COIN TO'}
+          </div>
+          <div className={[
+            'text-amber-300 text-[44px] leading-none tracking-wide [font-family:Impact,"Arial_Narrow",sans-serif]',
+            '[text-shadow:0_0_12px_rgba(255,150,0,0.9),0_0_28px_rgba(255,80,0,0.5)]',
+            isLoading ? 'animate-pulse' : '',
+          ].join(' ')}>
+            {playDisplay}
+          </div>
         </div>
       </div>
     </button>
