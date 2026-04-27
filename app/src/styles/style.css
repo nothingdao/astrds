@@ -9,22 +9,25 @@
 
 @layer base {
   body {
-    @apply overflow-hidden m-0 p-0 bg-black text-white;
+    @apply overflow-hidden m-0 p-0 bg-background text-foreground;
     font-family: 'JetBrains Mono', monospace;
   }
   .theme {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
   }
-  :root {
-    /* ASTRDS — always dark, arcade palette */
+
+  /* ─── Dark theme (default) ─────────────────────────────────────────────── */
+  :root,
+  .theme-dark {
+    /* shadcn semantic tokens */
     --background: #000000;
     --foreground: #ffffff;
     --card: #0a0a0a;
     --card-foreground: #ffffff;
     --popover: #0a0a0a;
     --popover-foreground: #ffffff;
-    --primary: #4dc1f9;        /* game-blue */
+    --primary: #4dc1f9;
     --primary-foreground: #000000;
     --secondary: #111111;
     --secondary-foreground: #ffffff;
@@ -32,40 +35,201 @@
     --muted-foreground: #666666;
     --accent: #4dc1f9;
     --accent-foreground: #000000;
-    --destructive: #ff4d4d;    /* game-red */
+    --destructive: #ff4d4d;
     --border: rgba(255, 255, 255, 0.1);
     --input: rgba(255, 255, 255, 0.08);
     --ring: #4dc1f9;
-    --radius: 0rem;             /* sharp edges — arcade */
+    --radius: 0rem;
+
+    /* ── Text hierarchy ─────────────────────────────── */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.6);   /* ~gray-400 */
+    --text-tertiary: rgba(255, 255, 255, 0.4);    /* ~gray-500 */
+    --text-dim: rgba(255, 255, 255, 0.25);        /* ~gray-600 */
+    --text-accent: #4dc1f9;
+    --text-danger: #ff4d4d;
+    --text-warning: #fbbf24;
+    --text-success: #4dff4d;
+
+    /* ── Surface / panel tokens ─────────────────────── */
+    --surface-base: #000000;
+    --surface-overlay: rgba(0, 0, 0, 0.8);
+    --surface-panel: #0a0a0a;
+    --surface-tinted: rgba(77, 193, 249, 0.1);
+    --surface-subtle: rgba(255, 255, 255, 0.05);
+    --surface-medium: rgba(255, 255, 255, 0.1);
+    --shadow-accent-glow: 0 0 15px var(--primary);
+    --text-shadow-accent-glow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 30px var(--primary);
+
+    /* ── Border scale ───────────────────────────────── */
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-medium: rgba(255, 255, 255, 0.2);
+    --border-accent: rgba(77, 193, 249, 0.4);
+    --border-accent-strong: rgba(77, 193, 249, 0.5);
+    --border-danger: rgba(255, 77, 77, 0.5);
+    --border-warning: rgba(250, 204, 21, 0.5);
+
+    /* ── Canvas entity sync ─────────────────────────── */
+    /* Informational: canvas 2D reads designTokens.ts, not CSS vars.   */
+    /* These are kept in sync as documentation and for future CSS usage */
+    --entity-ship: #ffffff;
+    --entity-ship-glow: #4dc1f9;
+    --entity-asteroid: #ffffff;
+    --entity-pill: #4dc1f9;
+    --entity-token: #FF642D;
+    --entity-ship-pickup: #87CEEB;
+    --entity-shield: #c084fc;
+    --entity-rapidfire: #fbbf24;
+    --entity-particle: #FFA500;
+
+    /* ── Canvas rendering tokens ────────────────────── */
+    --canvas-background: var(--surface-base);
+    --canvas-background-alpha: rgba(0, 0, 0, 0.4);
+    --canvas-ship-stroke: var(--entity-ship);
+    --canvas-ship-fill: var(--surface-base);
+    --canvas-ship-glow: var(--entity-ship-glow);
+    --canvas-asteroid-stroke: var(--entity-asteroid);
+    --canvas-bullet: var(--entity-ship);
+    --canvas-pill: var(--entity-pill);
+    --canvas-token: var(--entity-token);
+    --canvas-ship-pickup-fill: var(--entity-ship-pickup);
+    --canvas-ship-pickup-stroke: var(--entity-ship);
+    --canvas-ship-pickup-inner: #1E90FF;
+    --canvas-shield: var(--entity-shield);
+    --canvas-rapidfire: var(--entity-rapidfire);
+    --canvas-particle: var(--entity-particle);
+    --canvas-floating-text: var(--text-accent);
+    --space-token-0: #a855f7;
+    --space-token-1: #22d3ee;
+    --space-token-2: #4ade80;
+    --space-token-3: #fbbf24;
+    --space-token-4: #f87171;
+    --space-token-5: #f472b6;
+    --space-token-6: #60a5fa;
+    --space-token-7: #a3e635;
+    --space-token-8: #e879f9;
+    --space-token-9: #2dd4bf;
   }
+
+  /* ─── Light theme (future) ──────────────────────────────────────────────── */
+  .theme-light {
+    --background: #f8f8f0;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #1a91d0;
+    --primary-foreground: #ffffff;
+    --secondary: #e8e8e0;
+    --secondary-foreground: #0a0a0a;
+    --muted: #e8e8e0;
+    --muted-foreground: #555555;
+    --accent: #1a91d0;
+    --accent-foreground: #ffffff;
+    --destructive: #cc2222;
+    --border: rgba(0, 0, 0, 0.12);
+    --input: rgba(0, 0, 0, 0.08);
+    --ring: #1a91d0;
+
+    --text-primary: #0a0a0a;
+    --text-secondary: rgba(0, 0, 0, 0.6);
+    --text-tertiary: rgba(0, 0, 0, 0.4);
+    --text-dim: rgba(0, 0, 0, 0.25);
+    --text-accent: #1a91d0;
+    --text-danger: #cc2222;
+    --text-warning: #d97706;
+    --text-success: #16a34a;
+
+    --surface-base: #f8f8f0;
+    --surface-overlay: rgba(248, 248, 240, 0.9);
+    --surface-panel: #ffffff;
+    --surface-tinted: rgba(26, 145, 208, 0.08);
+    --surface-subtle: rgba(0, 0, 0, 0.04);
+    --surface-medium: rgba(0, 0, 0, 0.08);
+    --shadow-accent-glow: 0 0 15px var(--primary);
+    --text-shadow-accent-glow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 30px var(--primary);
+
+    --border-subtle: rgba(0, 0, 0, 0.1);
+    --border-medium: rgba(0, 0, 0, 0.18);
+    --border-accent: rgba(26, 145, 208, 0.4);
+    --border-accent-strong: rgba(26, 145, 208, 0.6);
+    --border-danger: rgba(204, 34, 34, 0.5);
+    --border-warning: rgba(217, 119, 6, 0.5);
+
+    --entity-ship: #0a0a0a;
+    --entity-ship-glow: #1a91d0;
+    --entity-asteroid: #1f2937;
+    --entity-pill: #1a91d0;
+    --entity-token: #c2410c;
+    --entity-ship-pickup: #7dd3fc;
+    --entity-shield: #7c3aed;
+    --entity-rapidfire: #d97706;
+    --entity-particle: #d97706;
+
+    --canvas-background: var(--surface-base);
+    --canvas-background-alpha: rgba(248, 248, 240, 0.4);
+    --canvas-ship-stroke: var(--entity-ship);
+    --canvas-ship-fill: var(--surface-base);
+    --canvas-ship-glow: var(--entity-ship-glow);
+    --canvas-asteroid-stroke: var(--entity-asteroid);
+    --canvas-bullet: var(--entity-ship);
+    --canvas-pill: var(--entity-pill);
+    --canvas-token: var(--entity-token);
+    --canvas-ship-pickup-fill: var(--entity-ship-pickup);
+    --canvas-ship-pickup-stroke: var(--entity-ship);
+    --canvas-ship-pickup-inner: #1a91d0;
+    --canvas-shield: var(--entity-shield);
+    --canvas-rapidfire: var(--entity-rapidfire);
+    --canvas-particle: var(--entity-particle);
+    --canvas-floating-text: var(--text-accent);
+    --space-token-0: #7c3aed;
+    --space-token-1: #0891b2;
+    --space-token-2: #16a34a;
+    --space-token-3: #d97706;
+    --space-token-4: #dc2626;
+    --space-token-5: #db2777;
+    --space-token-6: #2563eb;
+    --space-token-7: #65a30d;
+    --space-token-8: #c026d3;
+    --space-token-9: #0d9488;
+  }
+
   * {
     border-color: var(--border);
   }
 }
 
-/* Wallet Button Styles 
-*/
+/* ─── Wallet adapter overrides ──────────────────────────────────────────────── */
 .wallet-adapter-button {
   background-color: transparent !important;
-  border: 1px solid #4dc1f9 !important;
-  color: #4dc1f9 !important;
-  font-family: 'JetBrains Mono', monospace !important;  padding: 12px 24px !important;
+  border: 1px solid var(--primary) !important;
+  color: var(--primary) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  padding: 12px 24px !important;
   font-size: 12px !important;
   transition: all 0.3s ease !important;
   border-radius: 0;
 }
 
 .wallet-adapter-button:hover {
-  background-color: #4dc1f9 !important;
-  color: #000000 !important;
-  box-shadow: 0 0 10px #4dc1f9;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: 0 0 10px var(--primary);
 }
 
 .wallet-adapter-button:not(:disabled):hover {
-  background-color: #4dc1f9 !important;
+  background-color: var(--primary) !important;
 }
 
-/* Grain texture overlay for buttons */
+/* ─── Floating pickup text ──────────────────────────────────────────────────── */
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0px); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-56px); }
+}
+
+/* ─── Grain texture overlay for buttons ────────────────────────────────────── */
 .btn-grain {
   position: relative;
   overflow: hidden;

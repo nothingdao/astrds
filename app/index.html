@@ -7,6 +7,19 @@
   <link rel="icon" type="image/png" href="/astrds.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ASTRDS</title>
+  <script>
+    (() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('astrds-theme') || '{}')
+        const mode = stored?.state?.mode === 'light' ? 'light' : 'dark'
+        document.documentElement.classList.add(`theme-${mode}`)
+        document.documentElement.dataset.theme = mode
+      } catch {
+        document.documentElement.classList.add('theme-dark')
+        document.documentElement.dataset.theme = 'dark'
+      }
+    })()
+  </script>
 </head>
 
 <body>
