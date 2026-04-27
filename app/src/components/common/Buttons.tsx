@@ -22,115 +22,129 @@ export const QuarterButton = ({
       onClick={onClick}
       disabled={disabled}
       style={{
-        display: 'flex',
-        alignItems: 'stretch',
-        background: '#0d0000',
-        border: '3px solid #000',
-        borderRadius: '6px',
-        boxShadow: '0 6px 0 #000, 0 8px 16px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,80,80,0.15)',
+        background: '#000',
+        border: 'none',
+        borderRadius: '3px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled && !isLoading ? 0.45 : 1,
-        padding: 0,
-        overflow: 'hidden',
+        padding: '10px 10px 10px 6px',
         userSelect: 'none',
-        transition: 'box-shadow 0.1s, transform 0.1s',
-        minWidth: '200px',
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: '8px',
+        boxShadow: '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)',
+        transition: 'box-shadow 0.08s, transform 0.08s',
         fontFamily: 'inherit',
       }}
       onMouseDown={(e) => {
         if (!disabled) {
-          e.currentTarget.style.boxShadow = '0 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,80,80,0.15)'
-          e.currentTarget.style.transform = 'translateY(3px)'
+          e.currentTarget.style.boxShadow = '0 1px 0 #111, 0 2px 8px rgba(0,0,0,0.9)'
+          e.currentTarget.style.transform = 'translateY(4px)'
         }
       }}
       onMouseUp={(e) => {
-        e.currentTarget.style.boxShadow = '0 6px 0 #000, 0 8px 16px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,80,80,0.15)'
+        e.currentTarget.style.boxShadow = '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)'
         e.currentTarget.style.transform = 'translateY(0)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 6px 0 #000, 0 8px 16px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,80,80,0.15)'
+        e.currentTarget.style.boxShadow = '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)'
         e.currentTarget.style.transform = 'translateY(0)'
       }}
     >
-      {/* Coin slot strip */}
+      {/* Left coin slot bar */}
       <div style={{
-        width: '26px',
-        background: 'linear-gradient(to right, #1a0000, #0d0000)',
-        borderRight: '2px solid #000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: '8px',
+        background: '#0a0000',
+        borderRadius: '2px',
         flexShrink: 0,
+        position: 'relative',
       }}>
         <div style={{
-          width: '10px',
-          height: '3px',
-          background: '#000',
-          borderRadius: '1px',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,1), 0 1px 0 rgba(180,30,30,0.3)',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '4px',
+          height: '20px',
+          background: '#1a0000',
+          borderRadius: '2px',
         }} />
       </div>
 
-      {/* Main face */}
+      {/* Main panel: red border, black bg, stacked text */}
       <div style={{
-        flex: 1,
-        background: 'linear-gradient(160deg, #7a0000 0%, #5c0000 50%, #3d0000 100%)',
-        margin: '3px',
-        borderRadius: '3px',
-        border: '2px solid #000',
-        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,60,60,0.1)',
+        border: '3px solid #cc0000',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '10px 18px',
-        gap: '1px',
+        padding: '10px 20px 6px',
+        gap: 0,
+        minWidth: '130px',
       }}>
         {isLoading ? (
           <div style={{
-            color: '#ff4444',
-            fontSize: '11px',
-            letterSpacing: '0.15em',
-            textShadow: '0 1px 2px #000, 0 0 8px rgba(255,60,60,0.4)',
-            fontFamily: '"Press Start 2P", monospace',
+            color: '#cc0000',
+            fontSize: '10px',
+            letterSpacing: '0.1em',
+            fontFamily: '"Press Start 2P", Impact, sans-serif',
             textAlign: 'center',
-            lineHeight: 1.6,
+            padding: '16px 0',
+            lineHeight: 1.8,
           }}>
             {label}
           </div>
         ) : (
           <>
             <div style={{
-              color: '#ff3333',
-              fontSize: '15px',
-              fontWeight: 900,
-              letterSpacing: '0.05em',
-              textShadow: '1px 1px 0 #000, -1px -1px 0 rgba(255,120,120,0.2), 0 0 8px rgba(200,0,0,0.5)',
+              color: '#cc0000',
+              fontSize: '32px',
               fontFamily: 'Impact, "Arial Narrow", sans-serif',
+              letterSpacing: '0.02em',
               lineHeight: 1,
+              marginBottom: '8px',
             }}>
               25¢
             </div>
+
+            {/* Divider */}
+            <div style={{ width: '100%', height: '2px', background: '#cc0000', marginBottom: '8px' }} />
+
             <div style={{
-              color: '#cc2222',
-              fontSize: '9px',
-              letterSpacing: '0.2em',
-              textShadow: '1px 1px 0 #000',
+              color: '#cc0000',
+              fontSize: '11px',
               fontFamily: 'Impact, "Arial Narrow", sans-serif',
+              letterSpacing: '0.12em',
               lineHeight: 1.2,
+              textAlign: 'center',
             }}>
               INSERT COIN TO
             </div>
             <div style={{
-              color: '#ff3333',
-              fontSize: '18px',
-              fontWeight: 900,
-              letterSpacing: '0.1em',
-              textShadow: '1px 1px 0 #000, -1px -1px 0 rgba(255,120,120,0.2), 0 0 10px rgba(200,0,0,0.6)',
+              color: '#cc0000',
+              fontSize: '40px',
               fontFamily: 'Impact, "Arial Narrow", sans-serif',
+              letterSpacing: '0.05em',
               lineHeight: 1,
+              marginBottom: '10px',
             }}>
               PLAY
+            </div>
+
+            {/* Bottom reject strip */}
+            <div style={{
+              border: '1px solid #550000',
+              width: '100%',
+              textAlign: 'center',
+              padding: '2px 0',
+            }}>
+              <span style={{
+                color: '#550000',
+                fontSize: '7px',
+                fontFamily: 'Impact, "Arial Narrow", sans-serif',
+                letterSpacing: '0.15em',
+              }}>
+                PUSH TO REJECT
+              </span>
             </div>
           </>
         )}
