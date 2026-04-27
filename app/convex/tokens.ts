@@ -145,6 +145,9 @@ export const prepareMint = action({
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
     if (!session) throw new Error('Game session not found')
+    if (session.walletAddress !== playerWalletAddress) {
+      throw new Error('Session does not belong to this wallet')
+    }
     if (session.astrdsEarned === undefined) {
       throw new Error('Game server has not submitted your final score yet — please wait a moment and try again')
     }
