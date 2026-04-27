@@ -8,6 +8,7 @@ import {
   BulletMethods,
 } from '@/types/entities/bullet'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Bullet implements BulletState, BulletMethods {
   public id: string
@@ -34,7 +35,7 @@ export default class Bullet implements BulletState, BulletMethods {
       radius = 4,
       power = 10,
       speed = 25,
-      color = '#fff',
+      color = getCanvasTokens().bulletDefault,
       piercing = false,
       lifeSpan = 55,
     } = args

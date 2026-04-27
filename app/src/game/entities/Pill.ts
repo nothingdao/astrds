@@ -6,6 +6,7 @@ import {
   PillMethods,
 } from '@/types/entities/pill'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Pill implements PillState, PillMethods {
   public id: string
@@ -63,7 +64,7 @@ export default class Pill implements PillState, PillMethods {
     this.type = args.type || 'standard'
     this.timeToLive = 15 * 1000 // 15 seconds lifetime
     this.creation = Date.now()
-    this.color = '#4dc1f9'
+    this.color = getCanvasTokens().pill
     this.rotation = 0
   }
 

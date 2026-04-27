@@ -1,5 +1,6 @@
 // src/game/systems/BulletSystem.ts
 import { useEngineStore } from '@/stores/engineStore'
+import { getCanvasTokens } from '@/lib/designTokens'
 import Bullet from '../entities/Bullet'
 
 export class BulletSystem {
@@ -92,7 +93,7 @@ export class BulletSystem {
           radius: 5,
           power: 4,
           speed: 18,
-          color: '#4dc1f9',
+          color: getCanvasTokens().pill,
           piercing: true,
           lifeSpan: 25,
         })

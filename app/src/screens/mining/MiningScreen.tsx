@@ -106,33 +106,33 @@ const TokenRow: React.FC<{ group: GroupedToken; onClick: () => void }> = ({ grou
   return (
     <button
       onClick={onClick}
-      className='w-full border border-white/8 rounded-lg p-4 hover:border-white/20 hover:bg-white/[0.02] transition-all text-left flex flex-col gap-3'
+      className='w-full border border-border rounded-lg p-4 hover:border-edge-medium hover:bg-surface-subtle transition-all text-left flex flex-col gap-3'
     >
       {/* Logo + symbol */}
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           {group.logoUri
             ? <img src={group.logoUri} alt={group.symbol} className='w-7 h-7 rounded-full object-cover' />
-            : <div className='w-7 h-7 rounded-full bg-purple-500/15 flex items-center justify-center'><span className='text-[8px] font-mono text-purple-400'>{group.symbol.slice(0, 2)}</span></div>
+            : <div className='w-7 h-7 rounded-full bg-[var(--entity-shield)]/15 flex items-center justify-center'><span className='text-[8px] font-mono text-[var(--entity-shield)]'>{group.symbol.slice(0, 2)}</span></div>
           }
           <div>
-            <div className='font-mono text-xs text-white/80'>{group.symbol}</div>
-            <div className='font-mono text-[9px] text-white/25 truncate max-w-[80px]'>{group.name}</div>
+            <div className='font-mono text-xs text-tx-primary'>{group.symbol}</div>
+            <div className='font-mono text-[9px] text-tx-dim truncate max-w-[80px]'>{group.name}</div>
           </div>
         </div>
-        <ChevronRight size={12} className='text-white/15' />
+        <ChevronRight size={12} className='text-tx-dim' />
       </div>
 
       {/* Price */}
       <div>
         {market === null
-          ? <div className='font-mono text-[10px] text-white/15 animate-pulse'>fetching...</div>
+          ? <div className='font-mono text-[10px] text-tx-dim animate-pulse'>fetching...</div>
           : market.price === null
-          ? <div className='font-mono text-[10px] text-white/15'>no price data</div>
+          ? <div className='font-mono text-[10px] text-tx-dim'>no price data</div>
           : <>
-              <div className='font-mono text-sm text-white/70'>{formatUsd(market.price)}</div>
+              <div className='font-mono text-sm text-tx-secondary'>{formatUsd(market.price)}</div>
               {change !== null && (
-                <div className={`flex items-center gap-0.5 font-mono text-[9px] mt-0.5 ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`flex items-center gap-0.5 font-mono text-[9px] mt-0.5 ${isUp ? 'text-tx-success' : 'text-destructive'}`}>
                   {isUp ? <TrendingUp size={8} /> : <TrendingDown size={8} />}
                   {isUp ? '+' : ''}{change.toFixed(2)}%
                 </div>
@@ -143,13 +143,13 @@ const TokenRow: React.FC<{ group: GroupedToken; onClick: () => void }> = ({ grou
 
       {/* Depletion */}
       <div>
-        <div className='flex items-center justify-between font-mono text-[8px] text-white/20 mb-1'>
+        <div className='flex items-center justify-between font-mono text-[8px] text-tx-dim mb-1'>
           <span>{remaining.toLocaleString(undefined, { maximumFractionDigits: 0 })} left</span>
           <span>{group.deposits.length} pool{group.deposits.length !== 1 ? 's' : ''}</span>
         </div>
-        <div className='w-full h-0.5 bg-white/5 rounded-full overflow-hidden'>
+        <div className='w-full h-0.5 bg-surface-subtle rounded-full overflow-hidden'>
           <div
-            className={`h-full transition-all ${pct > 0.5 ? 'bg-purple-400/50' : pct > 0.2 ? 'bg-yellow-400/50' : 'bg-red-400/50'}`}
+            className={`h-full transition-all ${pct > 0.5 ? 'bg-[var(--entity-shield)]/50' : pct > 0.2 ? 'bg-[var(--text-warning)]/50' : 'bg-destructive/50'}`}
             style={{ width: `${pct * 100}%` }}
           />
         </div>
@@ -172,27 +172,27 @@ const TokenDetail: React.FC<{ group: GroupedToken; onDepositor: (addr: string) =
     <div className='space-y-4'>
 
       {/* Hero */}
-      <div className='border border-white/8 rounded-lg p-5'>
+      <div className='border border-border rounded-lg p-5'>
         <div className='flex items-start justify-between mb-4'>
           <div className='flex items-center gap-3'>
             {group.logoUri
               ? <img src={group.logoUri} alt={group.symbol} className='w-12 h-12 rounded-full object-cover' />
-              : <div className='w-12 h-12 rounded-full bg-purple-500/15 flex items-center justify-center'><span className='text-xs font-mono text-purple-400'>{group.symbol.slice(0, 2)}</span></div>
+              : <div className='w-12 h-12 rounded-full bg-[var(--entity-shield)]/15 flex items-center justify-center'><span className='text-xs font-mono text-[var(--entity-shield)]'>{group.symbol.slice(0, 2)}</span></div>
             }
             <div>
-              <div className='font-mono text-lg text-white/90'>{group.symbol}</div>
-              <div className='font-mono text-[11px] text-white/35'>{group.name}</div>
+              <div className='font-mono text-lg text-tx-primary'>{group.symbol}</div>
+              <div className='font-mono text-[11px] text-tx-tertiary'>{group.name}</div>
             </div>
           </div>
           <div className='flex items-center gap-2'>
             {market?.dexUrl && (
               <a href={market.dexUrl} target='_blank' rel='noopener noreferrer'
-                className='font-mono text-[9px] text-white/25 border border-white/8 px-2 py-1 hover:border-white/20 hover:text-white/50 transition-colors flex items-center gap-1'>
+                className='font-mono text-[9px] text-tx-dim border border-border px-2 py-1 hover:border-edge-medium hover:text-tx-secondary transition-colors flex items-center gap-1'>
                 DexScreener <ExternalLink size={9} />
               </a>
             )}
             <button onClick={onDeposit}
-              className='font-mono text-[9px] text-game-blue/60 border border-game-blue/20 px-2 py-1 hover:border-game-blue/40 hover:text-game-blue transition-colors flex items-center gap-1'>
+              className='font-mono text-[9px] text-primary/60 border border-primary/20 px-2 py-1 hover:border-primary/40 hover:text-primary transition-colors flex items-center gap-1'>
               <Plus size={9} /> Add Pool
             </button>
           </div>
@@ -202,9 +202,9 @@ const TokenDetail: React.FC<{ group: GroupedToken; onDepositor: (addr: string) =
         {market && market.price !== null && (
           <div className='flex items-end gap-6 mb-4'>
             <div>
-              <div className='font-mono text-2xl text-white/80'>{formatUsd(market.price)}</div>
+              <div className='font-mono text-2xl text-tx-primary'>{formatUsd(market.price)}</div>
               {change !== null && (
-                <div className={`flex items-center gap-1 font-mono text-xs mt-0.5 ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`flex items-center gap-1 font-mono text-xs mt-0.5 ${isUp ? 'text-tx-success' : 'text-destructive'}`}>
                   {isUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                   {isUp ? '+' : ''}{change.toFixed(2)}% 24h
                 </div>
@@ -212,27 +212,27 @@ const TokenDetail: React.FC<{ group: GroupedToken; onDepositor: (addr: string) =
             </div>
             {market.volume24h !== null && (
               <div>
-                <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>24h Vol</div>
-                <div className='font-mono text-sm text-white/50'>{formatLarge(market.volume24h)}</div>
+                <div className='font-mono text-[9px] text-tx-dim uppercase tracking-widest'>24h Vol</div>
+                <div className='font-mono text-sm text-tx-secondary'>{formatLarge(market.volume24h)}</div>
               </div>
             )}
             {market.liquidity !== null && (
               <div>
-                <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>Liquidity</div>
-                <div className='font-mono text-sm text-white/50'>{formatLarge(market.liquidity)}</div>
+                <div className='font-mono text-[9px] text-tx-dim uppercase tracking-widest'>Liquidity</div>
+                <div className='font-mono text-sm text-tx-secondary'>{formatLarge(market.liquidity)}</div>
               </div>
             )}
           </div>
         )}
 
         {/* Pool totals */}
-        <div className='flex items-center justify-between font-mono text-[10px] text-white/30 mb-1.5'>
+        <div className='flex items-center justify-between font-mono text-[10px] text-muted-foreground mb-1.5'>
           <span>{remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })} of {total.toLocaleString(undefined, { maximumFractionDigits: 2 })} remaining</span>
           <span>{Math.round(pct * 100)}%</span>
         </div>
-        <div className='w-full h-1 bg-white/5 rounded-full overflow-hidden'>
+        <div className='w-full h-1 bg-surface-subtle rounded-full overflow-hidden'>
           <div
-            className={`h-full transition-all ${pct > 0.5 ? 'bg-purple-400/60' : pct > 0.2 ? 'bg-yellow-400/60' : 'bg-red-400/60'}`}
+            className={`h-full transition-all ${pct > 0.5 ? 'bg-[var(--entity-shield)]/60' : pct > 0.2 ? 'bg-[var(--text-warning)]/60' : 'bg-destructive/60'}`}
             style={{ width: `${pct * 100}%` }}
           />
         </div>
@@ -240,7 +240,7 @@ const TokenDetail: React.FC<{ group: GroupedToken; onDepositor: (addr: string) =
 
       {/* Depositor pools */}
       <div className='space-y-2'>
-        <div className='font-mono text-[9px] text-white/25 uppercase tracking-widest'>Depositors</div>
+        <div className='font-mono text-[9px] text-tx-dim uppercase tracking-widest'>Depositors</div>
         <div className='grid grid-cols-2 gap-2'>
           {group.deposits.map((d) => {
             const dr = d.remainingAmount / 10 ** group.decimals
@@ -250,19 +250,19 @@ const TokenDetail: React.FC<{ group: GroupedToken; onDepositor: (addr: string) =
               <button
                 key={d._id}
                 onClick={() => onDepositor(d.walletAddress)}
-                className='border border-white/5 rounded-lg p-3 text-left hover:border-white/15 hover:bg-white/[0.02] transition-all flex flex-col gap-2'
+                className='border border-edge-subtle rounded-lg p-3 text-left hover:border-edge-subtle hover:bg-surface-subtle transition-all flex flex-col gap-2'
               >
-                <div className='font-mono text-[10px] text-game-blue/60 hover:text-game-blue transition-colors'>
+                <div className='font-mono text-[10px] text-primary/60 hover:text-primary transition-colors'>
                   {short(d.walletAddress)}
                 </div>
-                <div className='font-mono text-[9px] text-white/25'>
+                <div className='font-mono text-[9px] text-tx-dim'>
                   {dr.toLocaleString(undefined, { maximumFractionDigits: 0 })} left
                 </div>
-                <div className='font-mono text-[8px] text-white/20'>
+                <div className='font-mono text-[8px] text-tx-dim'>
                   L{d.minLevel}–{d.maxLevel} · {(d.tokensPerPill / 10 ** group.decimals).toLocaleString(undefined, { maximumFractionDigits: 2 })}/pill
                 </div>
-                <div className='w-full h-0.5 bg-white/5 rounded-full overflow-hidden'>
-                  <div className='h-full bg-purple-400/40' style={{ width: `${dp * 100}%` }} />
+                <div className='w-full h-0.5 bg-surface-subtle rounded-full overflow-hidden'>
+                  <div className='h-full bg-[var(--entity-shield)]/40' style={{ width: `${dp * 100}%` }} />
                 </div>
               </button>
             )
@@ -293,20 +293,20 @@ const MiningScreen = ({ onClose }: { onClose: () => void }) => {
         <div className='flex items-center gap-2 mb-4'>
           <button
             onClick={() => setView({ type: 'list' })}
-            className='flex items-center gap-1 font-mono text-[10px] text-white/30 hover:text-white/60 transition-colors'
+            className='flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-tx-secondary transition-colors'
           >
             <ArrowLeft size={11} /> Mining
           </button>
           {view.type === 'token' && currentGroup && (
             <>
-              <ChevronRight size={10} className='text-white/15' />
-              <span className='font-mono text-[10px] text-white/50'>{currentGroup.symbol}</span>
+              <ChevronRight size={10} className='text-tx-dim' />
+              <span className='font-mono text-[10px] text-tx-secondary'>{currentGroup.symbol}</span>
             </>
           )}
           {view.type === 'depositor' && (
             <>
-              <ChevronRight size={10} className='text-white/15' />
-              <span className='font-mono text-[10px] text-white/50'>{short(view.address)}</span>
+              <ChevronRight size={10} className='text-tx-dim' />
+              <span className='font-mono text-[10px] text-tx-secondary'>{short(view.address)}</span>
             </>
           )}
         </div>
@@ -316,25 +316,25 @@ const MiningScreen = ({ onClose }: { onClose: () => void }) => {
       {view.type === 'list' && (
         <div className='space-y-3'>
           <div className='flex items-center justify-between mb-1'>
-            <p className='font-mono text-[10px] text-white/25'>
+            <p className='font-mono text-[10px] text-tx-dim'>
               Tokens floating in the asteroid field. Collect and claim on game over.
             </p>
             <button
               onClick={handleDeposit}
-              className='flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-game-blue/60 border border-game-blue/20 px-3 py-1.5 hover:border-game-blue/50 hover:text-game-blue transition-colors shrink-0 ml-4'
+              className='flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-primary/60 border border-primary/20 px-3 py-1.5 hover:border-primary/50 hover:text-primary transition-colors shrink-0 ml-4'
             >
               <Plus size={11} /> Deposit
             </button>
           </div>
 
           {!activeDeposits ? (
-            <div className='font-mono text-[10px] text-white/20 text-center py-12'>Loading...</div>
+            <div className='font-mono text-[10px] text-tx-dim text-center py-12'>Loading...</div>
           ) : groups.length === 0 ? (
-            <div className='border border-white/5 rounded-lg p-8 text-center space-y-3'>
-              <Rocket size={24} className='text-white/10 mx-auto' />
-              <p className='font-mono text-xs text-white/30'>No tokens in the asteroid field right now.</p>
+            <div className='border border-edge-subtle rounded-lg p-8 text-center space-y-3'>
+              <Rocket size={24} className='text-tx-dim mx-auto' />
+              <p className='font-mono text-xs text-muted-foreground'>No tokens in the asteroid field right now.</p>
               <button onClick={handleDeposit}
-                className='font-mono text-[10px] uppercase tracking-widest text-game-blue/60 border border-game-blue/20 px-4 py-2 hover:border-game-blue/50 hover:text-game-blue transition-colors'>
+                className='font-mono text-[10px] uppercase tracking-widest text-primary/60 border border-primary/20 px-4 py-2 hover:border-primary/50 hover:text-primary transition-colors'>
                 Launch Tokens into Space
               </button>
             </div>

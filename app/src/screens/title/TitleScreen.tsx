@@ -5,6 +5,7 @@ import { useServerStore } from '@/stores/serverStore'
 import { QuarterButton } from '@/components/common/Buttons'
 import { MachineState } from '@/types/machine'
 import { authService } from '@/auth/AuthService'
+import ScreenContainer from '@/components/common/ScreenContainer'
 
 type ServerEntry = {
   id: string
@@ -32,11 +33,11 @@ async function probeServer(wsUrl: string): Promise<{ online: boolean; ping: numb
 }
 
 const PingDot: React.FC<{ online: boolean | null; ping: number | null }> = ({ online, ping }) => {
-  if (online === null) return <span className='w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse inline-block' />
-  if (!online) return <span className='w-1.5 h-1.5 rounded-full bg-red-400/50 inline-block' />
-  if (ping !== null && ping < 80) return <span className='w-1.5 h-1.5 rounded-full bg-green-400 inline-block' />
-  if (ping !== null && ping < 150) return <span className='w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block' />
-  return <span className='w-1.5 h-1.5 rounded-full bg-red-400 inline-block' />
+  if (online === null) return <span className='w-1.5 h-1.5 rounded-full bg-surface-subtle animate-pulse inline-block' />
+  if (!online) return <span className='w-1.5 h-1.5 rounded-full bg-destructive/50 inline-block' />
+  if (ping !== null && ping < 80) return <span className='w-1.5 h-1.5 rounded-full bg-[var(--text-success)] inline-block' />
+  if (ping !== null && ping < 150) return <span className='w-1.5 h-1.5 rounded-full bg-[var(--text-warning)] inline-block' />
+  return <span className='w-1.5 h-1.5 rounded-full bg-destructive inline-block' />
 }
 
 const TitleScreen: React.FC = () => {
@@ -110,23 +111,18 @@ const TitleScreen: React.FC = () => {
   }, [wallet, isPaying, selectedId, gameState])
 
   return (
-    <div className='fixed inset-0 overflow-hidden bg-black'>
-      {/* Background image */}
-      <div
-        className='absolute inset-0 bg-cover bg-center bg-no-repeat'
-        style={{ backgroundImage: "url('/assets/wojak-on-moon.png')" }}
-      />
+    <ScreenContainer screenType='INITIAL' mode='fullscreen' className='overflow-hidden'>
 
       {/* Gradient overlays */}
-      <div className='absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/95' />
-      <div className='absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/60' />
+      <div className='absolute inset-0 bg-gradient-to-b from-background/70 via-background/20 to-background/85' />
+      <div className='absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-background/50' />
 
       {/* Scanlines */}
       <div
         className='absolute inset-0 pointer-events-none opacity-30'
         style={{
           backgroundImage:
-            'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.4) 3px, rgba(0,0,0,0.4) 4px)',
+            'repeating-linear-gradient(0deg, transparent, transparent 3px, var(--surface-overlay) 3px, var(--surface-overlay) 4px)',
         }}
       />
 
@@ -136,13 +132,13 @@ const TitleScreen: React.FC = () => {
           className='absolute inset-0 opacity-20'
           style={{
             backgroundImage:
-              'linear-gradient(rgba(77,193,249,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(77,193,249,0.6) 1px, transparent 1px)',
+              'linear-gradient(color-mix(in srgb, var(--primary) 60%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--primary) 60%, transparent) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
             transform: 'perspective(400px) rotateX(70deg)',
             transformOrigin: 'bottom center',
           }}
         />
-        <div className='absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/80' />
+        <div className='absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/60' />
       </div>
 
       {/* Main layout */}
@@ -150,7 +146,7 @@ const TitleScreen: React.FC = () => {
 
         {/* Top: studio credit */}
         <div className='text-center'>
-          <p className='font-mono text-xs text-white/25 uppercase tracking-[0.5em]'>
+          <p className='font-mono text-xs text-tx-dim uppercase tracking-[0.5em]'>
             nothingdao presents
           </p>
         </div>
@@ -158,19 +154,18 @@ const TitleScreen: React.FC = () => {
         {/* Center: title block */}
         <div className='text-center flex flex-col items-center gap-6'>
           <h1
-            className='font-mono font-black uppercase leading-none text-white select-none'
+            className='font-mono font-black uppercase leading-none text-foreground select-none'
             style={{
               fontSize: 'clamp(5rem, 18vw, 16rem)',
               letterSpacing: '0.05em',
-              textShadow:
-                '0 0 30px #4dc1f9, 0 0 60px #4dc1f9, 0 0 100px #4dc1f9, 0 0 200px rgba(77,193,249,0.4)',
+              textShadow: 'var(--text-shadow-accent-glow)',
               animation: 'glow 2s ease-in-out infinite alternate',
             }}
           >
             ASTRDS
           </h1>
 
-          <p className='font-mono text-xl text-white/35 uppercase tracking-[0.7em]'>
+          <p className='font-mono text-xl text-tx-tertiary uppercase tracking-[0.7em]'>
             mine &nbsp;·&nbsp; survive &nbsp;·&nbsp; or die trying
           </p>
 
@@ -179,7 +174,7 @@ const TitleScreen: React.FC = () => {
             {['Token-2022', 'Solana Devnet', 'Mine $ASTRDS'].map((badge) => (
               <span
                 key={badge}
-                className='font-mono text-[10px] text-game-blue/50 uppercase tracking-widest border border-game-blue/15 px-3 py-1'
+                className='font-mono text-[10px] text-primary/50 uppercase tracking-widest border border-primary/15 px-3 py-1'
               >
                 {badge}
               </span>
@@ -189,7 +184,7 @@ const TitleScreen: React.FC = () => {
 
         {/* Server picker */}
         <div className='flex flex-col items-center gap-2'>
-          <p className='font-mono text-[9px] text-white/20 uppercase tracking-[0.5em] mb-1'>Select Server</p>
+          <p className='font-mono text-[9px] text-tx-dim uppercase tracking-[0.5em] mb-1'>Select Server</p>
           <div className='flex gap-2 flex-wrap justify-center'>
             {servers.map((server) => (
               <button
@@ -198,16 +193,16 @@ const TitleScreen: React.FC = () => {
                 disabled={server.online === false}
                 className={`font-mono text-[9px] uppercase tracking-widest px-3 py-2 border transition-colors flex items-center gap-2 min-w-[120px] ${
                   server.online === false
-                    ? 'border-white/5 text-white/15 cursor-not-allowed'
+                    ? 'border-edge-subtle text-tx-dim cursor-not-allowed'
                     : selectedId === server.id
-                    ? 'border-game-blue/60 text-game-blue bg-game-blue/10'
-                    : 'border-white/10 text-white/30 hover:border-white/25 hover:text-white/50'
+                    ? 'border-primary/60 text-primary bg-primary/10'
+                    : 'border-border text-muted-foreground hover:border-edge-medium hover:text-tx-secondary'
                 }`}
               >
                 <PingDot online={server.online} ping={server.ping} />
                 <span className='flex-1 text-left'>{server.label}</span>
                 {server.online === false ? (
-                  <span className='text-red-400/60'>offline</span>
+                  <span className='text-destructive/60'>offline</span>
                 ) : server.ping !== null ? (
                   <span className='opacity-40'>{server.ping}ms</span>
                 ) : (
@@ -225,28 +220,28 @@ const TitleScreen: React.FC = () => {
               <QuarterButton onClick={handlePlay} disabled={isPaying || !selectedId}>
                 {isPaying ? 'Sending $0.25...' : 'Insert Quarter'}
               </QuarterButton>
-              <p className='font-mono text-[10px] text-white/20 uppercase tracking-widest'>
+              <p className='font-mono text-[10px] text-tx-dim uppercase tracking-widest'>
                 $0.25 in SOL per play
               </p>
             </>
           ) : (
-            <p className='font-mono text-game-blue/50 uppercase tracking-[0.4em] text-sm animate-pulse'>
+            <p className='font-mono text-primary/50 uppercase tracking-[0.4em] text-sm animate-pulse'>
               — Connect wallet to play —
             </p>
           )}
 
           {error && (
-            <p className='font-mono text-red-400/80 text-xs text-center max-w-xs'>
+            <p className='font-mono text-destructive/80 text-xs text-center max-w-xs'>
               {error}
             </p>
           )}
 
-          <p className='font-mono text-[10px] text-white/12 uppercase tracking-[0.4em]'>
+          <p className='font-mono text-[10px] text-foreground/12 uppercase tracking-[0.4em]'>
             © 2025 nothingdao
           </p>
         </div>
       </div>
-    </div>
+    </ScreenContainer>
   )
 }
 

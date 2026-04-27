@@ -19,13 +19,28 @@ const SHIP_ROTATION_SPEED = 6
 const SHIP_ACCELERATION = 0.25
 const SHIP_INERTIA = 0.99
 const SHIP_INVULNERABILITY_MS = 3000
-const POWERUP_DURATION_MS = 10_000
-const MAX_LIVES = 5
 const PILL_SPAWN_DELAY_MS = 3000
 const TOKEN_SPAWN_DELAY_MS = 5000
-const SHIP_PICKUP_DELAY_MS = 20_000
 const SPACE_TOKEN_SPAWN_CHANCE = 0.25
 const STANDARD_TOKEN_COLOR = '#FF642D'
+export const SHIELD_PICKUP_COLOR = '#c084fc'
+export const RAPID_FIRE_PICKUP_COLOR = '#fbbf24'
+
+export interface SimulationConfig {
+  powerupSpawnDelayMs: number
+  shipPickupSpawnDelayMs: number
+  maxPowerupsOnScreen: number
+  powerupDurationMs: number
+  maxLives: number
+}
+
+export const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
+  powerupSpawnDelayMs: 15_000,
+  shipPickupSpawnDelayMs: 20_000,
+  maxPowerupsOnScreen: 2,
+  powerupDurationMs: 10_000,
+  maxLives: 5,
+}
 const DEFAULT_EMISSION_TIER: EmissionTier = {
   tier: 2,
   pillsPerGame: 10,
@@ -61,6 +76,7 @@ export interface SimulationState {
   status: 'playing' | 'gameOver'
   screen: ScreenBounds
   input: InputState
+  config: SimulationConfig
   score: number
   level: number
   lives: number
@@ -83,9 +99,11 @@ export interface SimulationState {
     rapidFire: boolean
     expiresAt: number | null
   }
+  powerupPickups: MutablePickup[]
   lastPillSpawnAt: number
   lastTokenSpawnAt: number
   lastShipPickupSpawnAt: number
+  lastPowerupSpawnAt: number
 }
 
 function createId(prefix: string): string {
@@ -297,6 +315,7 @@ export function createInitialSimulationState(
     status: 'playing',
     screen: { ...screen },
     input: { left: false, right: false, up: false, space: false },
+    config: { ...DEFAULT_SIMULATION_CONFIG },
     score: 0,
     level: 1,
     lives: 3,
@@ -319,9 +338,11 @@ export function createInitialSimulationState(
       rapidFire: false,
       expiresAt: null,
     },
+    powerupPickups: [],
     lastPillSpawnAt: now,
     lastTokenSpawnAt: now,
     lastShipPickupSpawnAt: now,
+    lastPowerupSpawnAt: now,
   }
 }
 
@@ -548,10 +569,13 @@ function maybeAdvanceLevel(state: SimulationState): void {
   state.pills = []
   state.tokens = []
   state.shipPickups = []
+  state.powerupPickups = []
   state.asteroids = spawnAsteroids(state.screen, state.asteroidCount, state.ship)
 }
 
 function maybeSpawnPickups(state: SimulationState, now: number): void {
+  const cfg = state.config
+
   if (state.pillsSpawned < state.pillsPerGameCap && now - state.lastPillSpawnAt >= PILL_SPAWN_DELAY_MS) {
     state.pills.push(createEdgePickup('pill', state.screen, '#4dc1f9', now))
     state.lastPillSpawnAt = now
@@ -575,10 +599,19 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
 
   if (
     state.shipPickups.length === 0 &&
-    now - state.lastShipPickupSpawnAt >= SHIP_PICKUP_DELAY_MS
+    now - state.lastShipPickupSpawnAt >= cfg.shipPickupSpawnDelayMs
   ) {
     state.shipPickups.push(createEdgePickup('shipPickup', state.screen, '#87CEEB', now))
     state.lastShipPickupSpawnAt = now
+  }
+
+  if (
+    state.powerupPickups.length < cfg.maxPowerupsOnScreen &&
+    now - state.lastPowerupSpawnAt >= cfg.powerupSpawnDelayMs
+  ) {
+    const color = Math.random() < 0.5 ? SHIELD_PICKUP_COLOR : RAPID_FIRE_PICKUP_COLOR
+    state.powerupPickups.push(createEdgePickup('powerup', state.screen, color, now))
+    state.lastPowerupSpawnAt = now
   }
 }
 
@@ -594,6 +627,7 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
   state.pills = updatePickups(state.pills, state.screen, dt, now)
   state.tokens = updateTokenPickups(state.tokens, state.screen, dt, now)
   state.shipPickups = updatePickups(state.shipPickups, state.screen, dt, now)
+  state.powerupPickups = updatePickups(state.powerupPickups, state.screen, dt, now)
 
   maybeShootBullet(state, now)
   resolveBulletAsteroidCollisions(state)
@@ -601,17 +635,24 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
   state.pills = resolveShipPickupCollision(state, state.pills, () => {
     state.pillsCollected += 1
     state.events.push({ type: 'pillCollected' })
-    state.powerups = {
-      invincible: true,
-      rapidFire: true,
-      expiresAt: now + POWERUP_DURATION_MS,
-    }
   })
+
+  if (state.ship) {
+    state.powerupPickups = state.powerupPickups.filter((pickup) => {
+      if (!checkCollision(state.ship!, pickup)) return true
+      if (pickup.color === SHIELD_PICKUP_COLOR) {
+        state.powerups = { ...state.powerups, invincible: true, expiresAt: now + state.config.powerupDurationMs }
+      } else {
+        state.powerups = { ...state.powerups, rapidFire: true, expiresAt: now + state.config.powerupDurationMs }
+      }
+      return false
+    })
+  }
 
   state.tokens = resolveShipTokenCollision(state)
 
   state.shipPickups = resolveShipPickupCollision(state, state.shipPickups, () => {
-    state.lives = Math.min(MAX_LIVES, state.lives + 1)
+    state.lives = Math.min(state.config.maxLives, state.lives + 1)
     state.events.push({ type: 'shipPickupCollected' })
   })
 
@@ -641,6 +682,10 @@ export function setSpaceTokenPools(state: SimulationState, pools: SpaceTokenPool
 export function setEmissionTier(state: SimulationState, tier: EmissionTier): void {
   state.emissionTier = { ...tier }
   state.pillsPerGameCap = tier.pillsPerGame
+}
+
+export function applySimulationConfig(state: SimulationState, config: SimulationConfig): void {
+  state.config = { ...config }
 }
 
 export function injectAuthorizedSpaceToken(
@@ -724,6 +769,16 @@ export function simulationToSnapshot(state: SimulationState): GameSnapshot {
       radius: pickup.radius,
       color: pickup.color,
     })),
+    powerupPickups: state.powerupPickups.map((pickup) => ({
+      id: pickup.id,
+      kind: pickup.kind,
+      position: { ...pickup.position },
+      velocity: { ...pickup.velocity },
+      rotation: pickup.rotation,
+      radius: pickup.radius,
+      color: pickup.color,
+    })),
+    emissionTier: { ...state.emissionTier },
     powerups: { ...state.powerups },
   }
 }

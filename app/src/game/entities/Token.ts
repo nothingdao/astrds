@@ -7,6 +7,7 @@ import {
   TokenMetadata,
 } from '@/types/entities/token'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Token implements TokenState, TokenMethods {
   public id: string
@@ -66,7 +67,7 @@ export default class Token implements TokenState, TokenMethods {
     this.type = args.type || 'standard'
     this.timeToLive = 15 * 1000 // 15 seconds lifetime
     this.creation = Date.now()
-    this.color = args.color ?? '#FF642D'
+    this.color = args.color ?? getCanvasTokens().token
     this.rotation = 0
 
     this.metadata = args.metadata || {

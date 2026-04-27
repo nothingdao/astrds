@@ -25,28 +25,28 @@ const PauseOverlay: React.FC<PauseOverlayProps> = ({
     <div className='fixed inset-0 z-50 flex items-center justify-center'>
       <div className='text-center space-y-8 max-w-lg w-full mx-4'>
         <h2
-          className='text-4xl font-bold text-game-blue animate-[glow_1.5s_ease-in-out_infinite_alternate]
-                     [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9,0_0_30px_#4dc1f9]'
+          className='text-4xl font-bold text-primary animate-[glow_1.5s_ease-in-out_infinite_alternate]
+                     [text-shadow:var(--text-shadow-accent-glow)]'
         >
           PAUSED
         </h2>
 
-        <div className='bg-black/50 border border-white/10 rounded-lg p-6'>
-          <h3 className='text-lg text-game-blue mb-4'>Keyboard Controls</h3>
+        <div className='bg-surface-overlay border border-border rounded-lg p-6'>
+          <h3 className='text-lg text-primary mb-4'>Keyboard Controls</h3>
           <div className='space-y-2'>
             {shortcuts.map(({ key, action }) => (
               <div
                 key={key}
                 className='flex justify-between items-center text-sm'
               >
-                <span className='text-white/80'>{action}</span>
-                <span className='text-game-blue font-mono'>{key}</span>
+                <span className='text-tx-secondary'>{action}</span>
+                <span className='text-primary font-mono'>{key}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className='bg-black/50 border border-white/10 rounded-lg p-4 flex justify-center'>
+        <div className='bg-surface-overlay border border-border rounded-lg p-4 flex justify-center'>
           <VolumeControl />
         </div>
 

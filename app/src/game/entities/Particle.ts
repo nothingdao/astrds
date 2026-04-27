@@ -6,6 +6,7 @@ import {
   ParticleMethods,
 } from '@/types/entities/particle'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Particle implements ParticleState, ParticleMethods {
   public id: string
@@ -58,7 +59,7 @@ export default class Particle implements ParticleState, ParticleMethods {
     if (!this.delete) {
       context.save()
       context.translate(this.position.x, this.position.y)
-      context.fillStyle = 'orange'
+      context.fillStyle = getCanvasTokens().particle
       context.lineWidth = 2
       context.beginPath()
       context.moveTo(0, -this.radius)

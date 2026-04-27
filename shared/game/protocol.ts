@@ -45,7 +45,7 @@ export interface BulletSnapshot {
   color: string
 }
 
-export type PickupKind = 'pill' | 'token' | 'shipPickup'
+export type PickupKind = 'pill' | 'token' | 'shipPickup' | 'powerup'
 
 export interface PickupSnapshot {
   id: string
@@ -95,12 +95,14 @@ export interface GameSnapshot {
   lives: number
   pillsCollected: number
   tokensCollected: number
+  emissionTier: EmissionTier
   ship: ShipSnapshot | null
   asteroids: AsteroidSnapshot[]
   bullets: BulletSnapshot[]
   pills: PickupSnapshot[]
   tokens: PickupSnapshot[]
   shipPickups: PickupSnapshot[]
+  powerupPickups: PickupSnapshot[]
   powerups: PowerupSnapshot
 }
 

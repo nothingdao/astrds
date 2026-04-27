@@ -21,7 +21,7 @@ const GameStateGuard: React.FC<GameStateGuardProps> = ({
 
 const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-black relative">
+    <div className="min-h-screen bg-background text-foreground relative">
       <main className="flex items-center justify-center min-h-screen">
         {children}
         <LevelTransition />

@@ -1,19 +1,21 @@
 import type { AsteroidSnapshot, GameSnapshot, PickupSnapshot, ShipSnapshot } from '@shared/game/protocol'
+import { getCanvasTokens, resolveCanvasColor } from '@/lib/designTokens'
 
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipSnapshot): void {
+  const colors = getCanvasTokens()
   ctx.save()
   ctx.translate(ship.position.x, ship.position.y)
 
   if (ship.isInvulnerable) {
-    ctx.shadowColor = '#4dc1f9'
+    ctx.shadowColor = colors.shipGlow
     ctx.shadowBlur = 10
     const pulseScale = 1 + Math.sin(Date.now() / 200) * 0.1
     ctx.scale(pulseScale, pulseScale)
   }
 
   ctx.rotate((ship.rotation * Math.PI) / 180)
-  ctx.strokeStyle = '#ffffff'
-  ctx.fillStyle = '#000000'
+  ctx.strokeStyle = colors.shipStroke
+  ctx.fillStyle = colors.shipFill
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.moveTo(0, -15)
@@ -28,10 +30,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipSnapshot): void {
 }
 
 function drawAsteroid(ctx: CanvasRenderingContext2D, asteroid: AsteroidSnapshot): void {
+  const colors = getCanvasTokens()
   ctx.save()
   ctx.translate(asteroid.position.x, asteroid.position.y)
   ctx.rotate((asteroid.rotation * Math.PI) / 180)
-  ctx.strokeStyle = '#fff'
+  ctx.strokeStyle = colors.asteroidStroke
   ctx.lineWidth = 0.4
   ctx.beginPath()
   ctx.moveTo(0, -asteroid.radius)
@@ -44,21 +47,23 @@ function drawAsteroid(ctx: CanvasRenderingContext2D, asteroid: AsteroidSnapshot)
 }
 
 function drawPickup(ctx: CanvasRenderingContext2D, pickup: PickupSnapshot): void {
+  const colors = getCanvasTokens()
+  const pickupColor = resolveCanvasColor(pickup.color)
   ctx.save()
   ctx.translate(pickup.position.x, pickup.position.y)
 
   if (pickup.kind === 'shipPickup') {
     ctx.beginPath()
     ctx.arc(0, 0, pickup.radius - 5, 0, Math.PI * 2)
-    ctx.fillStyle = pickup.color
+    ctx.fillStyle = pickupColor
     ctx.fill()
-    ctx.strokeStyle = '#FFFFFF'
+    ctx.strokeStyle = colors.shipPickupStroke
     ctx.lineWidth = 1
     ctx.shadowBlur = 10
-    ctx.shadowColor = '#FFFFFF'
+    ctx.shadowColor = colors.shipPickupStroke
     ctx.stroke()
     ctx.shadowBlur = 0
-    ctx.strokeStyle = '#1E90FF'
+    ctx.strokeStyle = colors.shipPickupInner
     ctx.beginPath()
     ctx.moveTo(0, -19.5)
     ctx.lineTo(13, 13)
@@ -71,7 +76,21 @@ function drawPickup(ctx: CanvasRenderingContext2D, pickup: PickupSnapshot): void
     return
   }
 
-  ctx.strokeStyle = pickup.color
+  if (pickup.kind === 'powerup') {
+    const pulse = 1 + Math.sin(Date.now() / 300) * 0.15
+    ctx.scale(pulse, pulse)
+    ctx.rotate(Math.PI / 4)
+    const s = pickup.radius * 0.8
+    ctx.strokeStyle = pickupColor
+    ctx.shadowColor = pickupColor
+    ctx.shadowBlur = 12
+    ctx.lineWidth = 2
+    ctx.strokeRect(-s, -s, s * 2, s * 2)
+    ctx.restore()
+    return
+  }
+
+  ctx.strokeStyle = pickupColor
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.arc(0, 0, pickup.radius, 0, 2 * Math.PI)
@@ -86,10 +105,9 @@ export function renderServerSnapshot(
 ): void {
   ctx.save()
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-  ctx.fillStyle = '#000'
-  ctx.globalAlpha = 0.4
+  const colors = getCanvasTokens()
+  ctx.fillStyle = colors.backgroundAlpha
   ctx.fillRect(0, 0, snapshot.screen.width, snapshot.screen.height)
-  ctx.globalAlpha = 1
 
   if (snapshot.ship) {
     drawShip(ctx, snapshot.ship)
@@ -101,13 +119,14 @@ export function renderServerSnapshot(
     ctx.save()
     ctx.translate(bullet.position.x, bullet.position.y)
     ctx.rotate((bullet.rotation * Math.PI) / 180)
-    ctx.fillStyle = bullet.color
+    const bulletColor = resolveCanvasColor(bullet.color)
+    ctx.fillStyle = bulletColor
     ctx.beginPath()
     ctx.arc(0, 0, bullet.radius, 0, 2 * Math.PI)
     ctx.closePath()
     ctx.fill()
     if (bullet.power > 1) {
-      ctx.shadowColor = bullet.color
+      ctx.shadowColor = bulletColor
       ctx.shadowBlur = bullet.power * 2
       ctx.fill()
     }
@@ -117,6 +136,7 @@ export function renderServerSnapshot(
   snapshot.pills.forEach((pickup) => drawPickup(ctx, pickup))
   snapshot.tokens.forEach((pickup) => drawPickup(ctx, pickup))
   snapshot.shipPickups.forEach((pickup) => drawPickup(ctx, pickup))
+  snapshot.powerupPickups.forEach((pickup) => drawPickup(ctx, pickup))
 
   ctx.restore()
 }

@@ -5,6 +5,7 @@ import {
   ShipPickupMethods,
 } from '@/types/entities/shipPickup'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class ShipPickup implements ShipPickupState, ShipPickupMethods {
   public id: string
@@ -33,27 +34,25 @@ export default class ShipPickup implements ShipPickupState, ShipPickupMethods {
   update(_dt: number, _screen: ScreenBounds): void {}
 
   render(context: CanvasRenderingContext2D): void {
+    const colors = getCanvasTokens()
     context.save()
     context.translate(this.position.x, this.position.y)
 
     // Draw a filled circle behind the ship shape (no pulsing effect)
     context.beginPath()
     context.arc(0, 0, this.radius - 5, 0, Math.PI * 2) // Slightly smaller radius
-    context.fillStyle = '#87CEEB' // Light blue fill color
-    context.fill() // Fill the circle
+    context.fillStyle = colors.shipPickupFill
+    context.fill()
 
-    // Draw a glowing white outline for the circle
-    context.strokeStyle = '#FFFFFF'
-    context.lineWidth = 1 // Outline thickness
-    context.shadowBlur = 10 // Glow effect
-    context.shadowColor = '#FFFFFF'
-    context.stroke() // Draw only the outline, no fill
+    context.strokeStyle = colors.shipPickupStroke
+    context.lineWidth = 1
+    context.shadowBlur = 10
+    context.shadowColor = colors.shipPickupStroke
+    context.stroke()
 
-    // Reset shadow settings for the ship shape
     context.shadowBlur = 0
 
-    // Draw the ship shape with a blue outline only, no fill
-    context.strokeStyle = '#1E90FF' // Solid blue outline
+    context.strokeStyle = colors.shipPickupInner
     context.lineWidth = 1 // Thin outline
 
     // Make the ship shape larger than the circle

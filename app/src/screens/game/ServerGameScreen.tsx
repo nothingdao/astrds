@@ -10,7 +10,12 @@ import { MachineState } from '@/types/machine'
 import { renderServerSnapshot } from '@/game/renderServerSnapshot'
 import { particleSystem } from '@/game/systems/ParticleSystem'
 import { audioService } from '@/services/audio/AudioService'
+import { audioManager } from '@/services/audio/AudioManager'
 import { ShipIcon } from '@/components/icons/GameIcons'
+import { getAstrdsColor, getTokenColor, getTokenProtocolColor } from '@/lib/tokenColors'
+import { resolveCanvasColor } from '@/lib/designTokens'
+import { getCanvasTokens } from '@/lib/designTokens'
+import { SHIELD_PICKUP_COLOR, RAPID_FIRE_PICKUP_COLOR } from '@shared/game/simulation'
 import type {
   ClientToServerMessage,
   GameSnapshot,
@@ -50,6 +55,8 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
   })
   const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed'>('connecting')
   const [isRespawning, setIsRespawning] = useState(false)
+  const [floatingTexts, setFloatingTexts] = useState<Array<{ id: number; x: number; y: number; text: string; color: string }>>([])
+  const floatingIdRef = useRef(0)
 
   const setMachineState = useStateMachine((state) => state.setState)
   const setPause = useStateMachine((state) => state.setPause)
@@ -141,7 +148,9 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
         for (const a of prev.asteroids) {
           if (!newAsteroidIds.has(a.id)) {
             particleSystem.createExplosion(a.position, a.radius, 15)
-            audioService.playSound('explosion')
+            audioManager.playFromSfxBucket(
+              a.radius >= 32 ? 'asteroidDestroyLarge' : a.radius >= 18 ? 'asteroidDestroyMedium' : 'asteroidDestroySmall'
+            )
           }
         }
 
@@ -157,14 +166,95 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           for (let i = 0; i < newCount; i++) audioService.playSound('shoot')
         }
 
-        // Pill collected
+        // ASTRDS pills — diff prev.pills to get exact position, amount from emissionTier
         if (snap.pillsCollected > prevPillsRef.current) {
           audioService.playSound('collect')
+          const pillDelta = snap.pillsCollected - prevPillsRef.current
+          const astrdsPerPill = snap.emissionTier.astrdsPerPill
+          const newPillIds = new Set(snap.pills.map((p) => p.id))
+          let shown = 0
+          for (const pill of prev.pills) {
+            if (shown >= pillDelta) break
+            if (!newPillIds.has(pill.id)) {
+              shown++
+              const id = ++floatingIdRef.current
+              setFloatingTexts((ft) => [...ft.slice(-9), {
+                id,
+                x: pill.position.x,
+                y: pill.position.y - pill.radius - 4,
+                text: `+${astrdsPerPill} ASTRDS`,
+                color: getAstrdsColor(),
+              }])
+            }
+          }
         }
 
-        // Space token collected
+        // Tokens — diff prev.tokens for exact position; look up pool in activePools by color
         if (snap.tokensCollected > prevTokensRef.current) {
-          audioService.playSound('collect')
+          audioManager.playFromSfxBucket('spaceTokenCollect')
+          const delta = snap.tokensCollected - prevTokensRef.current
+          const newTokenIds = new Set(snap.tokens.map((t) => t.id))
+          const { activePools, recordCollection } = useSpaceTokenStore.getState()
+          let shown = 0
+          for (const token of prev.tokens) {
+            if (shown >= delta) break
+            if (!newTokenIds.has(token.id)) {
+              shown++
+              const pool = activePools.find((p) => getTokenProtocolColor(p.mintAddress) === token.color || getTokenColor(p.mintAddress) === token.color)
+              let text: string
+              if (pool) {
+                recordCollection(pool)
+                const displayAmt = pool.tokensPerPill / Math.pow(10, pool.decimals)
+                const formatted = displayAmt % 1 === 0
+                  ? displayAmt.toLocaleString()
+                  : displayAmt.toLocaleString(undefined, { maximumFractionDigits: 4 })
+                text = `+${formatted} ${pool.symbol}`
+              } else {
+                text = '+1'
+              }
+              const id = ++floatingIdRef.current
+              setFloatingTexts((ft) => [...ft.slice(-9), {
+                id,
+                x: token.position.x,
+                y: token.position.y - token.radius - 4,
+                text,
+                color: resolveCanvasColor(token.color),
+              }])
+            }
+          }
+        }
+
+        // Powerup pickups — diff prev.powerupPickups for exact position and type
+        const newPowerupIds = new Set(snap.powerupPickups.map((p) => p.id))
+        for (const pickup of prev.powerupPickups) {
+          if (!newPowerupIds.has(pickup.id)) {
+            const isShield = pickup.color === SHIELD_PICKUP_COLOR
+            const id = ++floatingIdRef.current
+            setFloatingTexts((ft) => [...ft.slice(-9), {
+              id,
+              x: pickup.position.x,
+              y: pickup.position.y - pickup.radius - 4,
+              text: isShield ? 'SHIELD' : 'RAPID FIRE',
+              color: resolveCanvasColor(pickup.color),
+            }])
+          }
+        }
+
+        // Ship pickup — diff prev.shipPickups for exact position
+        if (snap.lives > prev.lives) {
+          const newPickupIds = new Set(snap.shipPickups.map((s) => s.id))
+          const collected = prev.shipPickups.find((s) => !newPickupIds.has(s.id))
+          const pos = collected?.position ?? snap.ship?.position
+          if (pos) {
+            const id = ++floatingIdRef.current
+            setFloatingTexts((ft) => [...ft.slice(-9), {
+              id,
+              x: pos.x,
+              y: pos.y - 24,
+              text: '+1 SHIP',
+              color: getCanvasTokens().shipPickupFill,
+            }])
+          }
         }
 
         // Level transition
@@ -211,6 +301,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           tokens: snap.tokensCollected,
           pills: snap.pillsCollected,
         },
+        astrdsEarned: Math.floor(snap.pillsCollected * snap.emissionTier.astrdsPerPill),
       })
       usePowerupStore.setState({
         powerups: {
@@ -325,12 +416,12 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
         ref={canvasRef}
         width={screen.width * ratioRef.current}
         height={screen.height * ratioRef.current}
-        className={`block bg-black absolute inset-0 w-full h-full ${className || ''}`}
+        className={`block bg-[var(--canvas-background)] absolute inset-0 w-full h-full ${className || ''}`}
       />
 
       {connectionState !== 'open' && (
         <div className='fixed inset-0 flex items-center justify-center z-40 pointer-events-none'>
-          <div className='font-mono text-xs uppercase tracking-widest text-white/50'>
+          <div className='font-mono text-xs uppercase tracking-widest text-muted-foreground'>
             {connectionState === 'connecting'
               ? `Connecting to ${selectedLabel ?? 'game server'}…`
               : 'Game server disconnected'}
@@ -340,17 +431,35 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
 
       {isRespawning && lives > 0 && (
         <div className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none'>
-          <div className='bg-black/50 px-6 py-4 border border-game-blue animate-fadeIn flex flex-col items-center gap-3'>
-            <ShipIcon className='text-game-blue opacity-50 animate-[spin_2s_linear_infinite]' />
-            <div className='text-xl text-game-blue font-bold animate-pulse font-mono uppercase tracking-widest'>
+          <div className='bg-surface-overlay px-6 py-4 border border-edge-accent animate-fadeIn flex flex-col items-center gap-3'>
+            <ShipIcon className='text-tx-accent opacity-50 animate-[spin_2s_linear_infinite]' />
+            <div className='text-xl text-tx-accent font-bold animate-pulse font-mono uppercase tracking-widest'>
               Ship Deployed
             </div>
-            <div className='text-sm text-white font-mono'>
+            <div className='text-sm text-tx-primary font-mono'>
               {lives} {lives === 1 ? 'Ship' : 'Ships'} Remaining
             </div>
           </div>
         </div>
       )}
+
+      {floatingTexts.map((ft) => (
+        <div
+          key={ft.id}
+          className='fixed pointer-events-none z-30 font-mono text-xs font-bold'
+          style={{
+            left: ft.x,
+            top: ft.y,
+            color: ft.color,
+            animation: 'floatUp 1.2s ease-out forwards',
+          }}
+          onAnimationEnd={() =>
+            setFloatingTexts((prev) => prev.filter((t) => t.id !== ft.id))
+          }
+        >
+          {ft.text}
+        </div>
+      ))}
     </>
   )
 }

@@ -23,7 +23,8 @@ import { useGameData } from './gameData'
 import { audioService } from '@/services/audio/AudioService'
 import { useLevelStore } from './levelStore'
 import { useSpaceTokenStore } from './spaceTokenStore'
-import { getTokenColor, ASTRDS_COLOR } from '@/lib/tokenColors'
+import { getTokenColor, getAstrdsColor } from '@/lib/tokenColors'
+import { getCanvasTokens } from '@/lib/designTokens'
 import { convex } from '@/lib/convex'
 import { api } from '../../convex/_generated/api'
 
@@ -230,10 +231,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
       // Clear and setup context
       state.context.save()
       state.context.scale(state.screen.ratio, state.screen.ratio)
-      state.context.fillStyle = '#000'
-      state.context.globalAlpha = 0.4
+      state.context.fillStyle = getCanvasTokens().backgroundAlpha
       state.context.fillRect(0, 0, state.screen.width, state.screen.height)
-      state.context.globalAlpha = 1
 
       // Level advance: all asteroids cleared
       if (state.entities.asteroids.length === 0) {
@@ -482,7 +481,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
           const token = new Token({
             screen: state.screen,
             type: 'standard',
-            color: ASTRDS_COLOR,
+            color: getAstrdsColor(),
           })
           state.addEntity(token, 'tokens')
         }

@@ -10,23 +10,23 @@ const MAX_LIMITS = {
 type InventoryStoreState = {
   items: {
     ships: number
-    tokens: number
-    pills: number
+    tokens: number  // space tokens collected (snap.tokensCollected)
+    pills: number   // ASTRDS pills collected (snap.pillsCollected)
   }
+  astrdsEarned: number  // ASTRDS to mint = pillsCollected × emissionTier.astrdsPerPill
   addItem: (itemType: keyof typeof MAX_LIMITS, amount?: number) => void
   useItem: (itemType: keyof typeof MAX_LIMITS) => boolean
   resetInventory: () => void
 }
 
 export const useInventoryStore = create<InventoryStoreState>((set, get) => ({
-  // Initial state
   items: {
     ships: 3,
     tokens: 0,
     pills: 0,
   },
+  astrdsEarned: 0,
 
-  // Actions
   addItem: (itemType, amount = 1) =>
     set((state) => ({
       items: {
@@ -51,13 +51,13 @@ export const useInventoryStore = create<InventoryStoreState>((set, get) => ({
     return true
   },
 
-  // Reset inventory
   resetInventory: () =>
     set({
       items: {
-        ships: 3, // Start with 3 ships
+        ships: 3,
         tokens: 0,
         pills: 0,
       },
+      astrdsEarned: 0,
     }),
 }))

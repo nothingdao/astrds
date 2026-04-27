@@ -18,13 +18,13 @@ const LeaderboardRank = ({ rank }) => {
   const getRankColor = () => {
     switch (rank) {
       case 1:
-        return 'text-yellow-400'
+        return 'text-tx-warning'
       case 2:
-        return 'text-gray-300'
+        return 'text-tx-secondary'
       case 3:
         return 'text-amber-600'
       default:
-        return 'text-green-400'
+        return 'text-tx-success'
     }
   }
 
@@ -35,7 +35,7 @@ const LeaderboardRank = ({ rank }) => {
     >
       {getRankDisplay()}
       {rank <= 3 && (
-        <div className='text-sm text-gray-400 mt-1'>
+        <div className='text-sm text-muted-foreground mt-1'>
           You made it to the podium!
         </div>
       )}

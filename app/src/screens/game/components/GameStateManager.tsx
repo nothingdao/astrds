@@ -24,8 +24,8 @@ const GameStateManager: React.FC = () => {
   // Optional loading state during transitions
   if (isTransitioning) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-game-blue text-xl">Loading...</div>
+      <div className="fixed inset-0 bg-background flex items-center justify-center">
+        <div className="text-primary text-xl">Loading...</div>
       </div>
     )
   }

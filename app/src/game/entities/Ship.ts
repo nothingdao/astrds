@@ -13,6 +13,7 @@ import {
 } from '@/types/entities/ship'
 import { ScreenBounds, Vector2D } from '@/types/core'
 import { PowerupStore } from '@/types/stores/powerup'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Ship implements ShipState, ShipMethods {
   public id: string
@@ -174,6 +175,7 @@ export default class Ship implements ShipState, ShipMethods {
   }
 
   render(context: CanvasRenderingContext2D): void {
+    const colors = getCanvasTokens()
 
     context.save()
     context.translate(this.position.x, this.position.y)
@@ -182,15 +184,15 @@ export default class Ship implements ShipState, ShipMethods {
       this.isInvulnerable ||
       (usePowerupStore.getState() as PowerupStore).powerups.invincible
     ) {
-      context.shadowColor = '#4dc1f9'
+      context.shadowColor = colors.shipGlow
       context.shadowBlur = 10
       const pulseScale = 1 + Math.sin(Date.now() / 200) * 0.1
       context.scale(pulseScale, pulseScale)
     }
 
     context.rotate((this.rotation * Math.PI) / 180)
-    context.strokeStyle = '#ffffff'
-    context.fillStyle = '#000000'
+    context.strokeStyle = colors.shipStroke
+    context.fillStyle = colors.shipFill
     context.lineWidth = 2
     context.beginPath()
     context.moveTo(0, -15)

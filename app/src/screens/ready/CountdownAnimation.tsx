@@ -9,9 +9,9 @@ export const CountdownDigit = ({ number, onComplete }) => {
     >
       <span
         className='absolute inset-0 flex items-center justify-center
-                   text-8xl font-bold text-game-blue
+                   text-8xl font-bold text-primary
                    animate-[countdownPulse_1s_ease-out]
-                   [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9]'
+                   [text-shadow:var(--text-shadow-accent-glow)]'
       >
         {number}
       </span>
@@ -19,7 +19,7 @@ export const CountdownDigit = ({ number, onComplete }) => {
         className='absolute inset-0 flex items-center justify-center
                    text-8xl font-bold text-transparent
                    animate-[countdownExpand_1s_ease-out]
-                   [text-shadow:0_0_30px_#4dc1f9]'
+                   [text-shadow:var(--text-shadow-accent-glow)]'
       >
         {number}
       </span>
@@ -30,9 +30,9 @@ export const CountdownDigit = ({ number, onComplete }) => {
 export const ReadyGoText = ({ text, onComplete }) => {
   return (
     <div
-      className='text-6xl font-bold text-game-blue
+      className='text-6xl font-bold text-primary
                  animate-[readyGoPulse_0.5s_ease-out]
-                 [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9,0_0_30px_#4dc1f9]'
+                 [text-shadow:var(--text-shadow-accent-glow)]'
       onAnimationEnd={onComplete}
     >
       {text}

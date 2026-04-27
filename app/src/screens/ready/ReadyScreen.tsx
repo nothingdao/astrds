@@ -72,8 +72,9 @@ const ReadyScreen: React.FC = () => {
         }
       } catch (error) {
         if (mountedRef.current) {
+          const message = error instanceof Error ? error.message : String(error)
           console.error('Game start sequence failed:', error)
-          setVerificationError(error.message)
+          setVerificationError(message)
           clearAuth()
         }
       }
@@ -96,11 +97,11 @@ const ReadyScreen: React.FC = () => {
 
   if (verificationError) {
     return (
-      <ScreenContainer>
+      <ScreenContainer screenType='READY_TO_PLAY'>
         <div className='text-center'>
           <GameTitle />
-          <div className='text-game-red text-xl mb-6'>Failed to start game</div>
-          <p className='text-gray-400 mb-4'>{verificationError}</p>
+          <div className='text-destructive text-xl mb-6'>Failed to start game</div>
+          <p className='text-muted-foreground mb-4'>{verificationError}</p>
           <Button variant='link' onClick={handleReturnToTitle}>
             Return to Title
           </Button>
@@ -110,12 +111,12 @@ const ReadyScreen: React.FC = () => {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer screenType='READY_TO_PLAY'>
       <div className='text-center'>
         <GameTitle />
         <div className='my-12 h-32 flex items-center justify-center'>
-          <div className='text-8xl font-bold text-game-blue animate-[fadeIn_0.3s_ease-out]
-                        [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9,0_0_30px_#4dc1f9]'>
+          <div className='text-8xl font-bold text-primary animate-[fadeIn_0.3s_ease-out]
+                        [text-shadow:var(--text-shadow-accent-glow)]'>
             {isQuarterInserting ? (
               <div className='text-4xl'>Inserting Quarter...</div>
             ) : countdown === 0 ? (
@@ -128,19 +129,19 @@ const ReadyScreen: React.FC = () => {
         <div className='space-y-6 transition-opacity duration-300'>
           {!isQuarterInserting && countdown !== null && (
             <>
-              <p className={`text-xl text-gray-300 ${countdown >= 2 ? 'opacity-100' : 'opacity-0'}`}>
+              <p className={`text-xl text-tx-secondary ${countdown >= 2 ? 'opacity-100' : 'opacity-0'}`}>
                 Use [A][S][W][D] or Arrow Keys to move
               </p>
-              <p className={`text-xl text-gray-300 ${countdown >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+              <p className={`text-xl text-tx-secondary ${countdown >= 1 ? 'opacity-100' : 'opacity-0'}`}>
                 Press [SPACE] to shoot
               </p>
-              <p className={`text-xl text-gray-300 ${countdown === 0 ? 'opacity-100' : 'opacity-0'}`}>
+              <p className={`text-xl text-tx-secondary ${countdown === 0 ? 'opacity-100' : 'opacity-0'}`}>
                 Good luck, Anon!
               </p>
             </>
           )}
         </div>
-        <div className='mt-16 text-gray-500 text-sm max-w-md mx-auto'>
+        <div className='mt-16 text-tx-tertiary text-sm max-w-md mx-auto'>
           <p>
             Tip: Destroy asteroids to earn points. Smaller asteroids are worth
             more points!

@@ -10,6 +10,7 @@ import {
   AsteroidMethods,
 } from '@/types/entities/asteroid'
 import { ScreenBounds, Vector2D } from '@/types/core'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 export default class Asteroid implements AsteroidState, AsteroidMethods {
   public id: string
@@ -96,7 +97,7 @@ export default class Asteroid implements AsteroidState, AsteroidMethods {
     context.save()
     context.translate(this.position.x, this.position.y)
     context.rotate((this.rotation * Math.PI) / 180)
-    context.strokeStyle = '#FFF'
+    context.strokeStyle = getCanvasTokens().asteroidStroke
     context.lineWidth = 0.4
     context.beginPath()
     context.moveTo(0, -this.radius)

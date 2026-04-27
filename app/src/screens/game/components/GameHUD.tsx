@@ -5,7 +5,6 @@ import { useLevelStore } from '@/stores/levelStore'
 import { useInventoryStore } from '@/stores/inventoryStore'
 import { usePowerupStore } from '@/stores/powerupStore'
 import { useSpaceTokenStore } from '@/stores/spaceTokenStore'
-import { ASTRDS_COLOR } from '@/lib/tokenColors'
 import { ShipIcon, PillIcon } from '@/components/icons/GameIcons'
 import { Shield, Zap } from 'lucide-react'
 import { useServerStore } from '@/stores/serverStore'
@@ -21,6 +20,7 @@ export const GameHUD: React.FC = () => {
   const score = useGameData((state) => state.score)
   const level = useLevelStore((state) => state.level)
   const items = useInventoryStore((state) => state.items)
+  const astrdsEarned = useInventoryStore((state) => state.astrdsEarned)
   const powerups = usePowerupStore((state) => state.powerups)
   const powerupExpiresAt = usePowerupStore((state) => state.powerupExpiresAt)
   const spaceCollected = useSpaceTokenStore((s) => s.collectedThisSession)
@@ -59,21 +59,21 @@ export const GameHUD: React.FC = () => {
         <div className='flex items-center gap-3'>
           <AvatarDisplay url={avatarUrl} address={walletAddress} size={28} />
           <div>
-            <div className='font-mono text-lg leading-none text-game-blue'>
+            <div className='font-mono text-lg leading-none text-primary'>
               {score.toLocaleString()}
             </div>
-            <div className='font-mono text-xs text-white/30 mt-0.5'>SCORE</div>
+            <div className='font-mono text-xs text-muted-foreground mt-0.5'>SCORE</div>
           </div>
         </div>
 
         {/* Level + server + audio widget */}
         <div className='flex flex-col items-center gap-1'>
           <div className='text-center'>
-            <div className='font-mono text-lg leading-none text-game-blue'>{level}</div>
-            <div className='font-mono text-xs text-white/30 mt-0.5'>LEVEL</div>
+            <div className='font-mono text-lg leading-none text-primary'>{level}</div>
+            <div className='font-mono text-xs text-muted-foreground mt-0.5'>LEVEL</div>
           </div>
           {selectedLabel && (
-            <div className='font-mono text-[9px] text-white/20 uppercase tracking-widest'>
+            <div className='font-mono text-[9px] text-tx-dim uppercase tracking-widest'>
               {selectedLabel}
             </div>
           )}
@@ -84,9 +84,9 @@ export const GameHUD: React.FC = () => {
         <div className='flex items-center gap-1.5'>
           {items.ships > 0
             ? Array.from({ length: Math.min(items.ships, 6) }).map((_, i) => (
-                <ShipIcon key={i} className='w-5 h-5 text-game-blue' />
+                <ShipIcon key={i} className='w-5 h-5 text-primary' />
               ))
-            : <span className='font-mono text-xs text-white/25'>NO LIVES</span>
+            : <span className='font-mono text-xs text-tx-dim'>NO LIVES</span>
           }
         </div>
       </div>
@@ -95,8 +95,8 @@ export const GameHUD: React.FC = () => {
       <div className='fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-3 pointer-events-none'>
         {/* Pills */}
         <div className='flex items-center gap-2'>
-          <PillIcon className={`w-5 h-5 ${items.pills > 0 ? 'text-game-blue' : 'text-white/20'}`} />
-          <span className={`font-mono text-sm ${items.pills > 0 ? 'text-white/70' : 'text-white/20'}`}>
+          <PillIcon className={`w-5 h-5 ${items.pills > 0 ? 'text-primary' : 'text-tx-dim'}`} />
+          <span className={`font-mono text-sm ${items.pills > 0 ? 'text-tx-secondary' : 'text-tx-dim'}`}> 
             ×{items.pills}
           </span>
         </div>
@@ -107,11 +107,11 @@ export const GameHUD: React.FC = () => {
           <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${powerups.invincible ? 'opacity-100' : 'opacity-20'}`}>
             <Shield
               size={16}
-              className={powerups.invincible ? 'text-game-blue' : 'text-white'}
+              className={powerups.invincible ? 'text-primary' : 'text-tx-primary'}
             />
-            <div className='w-14 h-1 bg-white/10 rounded-full overflow-hidden'>
+            <div className='w-14 h-1 bg-surface-subtle rounded-full overflow-hidden'>
               <div
-                className='h-full bg-game-blue rounded-full'
+                className='h-full bg-primary rounded-full'
                 style={{
                   width: powerups.invincible ? `${powerupProgress * 100}%` : '0%',
                   transition: powerups.invincible ? 'none' : undefined,
@@ -124,11 +124,11 @@ export const GameHUD: React.FC = () => {
           <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${powerups.rapidFire ? 'opacity-100' : 'opacity-20'}`}>
             <Zap
               size={16}
-              className={powerups.rapidFire ? 'text-yellow-400' : 'text-white'}
+              className={powerups.rapidFire ? 'text-tx-warning' : 'text-tx-primary'}
             />
-            <div className='w-14 h-1 bg-white/10 rounded-full overflow-hidden'>
+            <div className='w-14 h-1 bg-surface-subtle rounded-full overflow-hidden'>
               <div
-                className='h-full bg-yellow-400 rounded-full'
+                className='h-full bg-[var(--text-warning)] rounded-full'
                 style={{
                   width: powerups.rapidFire ? `${powerupProgress * 100}%` : '0%',
                   transition: powerups.rapidFire ? 'none' : undefined,
@@ -157,8 +157,8 @@ export const GameHUD: React.FC = () => {
               alt='ASTRDS'
               className='w-5 h-5 rounded-full object-cover'
             />
-            <span className='font-mono text-sm' style={{ color: ASTRDS_COLOR }}>
-              ×{items.tokens}
+            <span className='font-mono text-sm text-primary'>
+              ×{astrdsEarned}
             </span>
           </div>
         </div>

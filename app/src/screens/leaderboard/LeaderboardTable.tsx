@@ -33,19 +33,19 @@ const formatDate = (dateString?: string) => {
 }
 
 const RANK_BADGES: Record<number, { label: string; className: string }> = {
-  0: { label: '1st', className: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/40' },
-  1: { label: '2nd', className: 'bg-gray-300/10 text-gray-300 border-gray-300/40' },
-  2: { label: '3rd', className: 'bg-orange-400/10 text-orange-400 border-orange-400/40' },
+  0: { label: '1st', className: 'bg-[var(--text-warning)]/10 text-tx-warning border-[var(--text-warning)]/40' },
+  1: { label: '2nd', className: 'bg-muted text-tx-secondary border-border' },
+  2: { label: '3rd', className: 'bg-[var(--entity-particle)]/10 text-[var(--entity-particle)] border-[var(--entity-particle)]/40' },
 }
 
 const LoadingSkeleton = () => (
   <div className='animate-pulse space-y-3'>
     {[...Array(6)].map((_, i) => (
-      <div key={i} className='grid grid-cols-4 gap-4 px-4 py-3 bg-white/5'>
-        <div className='h-5 bg-white/10' />
-        <div className='h-5 bg-white/10' />
-        <div className='h-5 bg-white/10' />
-        <div className='h-5 bg-white/10' />
+      <div key={i} className='grid grid-cols-4 gap-4 px-4 py-3 bg-surface-subtle'>
+        <div className='h-5 bg-surface-subtle' />
+        <div className='h-5 bg-surface-subtle' />
+        <div className='h-5 bg-surface-subtle' />
+        <div className='h-5 bg-surface-subtle' />
       </div>
     ))}
   </div>
@@ -67,14 +67,14 @@ const ScoreRow = ({
   return (
     <div
       className={`grid grid-cols-4 gap-4 px-4 py-2 transition-colors items-center
-        ${isCurrentUser ? 'bg-game-blue/10 text-white' : 'text-white/60 hover:bg-white/5'}
+        ${isCurrentUser ? 'bg-primary/10 text-foreground' : 'text-tx-secondary hover:bg-surface-subtle'}
         ${index < 3 ? 'py-3' : ''}`}
     >
       <div className='flex items-center'>
         {rankBadge ? (
           <Badge className={rankBadge.className}>{rankBadge.label}</Badge>
         ) : (
-          <span className='font-mono text-[10px] text-white/35'>#{index + 1}</span>
+          <span className='font-mono text-[10px] text-tx-tertiary'>#{index + 1}</span>
         )}
       </div>
       <div className='flex items-center gap-2'>
@@ -84,13 +84,13 @@ const ScoreRow = ({
           href={`https://orbmarkets.io/address/${score.walletAddress}?cluster=devnet`}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-white/30 hover:text-white transition-colors text-xs'
+          className='text-muted-foreground hover:text-foreground transition-colors text-xs'
         >
           ⇗
         </a>
       </div>
       <div className='text-right font-mono'>{score.score.toLocaleString()}</div>
-      <div className='text-right font-mono text-[10px] text-white/35'>{formatDate(score.date)}</div>
+      <div className='text-right font-mono text-[10px] text-tx-tertiary'>{formatDate(score.date)}</div>
     </div>
   )
 }
@@ -111,7 +111,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) 
   if (loading) return <LoadingSkeleton />
 
   if (scores.length === 0) {
-    return <div className='font-mono text-xs text-white/30 text-center py-8'>No scores yet — be the first!</div>
+    return <div className='font-mono text-xs text-muted-foreground text-center py-8'>No scores yet — be the first!</div>
   }
 
   const topThree = scores.slice(0, 3)
@@ -119,7 +119,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) 
 
   return (
     <div className='space-y-2'>
-      <div className='grid grid-cols-4 gap-4 px-4 py-2 font-mono text-[10px] text-white/35 uppercase tracking-widest'>
+      <div className='grid grid-cols-4 gap-4 px-4 py-2 font-mono text-[10px] text-tx-tertiary uppercase tracking-widest'>
         <div>Rank</div>
         <div>Player</div>
         <div className='text-right'>Score</div>
@@ -138,7 +138,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ scores, loading }) 
         ))}
       </div>
 
-      {rest.length > 0 && <Separator className='bg-white/10 my-2' />}
+      {rest.length > 0 && <Separator className='bg-surface-subtle my-2' />}
 
       {rest.length > 0 && (
         <div className='max-h-48 overflow-y-auto space-y-1'>
