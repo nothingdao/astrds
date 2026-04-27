@@ -16,6 +16,39 @@ type Step = 'pick' | 'configure' | 'sending' | 'verifying' | 'done' | 'error'
 const toUi = (raw: number, decimals: number) =>
   (raw / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: 4 })
 
+const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className='font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-3 pb-1'>{children}</div>
+)
+
+const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className='flex items-center justify-between py-1 border-b border-border'>
+    <span className='font-mono text-xs text-muted-foreground'>{label}</span>
+    <span className='font-mono text-xs text-tx-secondary'>{value}</span>
+  </div>
+)
+
+const INPUT = 'w-full bg-background border border-border text-foreground font-mono text-xs px-2.5 py-1.5 focus:border-primary/50 focus:outline-none'
+
+const PresetBtn: React.FC<{
+  value: string
+  active: boolean
+  onClick: () => void
+  color?: 'blue' | 'purple'
+}> = ({ value, active, onClick, color = 'blue' }) => (
+  <button
+    onClick={onClick}
+    className={`px-2 py-1 font-mono text-[10px] border transition-colors ${
+      active
+        ? color === 'blue'
+          ? 'border-primary text-primary'
+          : 'border-[var(--entity-shield)] text-[var(--entity-shield)]'
+        : 'border-border text-muted-foreground hover:border-edge-medium hover:text-tx-secondary'
+    }`}
+  >
+    {value}
+  </button>
+)
+
 const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const wallet = useWallet()
   const registerDepositIntent = useMutation(api.spaceDeposits.registerDepositIntent)
@@ -91,15 +124,14 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         waveSize: spawnMode === 'wave' ? parseInt(waveSize) : undefined,
         waveCooldown: spawnMode === 'wave' ? parseInt(waveCooldown) : undefined,
       })
-      setStep('verifying')
 
+      const connection = new Connection(RPC_ENDPOINT, 'confirmed')
       const built = await buildSendToSpaceTransaction(
         wallet.publicKey,
         selected.mintAddress,
         rawAmount,
         selected.programId
       )
-      const connection = new Connection(RPC_ENDPOINT, 'confirmed')
       const signed = await wallet.signTransaction(built.transaction)
       const sig = await sendSignedTransaction({
         connection,
@@ -108,6 +140,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         lastValidBlockHeight: built.lastValidBlockHeight,
       })
       setTxSig(sig)
+      setStep('verifying')
 
       const pool = await fetchDepositPool(connection, built.poolAddress)
       if (!pool) throw new Error('Deposit pool not found after confirmation')
@@ -145,294 +178,238 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   if (!wallet.connected) {
     return (
-      <div className='p-10 text-center text-white/40 font-mono text-sm'>
-        Connect wallet to launch tokens into space.
+      <div className='p-10 text-center'>
+        <p className='font-mono text-xs text-muted-foreground'>Connect wallet to launch tokens into space</p>
       </div>
     )
   }
 
   return (
-    <div className='p-5 space-y-6'>
+    <div className='px-5 pb-5'>
+
       {/* ── Pick token ── */}
       {step === 'pick' && (
-        <div className='space-y-4'>
-          <div className='flex items-center justify-between'>
-            <p className='text-xs text-white/40 font-mono'>
-              Select a token from your wallet to send into the game world.
-            </p>
+        <div>
+          <div className='flex items-center justify-between py-2 border-b border-border'>
+            <span className='font-mono text-xs text-muted-foreground'>Select a token to launch into the game world</span>
             <button
               onClick={loadTokens}
               disabled={loadingTokens}
-              className='text-white/30 hover:text-white transition-colors'
+              className='text-tx-dim hover:text-foreground transition-colors ml-3 shrink-0'
               title='Refresh'
             >
-              <RefreshCw size={14} className={loadingTokens ? 'animate-spin' : ''} />
+              <RefreshCw size={11} className={loadingTokens ? 'animate-spin' : ''} />
             </button>
           </div>
 
           {loadingTokens ? (
-            <div className='text-center py-8 text-white/30 font-mono text-xs'>Loading tokens...</div>
+            <div className='font-mono text-xs text-tx-tertiary py-8 text-center'>Loading tokens...</div>
           ) : tokens.length === 0 ? (
-            <div className='text-center py-8 text-white/30 font-mono text-xs'>
-              No tokens found in wallet.
-            </div>
+            <div className='font-mono text-xs text-tx-tertiary py-8 text-center'>No tokens found in wallet</div>
           ) : (
-            <div className='space-y-2'>
+            <>
+              <div className='flex items-center py-1 border-b border-border'>
+                <span className='font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex-1'>Token</span>
+                <span className='font-mono text-[10px] uppercase tracking-widest text-muted-foreground w-28 text-right'>Balance</span>
+              </div>
               {tokens.map((t) => (
                 <button
                   key={t.mintAddress}
                   onClick={() => handleSelectToken(t)}
-                  className='w-full flex items-center justify-between bg-neutral-800 border border-white/10 rounded-lg p-4 hover:border-game-blue/50 transition-colors text-left'
+                  className='w-full flex items-center py-2 border-b border-border hover:bg-surface-subtle transition-colors text-left'
                 >
-                  <div className='flex items-center gap-3'>
+                  <div className='flex items-center gap-2 flex-1 min-w-0'>
                     {t.logoUri ? (
-                      <img src={t.logoUri} alt={t.symbol} className='w-8 h-8 rounded-full object-cover' />
+                      <img src={t.logoUri} alt={t.symbol} className='w-4 h-4 rounded-full object-cover shrink-0' />
                     ) : (
-                      <div className='w-8 h-8 rounded-full bg-white/10 flex items-center justify-center'>
-                        <span className='text-[10px] font-mono text-white/50'>{t.symbol.slice(0, 2)}</span>
+                      <div className='w-4 h-4 rounded-full bg-surface-subtle flex items-center justify-center shrink-0'>
+                        <span className='text-[7px] font-mono text-tx-secondary'>{t.symbol.slice(0, 1)}</span>
                       </div>
                     )}
-                    <div>
-                      <div className='font-mono text-sm text-white'>{t.symbol}</div>
-                      <div className='font-mono text-xs text-white/30'>{t.name}</div>
-                    </div>
+                    <span className='font-mono text-xs text-foreground'>{t.symbol}</span>
+                    <span className='font-mono text-xs text-tx-tertiary truncate'>{t.name}</span>
                   </div>
-                  <div className='flex items-center gap-2'>
-                    <span className='font-mono text-sm text-game-blue'>
-                      {t.uiBalance.toLocaleString()}
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    <span className='font-mono text-xs text-tx-secondary w-28 text-right'>
+                      {t.uiBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
-                    <ChevronRight size={14} className='text-white/30' />
+                    <ChevronRight size={10} className='text-tx-dim' />
                   </div>
                 </button>
               ))}
-            </div>
+            </>
           )}
         </div>
       )}
 
       {/* ── Configure ── */}
       {step === 'configure' && selected && (
-        <div className='space-y-5'>
-          <div className='flex items-center gap-3 mb-2'>
+        <div>
+          {/* Selected token strip */}
+          <div className='flex items-center gap-2 py-2 border-b border-border'>
             {selected.logoUri ? (
-              <img src={selected.logoUri} alt={selected.symbol} className='w-10 h-10 rounded-full object-cover' />
+              <img src={selected.logoUri} alt={selected.symbol} className='w-5 h-5 rounded-full object-cover shrink-0' />
             ) : (
-              <div className='w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center'>
-                <Rocket size={16} className='text-purple-400' />
+              <div className='w-5 h-5 rounded-full bg-[var(--entity-shield)]/20 flex items-center justify-center shrink-0'>
+                <Rocket size={9} className='text-[var(--entity-shield)]' />
               </div>
             )}
-            <div>
-              <div className='font-mono text-lg text-white'>{selected.symbol}</div>
-              <div className='font-mono text-xs text-white/30'>
-                Balance: {selected.uiBalance.toLocaleString()}
-              </div>
-            </div>
-          </div>
-
-          <div className='space-y-4'>
-            <label className='block'>
-              <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                Amount to send
-              </span>
-              <input
-                type='number'
-                value={sendAmount}
-                onChange={(e) => setSendAmount(e.target.value)}
-                max={selected.uiBalance}
-                min={1}
-                className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
-              />
-            </label>
-
-            <label className='block'>
-              <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                Tokens per pill collected
-              </span>
-              <div className='mt-1 grid grid-cols-4 gap-2'>
-                {['10', '100', '500', '1000'].map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setTokensPerPill(v)}
-                    className={`btn-grain font-mono text-xs py-2 transition-colors ${
-                      tokensPerPill === v
-                        ? 'bg-game-blue text-black'
-                        : 'bg-white/10 text-white/50 hover:bg-white/20'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </label>
-
-            <div>
-              <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                Level range
-              </span>
-              <div className='mt-1 grid grid-cols-2 gap-3'>
-                <label className='block'>
-                  <span className='font-mono text-[10px] text-white/30'>Min level</span>
-                  <input
-                    type='number'
-                    value={minLevel}
-                    onChange={(e) => setMinLevel(e.target.value)}
-                    min={1}
-                    max={parseInt(maxLevel)}
-                    className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
-                  />
-                </label>
-                <label className='block'>
-                  <span className='font-mono text-[10px] text-white/30'>Max level</span>
-                  <input
-                    type='number'
-                    value={maxLevel}
-                    onChange={(e) => setMaxLevel(e.target.value)}
-                    min={parseInt(minLevel)}
-                    className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                Spawn mode
-              </span>
-              <div className='mt-1 grid grid-cols-3 gap-2'>
-                {(['steady', 'escalating', 'wave'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setSpawnMode(mode)}
-                    className={`btn-grain font-mono text-xs py-2 transition-colors ${
-                      spawnMode === mode
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-white/10 text-white/50 hover:bg-white/20'
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-              <div className='mt-1 font-mono text-[10px] text-white/30'>
-                {spawnMode === 'steady' && 'Fixed interval — equal access for all skill levels'}
-                {spawnMode === 'escalating' && 'Faster spawns at higher levels — rewards skilled play'}
-                {spawnMode === 'wave' && 'Burst of tokens then quiet — creates exciting moments'}
-              </div>
-            </div>
-
-            <div>
-              <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                {spawnMode === 'steady' ? 'Spawn interval (seconds)' : spawnMode === 'escalating' ? 'Base interval (seconds)' : 'Wave cooldown (seconds)'}
-              </span>
-              <input
-                type='number'
-                value={spawnMode === 'wave' ? waveCooldown : spawnInterval}
-                onChange={(e) => spawnMode === 'wave' ? setWaveCooldown(e.target.value) : setSpawnInterval(e.target.value)}
-                min={5}
-                className='mt-1 w-full bg-neutral-800 border border-white/15 text-white font-mono text-sm px-3 py-2 focus:border-game-blue/60 focus:outline-none'
-              />
-            </div>
-
-            {spawnMode === 'escalating' && (
-              <div>
-                <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                  Escalation rate (0.05–0.5)
-                </span>
-                <div className='mt-1 grid grid-cols-4 gap-2'>
-                  {['0.05', '0.1', '0.2', '0.5'].map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setEscalationRate(v)}
-                      className={`btn-grain font-mono text-xs py-2 transition-colors ${
-                        escalationRate === v
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-white/10 text-white/50 hover:bg-white/20'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-                <div className='mt-1 font-mono text-[10px] text-white/30'>
-                  Higher = faster escalation per level
-                </div>
-              </div>
-            )}
-
-            {spawnMode === 'wave' && (
-              <div>
-                <span className='font-mono text-xs text-white/40 uppercase tracking-wider'>
-                  Tokens per wave
-                </span>
-                <div className='mt-1 grid grid-cols-4 gap-2'>
-                  {['2', '3', '5', '10'].map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setWaveSize(v)}
-                      className={`btn-grain font-mono text-xs py-2 transition-colors ${
-                        waveSize === v
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-white/10 text-white/50 hover:bg-white/20'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className='bg-purple-500/10 border border-purple-500/20 rounded p-3 text-xs font-mono text-purple-300 space-y-1'>
-            <div>Total: {parseFloat(sendAmount || '0').toLocaleString()} {selected.symbol}</div>
-            <div>Yields ~{Math.floor(parseFloat(sendAmount || '0') / parseFloat(tokensPerPill || '1'))} collectible pills</div>
-            <div>{tokensPerPill} {selected.symbol} per pill · Level {minLevel}–{maxLevel}</div>
-            {spawnMode === 'steady' && <div>Spawns every {spawnInterval}s per player</div>}
-            {spawnMode === 'escalating' && <div>Starts at {spawnInterval}s, speeds up with level (rate {escalationRate})</div>}
-            {spawnMode === 'wave' && <div>Bursts of {waveSize} tokens, {waveCooldown}s quiet between waves</div>}
-          </div>
-
-          <div className='flex gap-3'>
+            <span className='font-mono text-xs text-foreground'>{selected.symbol}</span>
+            <span className='font-mono text-xs text-muted-foreground'>
+              {selected.uiBalance.toLocaleString()} available
+            </span>
             <button
               onClick={() => setStep('pick')}
-              className='btn-grain flex-1 h-10 font-mono text-xs bg-white/10 text-white/50 hover:bg-white/20 transition-colors'
+              className='ml-auto font-mono text-[10px] text-tx-dim hover:text-tx-secondary transition-colors'
+            >
+              change
+            </button>
+          </div>
+
+          <FieldLabel>Amount to send</FieldLabel>
+          <input
+            type='number'
+            value={sendAmount}
+            onChange={(e) => setSendAmount(e.target.value)}
+            max={selected.uiBalance}
+            min={1}
+            className={INPUT}
+          />
+
+          <FieldLabel>Tokens per pill</FieldLabel>
+          <div className='flex gap-1'>
+            {['10', '100', '500', '1000'].map((v) => (
+              <PresetBtn key={v} value={v} active={tokensPerPill === v} onClick={() => setTokensPerPill(v)} />
+            ))}
+            <input
+              type='number'
+              value={tokensPerPill}
+              onChange={(e) => setTokensPerPill(e.target.value)}
+              placeholder='custom'
+              className='flex-1 bg-background border border-border text-foreground font-mono text-[10px] px-2 py-1 focus:border-primary/50 focus:outline-none'
+            />
+          </div>
+
+          <FieldLabel>Level range</FieldLabel>
+          <div className='flex gap-2'>
+            <div className='flex-1'>
+              <div className='font-mono text-[10px] text-tx-tertiary mb-0.5'>Min</div>
+              <input
+                type='number'
+                value={minLevel}
+                onChange={(e) => setMinLevel(e.target.value)}
+                min={1}
+                max={parseInt(maxLevel)}
+                className={INPUT}
+              />
+            </div>
+            <div className='flex-1'>
+              <div className='font-mono text-[10px] text-tx-tertiary mb-0.5'>Max</div>
+              <input
+                type='number'
+                value={maxLevel}
+                onChange={(e) => setMaxLevel(e.target.value)}
+                min={parseInt(minLevel)}
+                className={INPUT}
+              />
+            </div>
+          </div>
+
+          <FieldLabel>Spawn mode</FieldLabel>
+          <div className='flex gap-1'>
+            {(['steady', 'escalating', 'wave'] as const).map((mode) => (
+              <PresetBtn key={mode} value={mode} active={spawnMode === mode} onClick={() => setSpawnMode(mode)} color='purple' />
+            ))}
+          </div>
+          <div className='font-mono text-[10px] text-tx-tertiary mt-1'>
+            {spawnMode === 'steady'     && 'Fixed interval — equal access for all skill levels'}
+            {spawnMode === 'escalating' && 'Faster spawns at higher levels — rewards skilled play'}
+            {spawnMode === 'wave'       && 'Burst of tokens then quiet — creates exciting moments'}
+          </div>
+
+          <FieldLabel>
+            {spawnMode === 'steady' ? 'Interval (sec)' : spawnMode === 'escalating' ? 'Base interval (sec)' : 'Wave cooldown (sec)'}
+          </FieldLabel>
+          <input
+            type='number'
+            value={spawnMode === 'wave' ? waveCooldown : spawnInterval}
+            onChange={(e) => spawnMode === 'wave' ? setWaveCooldown(e.target.value) : setSpawnInterval(e.target.value)}
+            min={5}
+            className={INPUT}
+          />
+
+          {spawnMode === 'escalating' && (
+            <>
+              <FieldLabel>Escalation rate</FieldLabel>
+              <div className='flex gap-1'>
+                {['0.05', '0.1', '0.2', '0.5'].map((v) => (
+                  <PresetBtn key={v} value={v} active={escalationRate === v} onClick={() => setEscalationRate(v)} color='purple' />
+                ))}
+              </div>
+            </>
+          )}
+
+          {spawnMode === 'wave' && (
+            <>
+              <FieldLabel>Tokens per wave</FieldLabel>
+              <div className='flex gap-1'>
+                {['2', '3', '5', '10'].map((v) => (
+                  <PresetBtn key={v} value={v} active={waveSize === v} onClick={() => setWaveSize(v)} color='purple' />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Summary */}
+          <div className='border-t border-border mt-4 pt-1 mb-4'>
+            <SummaryRow label='Total'    value={`${parseFloat(sendAmount || '0').toLocaleString()} ${selected.symbol}`} />
+            <SummaryRow label='Pills'    value={`~${Math.floor(parseFloat(sendAmount || '0') / parseFloat(tokensPerPill || '1'))}`} />
+            <SummaryRow label='Per pill' value={`${tokensPerPill} ${selected.symbol}`} />
+            <SummaryRow label='Levels'   value={`${minLevel}–${maxLevel}`} />
+            {spawnMode === 'steady'     && <SummaryRow label='Spawn' value={`every ${spawnInterval}s`} />}
+            {spawnMode === 'escalating' && <SummaryRow label='Spawn' value={`${spawnInterval}s base · rate ${escalationRate}`} />}
+            {spawnMode === 'wave'       && <SummaryRow label='Spawn' value={`${waveSize} per wave · ${waveCooldown}s cooldown`} />}
+          </div>
+
+          <div className='flex gap-2'>
+            <button
+              onClick={() => setStep('pick')}
+              className='px-4 h-9 font-mono text-xs border border-border text-muted-foreground hover:border-edge-medium hover:text-tx-secondary transition-colors'
             >
               Back
             </button>
             <button
               onClick={handleSend}
               disabled={!sendAmount || parseFloat(sendAmount) <= 0}
-              className='btn-grain flex-1 h-10 font-mono text-xs bg-purple-500 text-white hover:bg-purple-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2'
+              className='flex-1 h-9 font-mono text-xs bg-[var(--entity-shield)] text-foreground hover:bg-[var(--entity-shield)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5'
             >
-              <Rocket size={13} />
+              <Rocket size={11} />
               Launch into Space
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Sending (wallet approval + tx broadcast) ── */}
+      {/* ── Sending ── */}
       {step === 'sending' && (
-        <div className='py-12 text-center space-y-4'>
-          <Rocket size={32} className='mx-auto text-purple-400 animate-bounce' />
-          <p className='font-mono text-sm text-white/50'>Approve in wallet and sending...</p>
+        <div className='py-12 text-center space-y-3'>
+          <Rocket size={24} className='mx-auto text-[var(--entity-shield)] animate-bounce' />
+          <p className='font-mono text-xs text-muted-foreground'>Approve in wallet and broadcasting...</p>
         </div>
       )}
 
-      {/* ── Verifying (waiting for the on-chain pool state) ── */}
+      {/* ── Verifying ── */}
       {step === 'verifying' && (
-        <div className='py-8 text-center space-y-4'>
-          <Loader2 size={32} className='mx-auto text-purple-400 animate-spin' />
-          <p className='font-mono text-sm text-white/50'>Confirming on-chain deposit...</p>
-          <p className='font-mono text-xs text-white/30'>
-            Reading the vault pool state from devnet.
-          </p>
+        <div className='py-10 text-center space-y-3'>
+          <Loader2 size={24} className='mx-auto text-[var(--entity-shield)] animate-spin' />
+          <p className='font-mono text-xs text-muted-foreground'>Confirming on-chain deposit...</p>
+          <p className='font-mono text-xs text-tx-tertiary'>Reading vault pool state from devnet</p>
           {txSig && (
             <a
               href={`https://orbmarkets.io/tx/${txSig}?cluster=devnet`}
               target='_blank'
               rel='noopener noreferrer'
-              className='font-mono text-xs text-game-blue hover:text-white transition-colors block'
+              className='font-mono text-[10px] text-primary hover:text-foreground transition-colors block'
             >
               View transaction ↗
             </a>
@@ -442,25 +419,25 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       {/* ── Done ── */}
       {step === 'done' && (
-        <div className='py-8 text-center space-y-4'>
-          <CheckCircle2 size={32} className='mx-auto text-green-400' />
-          <p className='font-mono text-sm text-white'>Tokens launched successfully!</p>
-          <p className='font-mono text-xs text-white/30'>
-            {selected?.symbol} tokens are now in space and will appear for players to collect.
+        <div className='py-10 text-center space-y-3'>
+          <CheckCircle2 size={24} className='mx-auto text-tx-success' />
+          <p className='font-mono text-xs text-foreground'>Tokens launched successfully</p>
+          <p className='font-mono text-[10px] text-muted-foreground'>
+            {selected?.symbol} is now live in the asteroid field
           </p>
           {txSig && (
             <a
               href={`https://orbmarkets.io/tx/${txSig}?cluster=devnet`}
               target='_blank'
               rel='noopener noreferrer'
-              className='font-mono text-xs text-game-blue hover:text-white transition-colors block'
+              className='font-mono text-[10px] text-primary hover:text-foreground transition-colors block'
             >
               View on Helius Orb ↗
             </a>
           )}
           <button
             onClick={() => { setStep('pick'); setSelected(null) }}
-            className='btn-grain mt-2 h-10 px-6 font-mono text-xs bg-game-blue text-black hover:bg-white transition-colors'
+            className='btn-grain mt-2 h-9 px-6 font-mono text-xs bg-primary text-primary-foreground hover:bg-card transition-colors'
           >
             Launch Another
           </button>
@@ -469,37 +446,36 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       {/* ── Error ── */}
       {step === 'error' && (
-        <div className='py-8 text-center space-y-4'>
-          <AlertCircle size={32} className='mx-auto text-game-red' />
-          <p className='font-mono text-sm text-white/70'>{errorMsg || 'Something went wrong.'}</p>
+        <div className='py-10 text-center space-y-3'>
+          <AlertCircle size={24} className='mx-auto text-destructive/80' />
+          <p className='font-mono text-xs text-tx-secondary'>{errorMsg || 'Transaction failed'}</p>
           <button
             onClick={() => setStep('configure')}
-            className='btn-grain h-10 px-6 font-mono text-xs bg-white/10 text-white/50 hover:bg-white/20 transition-colors'
+            className='btn-grain h-9 px-6 font-mono text-xs border border-border text-muted-foreground hover:border-edge-medium hover:text-tx-secondary transition-colors'
           >
             Try Again
           </button>
         </div>
       )}
 
-      {/* ── Active deposits info ── */}
+      {/* ── Active deposits ── */}
       {(step === 'pick' || step === 'done') && activeDeposits && activeDeposits.length > 0 && (
-        <div className='border-t border-white/10 pt-4'>
-          <p className='font-mono text-xs text-white/30 uppercase tracking-wider mb-3'>
+        <div className='border-t border-border mt-2'>
+          <div className='font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-4 pb-1.5'>
             Currently in Space ({activeDeposits.length})
-          </p>
-          <div className='space-y-2'>
-            {activeDeposits.slice(0, 5).map((d) => (
-              <div
-                key={d._id}
-                className='flex items-center justify-between text-xs font-mono text-white/40'
-              >
-                <span className='text-white/60'>{d.symbol}</span>
-                <span>
-                  {toUi(d.remainingAmount, d.decimals ?? 6)} remaining · {toUi(d.tokensPerPill, d.decimals ?? 6)}/pill · L{d.minLevel}–{d.maxLevel}
-                </span>
-              </div>
-            ))}
           </div>
+          <div className='flex items-center py-1 border-b border-border'>
+            <span className='font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex-1'>Token</span>
+            <span className='font-mono text-[10px] uppercase tracking-widest text-muted-foreground'>Remaining · Per pill · Levels</span>
+          </div>
+          {activeDeposits.slice(0, 6).map((d) => (
+            <div key={d._id} className='flex items-center py-1.5 border-b border-border'>
+              <span className='font-mono text-xs text-tx-secondary flex-1'>{d.symbol}</span>
+              <span className='font-mono text-xs text-muted-foreground'>
+                {toUi(d.remainingAmount, d.decimals ?? 6)} · {toUi(d.tokensPerPill, d.decimals ?? 6)}/pill · L{d.minLevel}–{d.maxLevel}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

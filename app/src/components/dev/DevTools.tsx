@@ -77,16 +77,16 @@ const DevTools: React.FC = () => {
 
       {/* Mint tokens to wallet */}
       <div>
-        <div className='font-mono text-[10px] text-yellow-400 uppercase tracking-widest mb-3'>
+        <div className='font-mono text-[10px] text-tx-warning uppercase tracking-widest mb-3'>
           Mint Test Token to Wallet
         </div>
-        <div className='text-white/40 text-[10px] mb-3'>
+        <div className='text-muted-foreground text-[10px] mb-3'>
           Mints real devnet SPL tokens to your connected wallet. Use the Space overlay to deposit them into the game treasury.
         </div>
         <select
           value={selectedIndex}
           onChange={(e) => setSelectedIndex(Number(e.target.value))}
-          className='w-full bg-black border border-white/15 text-white px-2 py-1.5 text-xs focus:outline-none focus:border-yellow-400/60 mb-3'
+          className='w-full bg-background border border-edge-subtle text-foreground px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--text-warning)]/60 mb-3'
         >
           {TEST_TOKENS.map((t, i) => (
             <option key={t.dir} value={i}>${t.symbol} — {t.name}</option>
@@ -97,13 +97,13 @@ const DevTools: React.FC = () => {
             type='number'
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className='flex-1 bg-black/50 border border-white/15 text-white px-2 py-1.5 text-xs focus:outline-none focus:border-yellow-400/60'
+            className='flex-1 bg-surface-overlay border border-edge-subtle text-foreground px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--text-warning)]/60'
             placeholder='Amount'
           />
           <button
             onClick={handleMintOne}
             disabled={loading || !wallet.connected}
-            className='bg-yellow-400/20 border border-yellow-400/40 text-yellow-400 px-4 py-1.5 hover:bg-yellow-400/30 transition-colors disabled:opacity-40'
+            className='bg-[var(--text-warning)]/20 border border-[var(--text-warning)]/40 text-tx-warning px-4 py-1.5 hover:bg-[var(--text-warning)]/30 transition-colors disabled:opacity-40'
           >
             {loading ? '...' : 'Mint'}
           </button>
@@ -111,7 +111,7 @@ const DevTools: React.FC = () => {
         <button
           onClick={handleMintAll}
           disabled={loading || !wallet.connected}
-          className='w-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-400/70 px-2 py-1.5 hover:bg-yellow-400/20 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
+          className='w-full bg-[var(--text-warning)]/10 border border-[var(--text-warning)]/30 text-tx-warning/70 px-2 py-1.5 hover:bg-[var(--text-warning)]/20 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
         >
           Mint All ({TEST_TOKENS.length} tokens)
         </button>
@@ -119,16 +119,16 @@ const DevTools: React.FC = () => {
 
       {/* Gameplay controls */}
       <div>
-        <div className='font-mono text-[10px] text-white/40 uppercase tracking-widest mb-3'>Gameplay</div>
+        <div className='font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-3'>Gameplay</div>
         <div className='space-y-2'>
-          <div className='flex items-center justify-between border border-white/10 px-3 py-2'>
-            <span className='text-white/50 text-[10px] uppercase tracking-wider'>Fast Token Spawn</span>
+          <div className='flex items-center justify-between border border-border px-3 py-2'>
+            <span className='text-tx-secondary text-[10px] uppercase tracking-wider'>Fast Token Spawn</span>
             <button
               onClick={() => setDevFastSpawn(!devFastSpawn)}
               className={`text-[10px] px-3 py-0.5 border transition-colors ${
                 devFastSpawn
-                  ? 'bg-green-500/30 border-green-500/50 text-green-400'
-                  : 'bg-white/10 border-white/20 text-white/40'
+                  ? 'bg-[var(--text-success)]/30 border-[var(--text-success)]/50 text-tx-success'
+                  : 'bg-surface-subtle border-edge-medium text-muted-foreground'
               }`}
             >
               {devFastSpawn ? 'ON' : 'OFF'}
@@ -137,7 +137,7 @@ const DevTools: React.FC = () => {
           <button
             onClick={handleSuicide}
             disabled={!entities.ship[0]}
-            className='w-full bg-red-500/20 border border-red-500/40 text-red-400 px-2 py-2 hover:bg-red-500/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
+            className='w-full bg-destructive/20 border border-destructive/40 text-destructive px-2 py-2 hover:bg-destructive/30 transition-colors disabled:opacity-40 text-[10px] uppercase tracking-wider'
           >
             ☠ Kill Ship (trigger game over)
           </button>
@@ -146,12 +146,12 @@ const DevTools: React.FC = () => {
 
 
       {/* Vault health check */}
-      <div className='border-t border-white/10 pt-4'>
+      <div className='border-t border-border pt-4'>
         <VaultHealthCheck />
       </div>
 
       {status && (
-        <div className='text-[10px] text-white/50 break-all border-t border-white/10 pt-3'>{status}</div>
+        <div className='text-[10px] text-tx-secondary break-all border-t border-border pt-3'>{status}</div>
       )}
     </div>
   )

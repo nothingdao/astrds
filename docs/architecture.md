@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-23
+updated: 2026-04-26
 ---
 
 # Architecture
@@ -14,9 +14,11 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 ### Frontend (src/)
 
 - **Game engine** — canvas-based renderer. `GameScreen` delegates unconditionally to `ServerGameScreen`, which receives `GameSnapshot` over WebSocket and calls `renderServerSnapshot`. Entity classes (`Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`) have separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods, enabling the simulation to run in Node without browser APIs.
+- **Design/theme system** — shadcn-compatible CSS variables in `src/styles/style.css` are the source of truth. `themeStore.ts` persists `dark` / `light`; `ThemeController` applies `theme-dark` / `theme-light` to `document.documentElement`; `ThemeToggle` lives in the Header. React UI uses semantic Tailwind classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `text-tx-*`, `bg-surface-*`, `border-edge-*`). Canvas rendering cannot use Tailwind, so `src/lib/designTokens.ts` reads and caches CSS vars for renderers. `resolveCanvasColor` maps historical server snapshot colors (e.g. `#fff`) to current theme tokens so active gameplay remains visible in both themes.
+- **Themed screen art** — `ScreenContainer.tsx` selects per-theme image assets for `INITIAL`, `READY_TO_PLAY`, and `GAME_OVER` (`title-dark/light`, `ready-dark/light`, `end-game-dark/light`). Title and game-over screens use fullscreen backgrounds; content panels supply their own readability overlays.
 - **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
 - **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`. Stores are hydrated from `GameSnapshot` on each server tick.
-- **Blockchain** — Solana wallet-adapter. Auth via wallet signature verified server-side in Convex. Space token claims via on-chain vault program (`spaceVault.ts`). ASTRDS minting via Convex actions calling SPL.
+- **Blockchain** — Solana wallet-adapter. Auth via wallet signature verified server-side in Convex. Space token claims and ASTRDS minting both via on-chain vault program instructions (`spaceVault.ts`). Wallet connect dialog is a custom component (`GameWalletModal.tsx`) — does not use the library's default modal.
 - **Chat** — Reactive via Convex `useQuery(api.chat.getMessages)`. No Pusher.
 
 ### Game Server (server/)
@@ -59,6 +61,9 @@ All backend logic runs in Convex. No Netlify Functions.
 | `gameSessions.ts` | Game session lifecycle (create, update, get) |
 | `chat.ts` | Reactive chat — last 100 messages, reactive via useQuery |
 | `tokens.ts` | "use node" action — SPL mintTo for ASTRDS via authority keypair |
+| `prices.ts` | SOL/USD price feed — server-side Convex action; tries Coinbase → Binance → CoinGecko to avoid browser CORS/fallback pricing issues |
+| `economySnapshots.ts` | Periodic snapshots of live economic state (pool price, tier, circulating supply) |
+| `admin.ts` | Admin-gated mutations for operator tooling |
 | `spaceDeposits.ts` | Queries + mutations for space token pools, spawn tickets, collections, and claims |
 | `spaceDepositsActions.ts` | "use node" actions — verify deposit tx, prepare ed25519 claim authorizations, reconcile pools |
 | `http.ts` | Convex HTTP router — registers `/treasury-webhook` endpoint |
@@ -80,6 +85,7 @@ All backend logic runs in Convex. No Netlify Functions.
 | `spawnTickets` | Server-issued one-time spawn authorizations — validates player session before pool decrement |
 | `collections` | Individual pill collection events, persistent across sessions (index: `by_status_wallet`) |
 | `claims` | On-chain claim transfer records (indexes: `by_signature`, `by_deposit`, `by_player_wallet`) |
+| `economySnapshots` | Shared economy history snapshots for price chart / supply visualization |
 
 ### Token — ASTRDS
 
@@ -111,10 +117,10 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 - `reconcileAllPools` cron runs hourly as devnet fallback
 
 **Spawn flow:**
-1. `engineStore.spawnToken()` checks eligible pools for current level; 25% chance to spawn a space token (100% in dev fast-spawn mode)
-2. Before spawning, calls `requestSpawnTicket` mutation — validates player has active paid session, checks per-player spawn cooldown, and issues a one-time `spawnTickets` record
+1. Game server checks eligible pools for the current level and calls `requestSpawnTicket` (Convex mutation) — validates player has an active paid session, checks per-player cooldown, issues a one-time `spawnTickets` record
+2. If valid ticket returned → game server injects a `Token` entity into the authoritative simulation; snapshot is sent to client for rendering
 3. Token entity rendered with deterministic color from `src/lib/tokenColors.ts`
-4. Ship-token collision → `collectFromDeposit` mutation validates the ticket, marks it used, atomically decrements `remainingAmount`, and writes a persistent `collections` record
+4. Ship-token collision (server-authoritative) → `collectFromDeposit` mutation validates the ticket, marks it used, atomically decrements `remainingAmount`, and writes a persistent `collections` record
 5. HUD (bottom-right) shows per-type dot + symbol + count for all collected space tokens
 
 **Claim flow:**
@@ -136,9 +142,10 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 - `depleted` status means `remainingAmount < tokensPerPill` — players who collected can still claim their share
 
 **Token colors:**
-- `src/lib/tokenColors.ts` — `getTokenColor(mintAddress)` hashes mint address to one of 10 palette colors
-- `ASTRDS_COLOR = '#FF642D'` — used for standard ASTRDS tokens (not from space pools)
-- Colors are stable: same mint always gets same color across sessions and players
+- `src/lib/tokenColors.ts` — `getTokenColor(mintAddress)` hashes mint address to one of 10 CSS-variable-backed palette slots (`--space-token-0` … `--space-token-9`)
+- `getAstrdsColor()` reads `--canvas-token` for standard ASTRDS tokens (not from space pools)
+- Colors are stable by mint address, but the actual rendered values can differ by theme for contrast
+- The server/shared simulation may still emit historical protocol hex colors; the client resolves those via `resolveCanvasColor` before rendering
 
 ## Data Flow (typical game)
 
@@ -147,9 +154,9 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 3. Game starts → `gameSessions.create` → `READY_TO_PLAY → PLAYING`; `SpacePoolSync` mounts, polls active deposits into `spaceTokenStore`
 4. Gameplay → score increments in `gameData`; ASTRDS tokens increment `inventoryStore`; space tokens collected → `requestSpawnTicket` → `collectFromDeposit` (atomic decrement + persistent collection record) + `spaceTokenStore` update; HUD reflects both
 5. Death → `PLAYING → GAME_OVER` → `endGameSession` submits score; `ASTRDSMinting` claims ASTRDS; `SpaceTokenClaim` shows pending collections
-6. ASTRDS claim → `mintTokens` action calls SPL `mintTo`
+6. ASTRDS claim → `prepareMint` action signs ed25519 authorization → client builds + submits on-chain `mint_astrds` instruction → VaultConfig PDA CPIs `mintTo` → `MintRecord` PDA created for replay protection
 7. Space token claim → `prepareClaims` issues ed25519 authorization → client builds + submits on-chain `claim` instruction → vault transfers tokens to player → `finalizeClaim` persists to `claims` table
-8. AccountScreen → `getClaimsByWallet` query returns all historical claims; `SpaceTokenClaim` shows any still-unclaimed collections; `TokenBurnPanel` lets player burn + close unwanted token accounts
+8. AccountScreen → `getClaimsByWallet` query returns all historical claims; `SpaceTokenClaim` shows any still-unclaimed collections; `TokenManager` (Tokens tab) lets player launch tokens into Space or burn + close unwanted token accounts
 
 ## Key Config
 
@@ -158,7 +165,7 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 - `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims
 - `VITE_CONVEX_URL` — Convex deployment URL (frontend)
 - `VITE_HELIUS_API_KEY` — Helius API key (network hardcoded in `src/lib/solana.ts`)
-- `VITE_WS_URL` — optional; when set, `GameScreen` delegates to `ServerGameScreen` (e.g. `ws://localhost:3001`)
+- `VITE_WS_URL` — WebSocket server URL (e.g. `ws://localhost:3001` for local dev, Railway URL for prod); game server is required
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — SPL authority keypair JSON array (Convex env, never in frontend)
 - `SOLANA_RPC_ENDPOINT` — RPC used by Convex actions (Convex env)
 - `HELIUS_WEBHOOK_SECRET` — shared secret for webhook auth (Convex env)
@@ -173,9 +180,9 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 - **Kill Ship** — destroy ship entity, triggers game over
 - **Vault Health Check** — enumerate all on-chain DepositPool PDAs, cross-reference Convex records, sync missing pools back into Convex
 
-`src/utils/walletTokens.ts` — `getWalletTokens(address, includeEmpty)` fetches all SPL token accounts (TOKEN + TOKEN_2022) for a wallet, enriched with Helius DAS metadata. Used by `TokenBurnPanel`.
+`src/utils/walletTokens.ts` — `getWalletTokens(address, includeEmpty)` fetches all SPL token accounts (TOKEN + TOKEN_2022) for a wallet, enriched with Helius DAS metadata. Used by `TokenManager`.
 
-`src/components/account/TokenBurnPanel.tsx` — lets any player burn token balances and close associated token accounts to reclaim rent. Processes one account per transaction to isolate failures.
+`src/components/account/TokenManager.tsx` — unified token management in the Account screen's Tokens tab. Lists all wallet token accounts (including zero-balance), supports launching tokens into Space (full deposit flow inline) and burning balances + closing accounts to reclaim rent. Batch-closes empty accounts via `signAllTransactions`.
 
 ## Out of Scope (currently)
 

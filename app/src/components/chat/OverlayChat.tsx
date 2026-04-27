@@ -93,7 +93,7 @@ const OverlayChat: React.FC = () => {
       className='fixed left-0 top-0 bottom-0 z-30 flex flex-col w-64 pointer-events-none select-none'
       style={{
         background:
-          'linear-gradient(to right, rgba(0,0,0,0.72) 60%, transparent 100%)',
+          'linear-gradient(to right, var(--surface-overlay) 60%, transparent 100%)',
       }}
     >
       {/* Messages — scrollable, pad for HUD strips */}
@@ -112,11 +112,11 @@ const OverlayChat: React.FC = () => {
                 />
                 <div className='min-w-0 leading-tight'>
                   <span
-                    className={`text-[11px] font-mono ${isOwn ? 'text-white' : 'text-game-blue'}`}
+                    className={`text-[11px] font-mono ${isOwn ? 'text-foreground' : 'text-primary'}`}
                   >
                     {shorten(msg.walletAddress)}
                   </span>
-                  <span className='text-white/75 text-[11px] ml-1 break-words'>
+                  <span className='text-foreground/75 text-[11px] ml-1 break-words'>
                     {msg.message}
                   </span>
                 </div>
@@ -141,12 +141,12 @@ const OverlayChat: React.FC = () => {
             placeholder={wallet.connected ? '[T] to chat' : 'connect wallet'}
             disabled={!wallet.connected || sending}
             maxLength={280}
-            className='w-full bg-black/60 border-b border-game-blue/40 focus:border-game-blue
-                       text-white text-[11px] font-mono px-2 py-1 placeholder:text-white/20
+            className='w-full bg-surface-overlay border-b border-primary/40 focus:border-primary
+                       text-foreground text-[11px] font-mono px-2 py-1 placeholder:text-tx-dim
                        outline-none disabled:opacity-40 transition-colors'
           />
         </form>
-        <p className='text-white/20 text-[9px] font-mono mt-1'>
+        <p className='text-tx-dim text-[9px] font-mono mt-1'>
           {inputFocused ? '[Enter] send  ·  [Esc] cancel' : '[T] type  ·  [C] close'}
         </p>
       </div>

@@ -12,7 +12,7 @@ AudioService.ts   — loads HTMLAudioElements, executes play/stop/fade
 AudioManager.ts   — the only brain; subscribes to game state + level, drives AudioService
 ```
 
-**The one rule:** Only `AudioManager` controls music. SFX and stingers can be fired directly via `audioService.playSound()` or `audioManager.playFromBucket()` from anywhere.
+**The one rule:** Only `AudioManager` controls music. SFX and stingers should be fired through `audioManager.playFromSfxBucket()` or `audioManager.playFromStingerPlaylist()` when they belong to a mapped game event. `audioService.playSound()` is still useful for direct one-off asset tests and legacy simple effects.
 
 ---
 
@@ -59,7 +59,7 @@ That's it. AudioManager and AudioService pick it up automatically.
 
 ## Event Triggers — Full List
 
-Every point in the game where audio can or should fire. Not all are wired yet — this is the target surface.
+Every point in the game where audio can or should fire. Most system plumbing is now implemented; the main remaining work is expanding the asset library so buckets/playlists have enough variants to feel non-repeating.
 
 ### State Transitions (music + entry sound)
 | State | Music | Entry Sound |
@@ -73,20 +73,20 @@ Every point in the game where audio can or should fire. Not all are wired yet �
 ### Gameplay Events (SFX / stingers from buckets)
 | Event | Trigger Point | Bucket / Sound | Status |
 |---|---|---|---|
-| Asteroid destroyed — large | collision detection | `asteroidDestroyLarge` | not wired |
-| Asteroid destroyed — medium | collision detection | `asteroidDestroyMedium` | not wired |
-| Asteroid destroyed — small | collision detection | `asteroidDestroySmall` | not wired |
+| Asteroid destroyed — large | collision detection | `asteroidDestroyLarge` | wired — currently placeholder/reused asset |
+| Asteroid destroyed — medium | collision detection | `asteroidDestroyMedium` | wired — currently placeholder/reused asset |
+| Asteroid destroyed — small | collision detection | `asteroidDestroySmall` | wired — currently placeholder/reused asset |
 | Bullet fired | Ship.shootBullet | `shoot` (single) | wired |
 | Ship thrust | Ship.render loop | `thrust` (loop) | wired |
 | Ship destroyed | Ship.destroy | `explosion` (single) | wired |
 | Pill (powerup) collected | checkCollisions | `collect` (single) | wired |
 | ASTRDS token collected | checkCollisions | `collect` (single) | wired — same as pill, split if desired |
-| Space token collected | checkCollisions | `spaceTokenCollect` bucket | not wired |
+| Space token collected | checkCollisions | `spaceTokenCollect` bucket | wired — needs more variants |
 | Ship pickup collected | checkCollisions | `collect` (single) | wired — same as pill, split if desired |
-| Level advance stinger | levelStore | `levelAdvanceStingers` bucket | wired (Joi clips) |
+| Level advance stinger | levelStore | `stingerPlaylists.levelAdvance` | wired (JOI clips, stingers channel, music ducking) |
 | Game over | levelStore | `gameOver` (single) | wired |
-| New personal best | game over screen | `personalBest` bucket | not wired |
-| Leaderboard rank #1 | game over screen | `newTopScore` bucket | not wired |
+| New personal best | game over screen | `personalBest` bucket / stinger playlist | wired — needs dedicated assets |
+| Leaderboard rank #1 | game over screen | `newTopScore` bucket / stinger playlist | wired — needs dedicated assets |
 | Combo / asteroid streak | collision detection | `streak` stinger playlist | not wired — see Streak Definition below |
 
 **Note on asteroid size variants:** the engine currently sees all asteroids as one type. Size will need to be passed through to the collision handler to select the right bucket. Plan for this when wiring asteroid SFX.
@@ -128,6 +128,8 @@ Fire from anywhere (no ducking):
 audioManager.playFromSfxBucket('asteroidDestroyLarge')
 ```
 
+**Current implementation status:** SFX buckets are implemented in `SoundMap.ts` and driven by `AudioManager` with shuffle-without-replacement. Several buckets intentionally contain repeated/placeholder assets until the sound library grows.
+
 ---
 
 ## Stinger Playlists
@@ -161,6 +163,8 @@ Fire from anywhere (with ducking):
 audioManager.playFromStingerPlaylist('levelAdvance')
 ```
 
+**Current implementation status:** stinger playlists are implemented and use the `stingers` volume channel. `levelAdvance` contains the current JOI clips. `streak`, `personalBest`, and `newTopScore` are reserved and wired, but need dedicated clips.
+
 ---
 
 ## Stinger Ducking
@@ -178,7 +182,7 @@ stingerDuck: {
 },
 ```
 
-AudioManager ducks on stinger start, listens for the stinger's `ended` event, then restores. Pause ducking (PAUSED state) uses the same `duckMs`/`restoreMs` curve but holds indefinitely until the state returns to PLAYING.
+AudioManager ducks on stinger start, listens for the stinger's `ended` event, then restores. Pause ducking (PAUSED state) uses the same `duckMs`/`restoreMs` curve but holds indefinitely until the state returns to PLAYING. This is implemented in `AudioManager`/`AudioService` via `duckMusic()` and `restoreMusic()`.
 
 ---
 
@@ -213,13 +217,15 @@ levelBands: [
 - When the level crosses into a new band: re-shuffle that band's playlist and start fresh
 - Single-track playlists: just loop that track
 
+This is implemented. Current `SoundMap.ts` has a single level band with a one-track playlist; adding more tracks/bands only requires registering tracks in `AudioConfig.ts` and adding them to `SoundMap.ts`.
+
 **To add music to a band:** register the track in `AudioConfig.ts` with `loop: false`, add the ID to the playlist array. Done.
 
 ---
 
 ## Volume Channels
 
-Four channels, each 0–1, multiplied together to get final volume:
+Four channels, each 0–1, multiplied together to get final volume. All are exposed in sound settings:
 
 | Channel | Controls | Key |
 |---|---|---|
@@ -237,6 +243,21 @@ Stingers are on their own channel so they can be tuned independently from gamepl
 **TBD.** The trigger point is reserved in the event table and a `streak` stinger playlist slot exists in `SoundMap.ts`. Define the threshold and mechanic when you have voice clips that feel right for the moment.
 
 Options to consider when ready: kill streak (N asteroids without damage), time burst (N asteroids in X seconds), or score milestone (every N points).
+
+## Admin Sound Tab
+
+The Admin overlay includes a **Sound** tab (`src/screens/admin/SoundManager.tsx`) for inspecting the current runtime audio map.
+
+It shows:
+- SFX buckets and assigned asset IDs
+- Stinger playlists and assigned asset IDs
+- Global stinger duck config
+- Level band music playlists
+- All registered sound/music assets from `AudioConfig.ts`
+
+Each bucket, playlist, and direct asset has a test button. Bucket/playlist tests call the real `AudioManager` APIs so shuffle behavior and stinger ducking can be tested in-app.
+
+The tab is intentionally read-only for now. `SoundMap.ts` and `AudioConfig.ts` remain the source of truth.
 
 ---
 

@@ -115,16 +115,16 @@ const TokenBurnPanel: React.FC = () => {
   if (!connected) return null
 
   return (
-    <div className='bg-neutral-800 border border-white/10 rounded-lg p-6'>
+    <div className='bg-card border border-border rounded-lg p-6'>
       <div className='flex items-center justify-between mb-4'>
-        <h2 className='font-mono text-xs text-game-blue uppercase tracking-widest flex items-center gap-2'>
+        <h2 className='font-mono text-xs text-primary uppercase tracking-widest flex items-center gap-2'>
           <Flame size={14} />
           Wallet Cleanup
         </h2>
         <button
           onClick={loadTokens}
           disabled={loading}
-          className='flex items-center gap-1.5 font-mono text-[10px] text-white/40 hover:text-white transition-colors disabled:opacity-40'
+          className='flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40'
         >
           <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
           {tokens.length > 0 ? 'Refresh' : 'Load tokens'}
@@ -132,7 +132,7 @@ const TokenBurnPanel: React.FC = () => {
       </div>
 
       {tokens.length === 0 && !loading && (
-        <p className='font-mono text-[10px] text-white/25 text-center py-4'>
+        <p className='font-mono text-[10px] text-tx-dim text-center py-4'>
           Load tokens to burn balances and close accounts.
         </p>
       )}
@@ -142,7 +142,7 @@ const TokenBurnPanel: React.FC = () => {
           <div className='flex items-center justify-between mb-2'>
             <button
               onClick={toggleAll}
-              className='flex items-center gap-1.5 font-mono text-[10px] text-white/40 hover:text-white transition-colors'
+              className='flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors'
             >
               {selected.size === tokens.length
                 ? <CheckSquare size={10} />
@@ -150,7 +150,7 @@ const TokenBurnPanel: React.FC = () => {
               }
               {selected.size === tokens.length ? 'Deselect all' : 'Select all'}
             </button>
-            <span className='font-mono text-[10px] text-white/25'>{tokens.length} accounts</span>
+            <span className='font-mono text-[10px] text-tx-dim'>{tokens.length} accounts</span>
           </div>
 
           <div className='space-y-1 max-h-64 overflow-y-auto mb-3'>
@@ -162,22 +162,22 @@ const TokenBurnPanel: React.FC = () => {
                   onClick={() => toggle(token.accountAddress)}
                   className={`w-full flex items-center gap-3 px-3 py-2 border transition-colors text-left ${
                     isSelected
-                      ? 'border-red-500/40 bg-red-500/10'
-                      : 'border-white/5 bg-white/2 hover:border-white/15'
+                      ? 'border-destructive/40 bg-destructive/10'
+                      : 'border-edge-subtle bg-surface-subtle hover:border-edge-subtle'
                   }`}
                 >
-                  <div className={`shrink-0 ${isSelected ? 'text-red-400' : 'text-white/20'}`}>
+                  <div className={`shrink-0 ${isSelected ? 'text-destructive' : 'text-tx-dim'}`}>
                     {isSelected ? <CheckSquare size={12} /> : <Square size={12} />}
                   </div>
                   {token.logoUri
                     ? <img src={token.logoUri} alt={token.symbol} className='w-5 h-5 rounded-full shrink-0' />
-                    : <div className='w-5 h-5 rounded-full bg-white/10 shrink-0' />
+                    : <div className='w-5 h-5 rounded-full bg-surface-subtle shrink-0' />
                   }
                   <div className='flex-1 min-w-0'>
-                    <span className='font-mono text-xs text-white/70'>{token.symbol}</span>
-                    <span className='font-mono text-[9px] text-white/25 ml-2'>{token.name}</span>
+                    <span className='font-mono text-xs text-tx-secondary'>{token.symbol}</span>
+                    <span className='font-mono text-[9px] text-tx-dim ml-2'>{token.name}</span>
                   </div>
-                  <span className={`font-mono text-xs shrink-0 ${token.balance === 0 ? 'text-white/20' : 'text-white/50'}`}>
+                  <span className={`font-mono text-xs shrink-0 ${token.balance === 0 ? 'text-tx-dim' : 'text-tx-secondary'}`}>
                     {token.balance === 0 ? 'empty' : token.uiBalance.toLocaleString()}
                   </span>
                 </button>
@@ -188,7 +188,7 @@ const TokenBurnPanel: React.FC = () => {
           <button
             onClick={handleBurnAndClose}
             disabled={burning || selected.size === 0}
-            className='w-full flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2 font-mono text-xs'
+            className='w-full flex items-center justify-center gap-2 bg-destructive/20 border border-destructive/40 text-destructive hover:bg-destructive/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2 font-mono text-xs'
           >
             <Flame size={12} />
             {burning
@@ -202,7 +202,7 @@ const TokenBurnPanel: React.FC = () => {
       )}
 
       {status && (
-        <p className={`font-mono text-[10px] mt-2 ${status.startsWith('✓') ? 'text-green-400/70' : 'text-red-400'}`}>
+        <p className={`font-mono text-[10px] mt-2 ${status.startsWith('✓') ? 'text-tx-success' : 'text-destructive'}`}>
           {status}
         </p>
       )}

@@ -30,7 +30,7 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
 
   return (
     <div
-      className={`rounded-full bg-game-blue/15 border border-game-blue/25 flex items-center justify-center text-game-blue font-mono flex-shrink-0 ${className}`}
+      className={`rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center text-primary font-mono flex-shrink-0 ${className}`}
       style={{ width: size, height: size, fontSize }}
     >
       {initials}

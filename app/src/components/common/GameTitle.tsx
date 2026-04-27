@@ -10,9 +10,9 @@ const GameTitle: React.FC<GameTitleProps> = ({
 }) => {
   const titleClass = `
     text-4xl md:text-5xl mb-5 uppercase text-center leading-tight
-    text-white
+    text-foreground
     ${animate ? 'animate-[glow_1.5s_ease-in-out_infinite_alternate]' : ''}
-    [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9,0_0_30px_#4dc1f9]
+    [text-shadow:var(--text-shadow-accent-glow)]
     ${className}
   `
 
@@ -21,8 +21,8 @@ const GameTitle: React.FC<GameTitleProps> = ({
       <h1 className={titleClass}>ASTRDS</h1>
       {subtitle && (
         <h2 className='text-md md:text-lg mb-5 uppercase text-center leading-tight
-                      text-white animate-[glow_1.5s_ease-in-out_infinite_alternate]
-                      [text-shadow:0_0_10px_#4dc1f9,0_0_20px_#4dc1f9,0_0_30px_#4dc1f9]'>
+                      text-foreground animate-[glow_1.5s_ease-in-out_infinite_alternate]
+                      [text-shadow:var(--text-shadow-accent-glow)]'>
           {subtitle}
         </h2>
       )}

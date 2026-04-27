@@ -4,6 +4,7 @@
 import React, { useEffect, useRef } from 'react'
 import { useAudio } from '@/hooks/useAudio'
 import { audioService } from '@/services/audio/AudioService'
+import { getCanvasTokens } from '@/lib/designTokens'
 
 const TRACK_NAMES: Record<string, string> = {
   titleMusic:    'ARCIS',
@@ -13,11 +14,11 @@ const TRACK_NAMES: Record<string, string> = {
 }
 
 const BLOCK_COLORS = [
-  'bg-green-400',
-  'bg-green-400',
-  'bg-yellow-400',
-  'bg-orange-400',
-  'bg-red-400',
+  'bg-[var(--text-success)]',
+  'bg-[var(--text-success)]',
+  'bg-[var(--text-warning)]',
+  'bg-[var(--entity-particle)]',
+  'bg-[var(--text-danger)]',
 ]
 
 const BAR_COUNT = 20
@@ -60,8 +61,10 @@ const AudioWidget: React.FC<AudioWidgetProps> = ({ compact = false }) => {
         const w = canvas.width / BAR_COUNT - 1
         const alpha = 0.3 + raw * 0.7
 
-        ctx.fillStyle = `rgba(77,193,249,${alpha})`
+        ctx.globalAlpha = alpha
+        ctx.fillStyle = getCanvasTokens().pill
         ctx.fillRect(x, canvas.height - height, w, height)
+        ctx.globalAlpha = 1
       }
 
       rafRef.current = requestAnimationFrame(draw)
@@ -75,7 +78,7 @@ const AudioWidget: React.FC<AudioWidgetProps> = ({ compact = false }) => {
     <div className='flex items-center gap-3'>
       {/* Track name */}
       {trackName && (
-        <span className={`font-mono uppercase tracking-wider text-white/30 ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+        <span className={`font-mono uppercase tracking-wider text-muted-foreground ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
           {trackName}
         </span>
       )}
@@ -98,7 +101,7 @@ const AudioWidget: React.FC<AudioWidgetProps> = ({ compact = false }) => {
             className={`transition-colors pointer-events-auto ${compact ? 'w-2' : 'w-2.5'} ${
               n <= activeBlocks
                 ? `${BLOCK_COLORS[n - 1]}`
-                : 'bg-white/10 hover:bg-white/20'
+                : 'bg-surface-subtle hover:bg-surface-medium'
             }`}
             style={{ height: compact ? `${6 + n * 2}px` : `${8 + n * 2.5}px` }}
           />

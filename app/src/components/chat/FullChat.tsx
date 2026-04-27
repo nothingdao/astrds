@@ -98,11 +98,11 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
           setUnreadMessages(false)
           scrollToBottom(true)
         }}
-        className='absolute bottom-2 right-2 bg-game-blue text-black px-3 py-1
-                   rounded-full shadow-lg animate-bounce hover:bg-white
+        className='absolute bottom-2 right-2 bg-primary text-primary-foreground px-3 py-1
+                   rounded-full shadow-lg animate-bounce hover:bg-card
                    transition-colors z-10 text-sm flex items-center gap-2'
       >
-        <span className='w-2 h-2 bg-white rounded-full animate-pulse' />
+        <span className='w-2 h-2 bg-card rounded-full animate-pulse' />
         New Messages
       </button>
     )
@@ -110,7 +110,7 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
 
   return (
     <div className='flex flex-col h-full' style={{ minHeight: '480px' }}>
-      <div className='px-5 py-3 border-b border-white/8'>
+      <div className='px-5 py-3 border-b border-border'>
       </div>
 
       <div className='flex-1 relative min-h-0'>
@@ -122,7 +122,7 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
           <div className='min-h-full flex flex-col justify-end'>
             <div className='space-y-4 px-5 py-3'>
               {messages.length === 0 ? (
-                <div className='text-center text-white/30 font-mono text-xs py-8'>No messages yet</div>
+                <div className='text-center text-muted-foreground font-mono text-xs py-8'>No messages yet</div>
               ) : (
                 messages.map((msg) => {
                   const isOwn = msg.walletAddress === wallet.publicKey?.toString()
@@ -138,22 +138,22 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
                       />
                       <div className='min-w-0'>
                         <div className='flex items-baseline gap-2'>
-                          <span className='text-game-blue font-bold text-sm'>
+                          <span className='text-primary font-bold text-sm'>
                             {shortenAddress(msg.walletAddress)}
                           </span>
                           <a
                             href={`https://orbmarkets.io/address/${msg.walletAddress}`}
                             target='_blank'
                             rel='noopener noreferrer'
-                            className='text-gray-500 hover:text-white transition-colors text-xs'
+                            className='text-muted-foreground hover:text-foreground transition-colors text-xs'
                           >
                             ⇗
                           </a>
-                          <span className='text-xs text-gray-500'>
+                          <span className='text-xs text-muted-foreground'>
                             {new Date(msg.timestamp).toLocaleString()}
                           </span>
                         </div>
-                        <p className='text-white break-words text-sm'>{msg.message}</p>
+                        <p className='text-foreground break-words text-sm'>{msg.message}</p>
                       </div>
                     </div>
                   )
@@ -166,34 +166,34 @@ const FullChat: React.FC<ChatProps> = ({ onClose }) => {
         <NewMessagesIndicator />
       </div>
 
-      <form onSubmit={handleSubmit} className='flex gap-2 px-5 py-3 border-t border-white/10 shrink-0'>
+      <form onSubmit={handleSubmit} className='flex gap-2 px-5 py-3 border-t border-border shrink-0'>
         <input
           type='text'
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder={wallet.connected ? 'Type a message...' : 'Connect wallet to chat'}
           disabled={!wallet.connected || sendingMessage}
-          className='flex-1 bg-transparent border border-game-blue p-2 text-white
-                     placeholder:text-gray-500 focus:outline-none focus:border-white
+          className='flex-1 bg-transparent border border-primary p-2 text-foreground
+                     placeholder:text-muted-foreground focus:outline-none focus:border-border
                      disabled:opacity-50 disabled:cursor-not-allowed'
           maxLength={280}
         />
         <button
           type='submit'
           disabled={!wallet.connected || !newMessage.trim() || sendingMessage}
-          className='bg-game-blue text-black px-4 py-2 hover:bg-white
-                     transition-colors disabled:bg-gray-700 disabled:text-gray-500
+          className='bg-primary text-primary-foreground px-4 py-2 hover:bg-card
+                     transition-colors disabled:bg-muted disabled:text-muted-foreground
                      min-w-[80px] flex items-center justify-center'
         >
           {sendingMessage ? (
-            <span className='w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin' />
+            <span className='w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin' />
           ) : (
             'Send'
           )}
         </button>
       </form>
 
-      {error && <div className='px-5 pb-2 text-game-red text-xs'>{error}</div>}
+      {error && <div className='px-5 pb-2 text-destructive text-xs'>{error}</div>}
     </div>
   )
 }

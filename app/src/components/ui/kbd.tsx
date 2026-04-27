@@ -7,7 +7,7 @@ const Kbd = React.forwardRef<HTMLElement, React.ComponentPropsWithoutRef<'kbd'>>
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 font-mono text-[10px] font-medium',
-        'bg-white/8 border border-white/20 text-white/60',
+        'bg-muted border border-border text-muted-foreground',
         'rounded-none select-none leading-none',
         className
       )}

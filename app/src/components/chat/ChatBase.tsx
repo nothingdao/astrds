@@ -99,22 +99,22 @@ export const Message = ({
   return (
     <div className={`space-y-1 px-2 ${isOwnMessage ? 'opacity-100' : 'opacity-80'}`}>
       <div className='flex items-baseline gap-2'>
-        <span className='text-game-blue font-bold flex items-center gap-1'>
+        <span className='text-primary font-bold flex items-center gap-1'>
           {shortenAddress(message.walletAddress)}
           <a
             href={`https://orbmarkets.io/address/${message.walletAddress}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='text-gray-200 hover:text-white transition-colors text-3xl mb-5 ml-2 mr-4'
+            className='text-muted-foreground hover:text-foreground transition-colors text-3xl mb-5 ml-2 mr-4'
           >
             ⇗
           </a>
         </span>
-        <span className='text-xs text-gray-500'>
+        <span className='text-xs text-muted-foreground'>
           {new Date(message.timestamp).toLocaleString()}
         </span>
       </div>
-      <p className='text-white break-words'>{message.message}</p>
+      <p className='text-foreground break-words'>{message.message}</p>
     </div>
   )
 }
@@ -139,20 +139,20 @@ export const ChatInput = ({
       onChange={(e) => setNewMessage(e.target.value)}
       placeholder={wallet.connected ? 'Type a message...' : 'Connect wallet to chat'}
       disabled={!wallet.connected || sendingMessage}
-      className='flex-1 bg-transparent border border-game-blue p-2 text-white
-                 placeholder:text-gray-500 focus:outline-none focus:border-white
+      className='flex-1 bg-transparent border border-primary p-2 text-foreground
+                 placeholder:text-muted-foreground focus:outline-none focus:border-border
                  disabled:opacity-50 disabled:cursor-not-allowed'
       maxLength={280}
     />
     <button
       type='submit'
       disabled={!wallet.connected || !newMessage.trim() || sendingMessage}
-      className='bg-game-blue text-black px-4 py-2 hover:bg-white
-                 transition-colors disabled:bg-gray-700 disabled:text-gray-500
+      className='bg-primary text-primary-foreground px-4 py-2 hover:bg-card
+                 transition-colors disabled:bg-muted disabled:text-muted-foreground
                  min-w-[80px] flex items-center justify-center'
     >
       {sendingMessage ? (
-        <span className='w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin' />
+        <span className='w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin' />
       ) : (
         'Send'
       )}

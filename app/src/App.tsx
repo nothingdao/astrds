@@ -4,8 +4,7 @@ import {
   ConnectionProvider,
   WalletProvider,
 } from '@solana/wallet-adapter-react'
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
+import GameWalletModalProvider from '@/components/wallet/GameWalletModal'
 import GameLayout from './screens/game/components/GameLayout'
 import GameStateManager from './screens/game/components/GameStateManager'
 import ChatSystem from './components/chat/ChatSystem'
@@ -19,6 +18,7 @@ import { audioService } from './services/audio/AudioService'
 import { Overlay } from './types/overlay'
 import { Commitment } from '@solana/web3.js';
 import { RPC_ENDPOINT } from '@/lib/solana';
+import ThemeController from '@/components/theme/ThemeController'
 
 
 interface LoadingOverlayProps {
@@ -26,16 +26,16 @@ interface LoadingOverlayProps {
 }
 
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ progress }) => (
-  <div className='fixed inset-0 bg-black flex items-center justify-center z-50'>
+  <div className='fixed inset-0 bg-background text-foreground flex items-center justify-center z-50'>
     <div className='text-center'>
-      <h2 className='text-xl text-game-blue mb-4'>Loading Game Assets</h2>
-      <div className='w-64 h-2 bg-white/10 rounded-full overflow-hidden'>
+      <h2 className='text-xl text-primary mb-4'>Loading Game Assets</h2>
+      <div className='w-64 h-2 bg-surface-subtle rounded-full overflow-hidden'>
         <div
-          className='h-full bg-game-blue transition-all duration-300'
+          className='h-full bg-primary transition-all duration-300'
           style={{ width: `${progress}%` }}
         />
       </div>
-      <div className='mt-2 text-sm text-white/50'>
+      <div className='mt-2 text-sm text-muted-foreground'>
         Loading sounds... {Math.round(progress)}%
       </div>
     </div>
@@ -103,10 +103,10 @@ const App: React.FC = () => {
           openOverlay(Overlay.ACCOUNT)
           break
         case '?':
-          openOverlay(Overlay.SHORTCUTS)
+          openOverlay(Overlay.HELP)
           break
-        case 'r':
-          openOverlay(Overlay.SPACE)
+        case '`':
+          openOverlay(Overlay.ADMIN)
           break
         default:
           break
@@ -117,13 +117,11 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [toggleSettingsPanel, setVolume, openOverlay, volumes.master])
 
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    []
-  )
+  // Do not instantiate legacy Phantom/Solflare adapters. Modern wallets register
+  // through the Solana Wallet Standard and WalletProvider discovers them
+  // automatically; adding explicit adapters causes duplicate-wallet warnings and
+  // can confuse wallet network detection.
+  const wallets = useMemo(() => [], [])
 
   const config = {
     commitment: 'confirmed' as Commitment, // Cast to Commitment
@@ -141,7 +139,8 @@ const App: React.FC = () => {
         wallets={wallets}
         autoConnect
       >
-        <WalletModalProvider>
+        <GameWalletModalProvider>
+          <ThemeController />
           <GameLayout>
             {isLoading ? (
               <LoadingOverlay progress={loadingProgress} />
@@ -155,7 +154,7 @@ const App: React.FC = () => {
               </>
             )}
           </GameLayout>
-        </WalletModalProvider>
+        </GameWalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   )

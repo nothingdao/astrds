@@ -61,11 +61,12 @@ Feature source of truth. Update this as features ship, change, or get cut.
 - Pending space token collections — `SpaceTokenClaim` lets player claim tokens missed on the game over screen
 - Space token claims history (last 10 on-chain claims, persistent across all game sessions)
 - Player avatar upload (stored in Convex file storage)
-- **Wallet cleanup** — `TokenBurnPanel` lets player burn balances and close unwanted token accounts to reclaim rent
+- **Tokens tab** — `TokenManager` provides unified token management: view all wallet token accounts (including zero-balance), launch any token into Space (full deposit flow inline), burn balances, close accounts to reclaim rent, batch-close empty accounts
 
 ## Functional Requirements
 
 - [x] Wallet auth survives page refresh within session expiry window
+- [x] Light/dark theme persists across refresh and applies to both React UI and live canvas gameplay
 - [x] ASTRDS mint is server-side — client cannot trigger minting without verified session
 - [x] Space deposit amounts verified on-chain via `tx.meta` — client input not trusted for amounts
 - [x] Pool decrement is atomic (Convex serialized mutations) — safe under concurrent players
@@ -86,6 +87,7 @@ Feature source of truth. Update this as features ship, change, or get cut.
 
 ## Nice To Have
 
+- Theme polish: continue tuning individual light/dark image assets and contrast as art direction evolves
 - Mobile controls
 - Mainnet migration — economy design in progress, see `docs/economy.md`
 - Code splitting (bundle currently ~500KB+)

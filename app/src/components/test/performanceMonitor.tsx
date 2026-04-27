@@ -35,21 +35,21 @@ export default function PerformanceMonitor() {
 
   // Color indicators based on performance thresholds
   const getFPSColor = (fps: number) => {
-    if (fps >= 55) return 'text-green-400'
-    if (fps >= 30) return 'text-yellow-400'
-    return 'text-red-400'
+    if (fps >= 55) return 'text-tx-success'
+    if (fps >= 30) return 'text-tx-warning'
+    return 'text-destructive'
   }
 
   const getFrameTimeColor = (frameTime: number) => {
-    if (frameTime <= 16.67) return 'text-green-400'
-    if (frameTime <= 33.33) return 'text-yellow-400'
-    return 'text-red-400'
+    if (frameTime <= 16.67) return 'text-tx-success'
+    if (frameTime <= 33.33) return 'text-tx-warning'
+    return 'text-destructive'
   }
 
   const getEntityCountColor = (count: number) => {
-    if (count <= 50) return 'text-green-400'
-    if (count <= 100) return 'text-yellow-400'
-    return 'text-red-400'
+    if (count <= 50) return 'text-tx-success'
+    if (count <= 100) return 'text-tx-warning'
+    return 'text-destructive'
   }
 
   const totalEntities = Object.values(performance.entityCounts).reduce(
@@ -61,7 +61,7 @@ export default function PerformanceMonitor() {
     <div className="fixed left-4 bottom-4 z-50">
       <div
         className={`
-          bg-black/80 border border-game-blue rounded-lg p-4
+          bg-surface-overlay border border-primary rounded-lg p-4
           transition-all duration-200 ease-in-out
           ${isExpanded ? 'w-64' : 'w-36'}
         `}
@@ -69,12 +69,12 @@ export default function PerformanceMonitor() {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
-            <Activity size={16} className="text-game-blue" />
-            <span className="text-sm font-medium text-game-blue">Performance</span>
+            <Activity size={16} className="text-primary" />
+            <span className="text-sm font-medium text-primary">Performance</span>
           </div>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             {isExpanded ? (
               <ChevronDown size={16} />
@@ -87,14 +87,14 @@ export default function PerformanceMonitor() {
         {/* Basic Metrics - Always visible */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">FPS</span>
+            <span className="text-xs text-muted-foreground">FPS</span>
             <span className={`font-mono ${getFPSColor(performance.fps)}`}>
               {performance.fps}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Frame Time</span>
+            <span className="text-xs text-muted-foreground">Frame Time</span>
             <span
               className={`font-mono ${getFrameTimeColor(performance.frameTime)}`}
             >
@@ -103,7 +103,7 @@ export default function PerformanceMonitor() {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Entities</span>
+            <span className="text-xs text-muted-foreground">Entities</span>
             <span
               className={`font-mono ${getEntityCountColor(totalEntities)}`}
             >
@@ -114,17 +114,17 @@ export default function PerformanceMonitor() {
 
         {/* Expanded Metrics */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
+          <div className="mt-4 pt-4 border-t border-border space-y-4">
             {/* Entity Breakdown */}
             <div>
-              <h3 className="text-xs text-gray-400 mb-2">Entity Counts</h3>
+              <h3 className="text-xs text-muted-foreground mb-2">Entity Counts</h3>
               <div className="space-y-1">
                 {Object.entries(performance.entityCounts).map(([type, count]) => (
                   <div
                     key={type}
                     className="flex justify-between items-center"
                   >
-                    <span className="text-xs text-gray-400 capitalize">
+                    <span className="text-xs text-muted-foreground capitalize">
                       {type}
                     </span>
                     <span className={`font-mono ${getEntityCountColor(count)}`}>
@@ -137,17 +137,17 @@ export default function PerformanceMonitor() {
 
             {/* Frame Stats */}
             <div>
-              <h3 className="text-xs text-gray-400 mb-2">Frame Stats</h3>
+              <h3 className="text-xs text-muted-foreground mb-2">Frame Stats</h3>
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Frame Count</span>
-                  <span className="font-mono text-gray-300">
+                  <span className="text-xs text-muted-foreground">Frame Count</span>
+                  <span className="font-mono text-tx-secondary">
                     {performance.frameCount}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Last Update</span>
-                  <span className="font-mono text-gray-300">
+                  <span className="text-xs text-muted-foreground">Last Update</span>
+                  <span className="font-mono text-tx-secondary">
                     {Math.round(performance.lastFrameTimestamp)}ms
                   </span>
                 </div>
@@ -155,7 +155,7 @@ export default function PerformanceMonitor() {
             </div>
 
             {/* Legend */}
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               <p>Target: 60 FPS (16.67ms)</p>
               <p>Current: {performance.fps} FPS ({performance.frameTime.toFixed(1)}ms)</p>
             </div>

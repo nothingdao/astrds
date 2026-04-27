@@ -4,10 +4,10 @@ import React from 'react'
 import { MenuButtonProps } from '@/types/components/menu'
 
 const variantClasses = {
-  default: 'border-game-blue text-game-blue hover:bg-game-blue hover:text-black',
-  primary: 'border-game-green text-game-green hover:bg-game-green hover:text-black',
-  danger: 'border-game-red text-game-red hover:bg-game-red hover:text-black',
-  quarter: 'border-game-green text-game-green hover:bg-game-green hover:text-black hover:shadow-[0_0_15px_#4dff4d]'
+  default: 'border-primary text-primary hover:bg-primary hover:text-primary-foreground',
+  primary: 'border-[var(--text-success)] text-tx-success hover:bg-[var(--text-success)] hover:text-primary-foreground',
+  danger: 'border-destructive text-destructive hover:bg-destructive hover:text-primary-foreground',
+  quarter: 'border-[var(--text-success)] text-tx-success hover:bg-[var(--text-success)] hover:text-primary-foreground hover:shadow-[var(--shadow-accent-glow)]'
 }
 
 const sizeClasses = {
@@ -32,8 +32,8 @@ const MenuButton: React.FC<MenuButtonProps> = ({
     className={`
       bg-transparent border-2 font-arcade
       transition-all duration-300 relative overflow-hidden
-      disabled:bg-neutral-800 disabled:border-neutral-800 
-      disabled:text-neutral-600 disabled:cursor-not-allowed 
+      disabled:bg-muted disabled:border-border 
+      disabled:text-muted-foreground disabled:cursor-not-allowed 
       disabled:hover:shadow-none
       ${variantClasses[variant]}
       ${sizeClasses[size]}

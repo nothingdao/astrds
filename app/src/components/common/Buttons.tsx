@@ -21,8 +21,8 @@ export const StyledWalletButton = ({ children }: { children: React.ReactNode }) 
   <div
     className='[&>.wallet-adapter-button]:bg-transparent
                [&>.wallet-adapter-button]:border-2
-               [&>.wallet-adapter-button]:border-game-blue
-               [&>.wallet-adapter-button]:text-game-blue
+               [&>.wallet-adapter-button]:border-primary
+               [&>.wallet-adapter-button]:text-primary
                [&>.wallet-adapter-button]:font-arcade
                [&>.wallet-adapter-button]:px-6
                [&>.wallet-adapter-button]:py-3
@@ -30,10 +30,10 @@ export const StyledWalletButton = ({ children }: { children: React.ReactNode }) 
                [&>.wallet-adapter-button]:uppercase
                [&>.wallet-adapter-button]:transition-all
                [&>.wallet-adapter-button]:duration-300
-               [&>.wallet-adapter-button:hover]:bg-game-blue
-               [&>.wallet-adapter-button:hover]:text-black
-               [&>.wallet-adapter-button:hover]:shadow-[0_0_10px_#4dc1f9]
-               [&>.wallet-adapter-button:not(:disabled):hover]:bg-game-blue'
+               [&>.wallet-adapter-button:hover]:bg-primary
+               [&>.wallet-adapter-button:hover]:text-primary-foreground
+               [&>.wallet-adapter-button:hover]:shadow-[var(--shadow-accent-glow)]
+               [&>.wallet-adapter-button:not(:disabled):hover]:bg-primary'
   >
     {children}
   </div>

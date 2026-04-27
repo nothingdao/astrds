@@ -10,18 +10,18 @@ const buttonVariants = cva(
       variant: {
         // Standard game button — blue
         default:
-          "border-2 border-game-blue text-game-blue bg-transparent hover:bg-game-blue hover:text-black hover:shadow-[0_0_15px_#4dc1f9]",
-        // Insert quarter — green, solid fill with grain
+          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground hover:shadow-[var(--shadow-accent-glow)]",
+        // Insert quarter — success, solid fill with grain
         quarter:
-          "btn-grain bg-game-green text-black hover:bg-white hover:shadow-[0_0_20px_#4dff4d]",
+          "btn-grain bg-[var(--text-success)] text-primary-foreground hover:bg-primary hover:shadow-[var(--shadow-accent-glow)]",
         // Danger / red
         destructive:
-          "border-2 border-game-red text-game-red bg-transparent hover:bg-game-red hover:text-black hover:shadow-[0_0_15px_#ff4d4d]",
+          "border-2 border-destructive text-destructive bg-transparent hover:bg-destructive hover:text-primary-foreground hover:shadow-[var(--shadow-accent-glow)]",
         // Subtle / muted
         ghost:
-          "border-2 border-white/10 text-gray-400 bg-transparent hover:border-white/30 hover:text-white",
+          "border-2 border-border text-muted-foreground bg-transparent hover:border-edge-medium hover:text-foreground",
         // No border, text only
-        link: "text-game-blue hover:text-white underline-offset-4 hover:underline",
+        link: "text-primary hover:text-foreground underline-offset-4 hover:underline",
       },
       size: {
         default: "px-8 py-4 text-sm",
