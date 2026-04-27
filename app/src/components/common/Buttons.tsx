@@ -21,130 +21,41 @@ export const QuarterButton = ({
     <button
       onClick={onClick}
       disabled={disabled}
-      style={{
-        background: '#000',
-        border: 'none',
-        borderRadius: '3px',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled && !isLoading ? 0.45 : 1,
-        padding: '10px 10px 10px 6px',
-        userSelect: 'none',
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: '8px',
-        boxShadow: '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)',
-        transition: 'box-shadow 0.08s, transform 0.08s',
-        fontFamily: 'inherit',
-      }}
-      onMouseDown={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.boxShadow = '0 1px 0 #111, 0 2px 8px rgba(0,0,0,0.9)'
-          e.currentTarget.style.transform = 'translateY(4px)'
-        }
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.boxShadow = '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 5px 0 #111, 0 8px 20px rgba(0,0,0,0.9)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
+      className={[
+        'relative p-2 rounded-xl select-none transition-all duration-75',
+        // Translucent plastic: warm top highlight fading to deep red — light bleeding through
+        'bg-gradient-to-b from-orange-500 via-red-700 to-red-900',
+        // Outer glow (backlit halo) + top specular edge + subtle inner warmth + physical drop
+        'shadow-[0_6px_0_rgba(0,0,0,0.7),0_0_40px_rgba(220,70,0,0.55),0_0_80px_rgba(180,30,0,0.25),inset_0_1px_0_rgba(255,180,60,0.5),inset_0_0_28px_rgba(255,70,0,0.13)]',
+        !disabled
+          ? 'active:translate-y-1.5 active:shadow-[0_2px_0_rgba(0,0,0,0.7),0_0_30px_rgba(220,70,0,0.5),inset_0_0_28px_rgba(255,70,0,0.13)]'
+          : '',
+        disabled && !isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+      ].join(' ')}
     >
-      {/* Left coin slot bar */}
-      <div style={{
-        width: '8px',
-        background: '#0a0000',
-        borderRadius: '2px',
-        flexShrink: 0,
-        position: 'relative',
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '4px',
-          height: '20px',
-          background: '#1a0000',
-          borderRadius: '2px',
-        }} />
-      </div>
+      {/* Corner screws */}
+      <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-red-950 border border-orange-800/50 shadow-[inset_0_1px_1px_rgba(255,140,0,0.3)]" />
+      <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-950 border border-orange-800/50 shadow-[inset_0_1px_1px_rgba(255,140,0,0.3)]" />
+      <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-red-950 border border-orange-800/50 shadow-[inset_0_1px_1px_rgba(255,140,0,0.3)]" />
+      <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-red-950 border border-orange-800/50 shadow-[inset_0_1px_1px_rgba(255,140,0,0.3)]" />
 
-      {/* Main panel: red border, black bg, stacked text */}
-      <div style={{
-        border: '3px solid #cc0000',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '10px 20px 6px',
-        gap: 0,
-        minWidth: '130px',
-      }}>
+      {/* Inner dark display panel */}
+      <div className="bg-neutral-950 rounded-lg px-7 py-4 flex flex-col items-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.95)]">
         {isLoading ? (
-          <div style={{
-            color: '#cc0000',
-            fontSize: '10px',
-            letterSpacing: '0.1em',
-            fontFamily: '"Press Start 2P", Impact, sans-serif',
-            textAlign: 'center',
-            padding: '16px 0',
-            lineHeight: 1.8,
-          }}>
+          <div className="text-orange-400 text-[10px] tracking-widest text-center py-6 leading-loose font-mono">
             {label}
           </div>
         ) : (
           <>
-            <div style={{
-              color: '#cc0000',
-              fontSize: '32px',
-              fontFamily: 'Impact, "Arial Narrow", sans-serif',
-              letterSpacing: '0.02em',
-              lineHeight: 1,
-              marginBottom: '8px',
-            }}>
+            <div className="text-amber-300 text-3xl leading-none mb-2 tracking-wide [font-family:Impact,'Arial_Narrow',sans-serif] [text-shadow:0_0_10px_rgba(255,150,0,0.9),0_0_22px_rgba(255,80,0,0.5)]">
               25¢
             </div>
-
-            {/* Divider */}
-            <div style={{ width: '100%', height: '2px', background: '#cc0000', marginBottom: '8px' }} />
-
-            <div style={{
-              color: '#cc0000',
-              fontSize: '11px',
-              fontFamily: 'Impact, "Arial Narrow", sans-serif',
-              letterSpacing: '0.12em',
-              lineHeight: 1.2,
-              textAlign: 'center',
-            }}>
+            <div className="w-full h-px bg-orange-900/60 mb-2" />
+            <div className="text-orange-500 text-[10px] tracking-[0.18em] text-center leading-snug [font-family:Impact,'Arial_Narrow',sans-serif]">
               INSERT COIN TO
             </div>
-            <div style={{
-              color: '#cc0000',
-              fontSize: '40px',
-              fontFamily: 'Impact, "Arial Narrow", sans-serif',
-              letterSpacing: '0.05em',
-              lineHeight: 1,
-              marginBottom: '10px',
-            }}>
+            <div className="text-amber-300 text-[44px] leading-none tracking-wide [font-family:Impact,'Arial_Narrow',sans-serif] [text-shadow:0_0_12px_rgba(255,150,0,0.9),0_0_28px_rgba(255,80,0,0.5)]">
               PLAY
-            </div>
-
-            {/* Bottom reject strip */}
-            <div style={{
-              border: '1px solid #550000',
-              width: '100%',
-              textAlign: 'center',
-              padding: '2px 0',
-            }}>
-              <span style={{
-                color: '#550000',
-                fontSize: '7px',
-                fontFamily: 'Impact, "Arial Narrow", sans-serif',
-                letterSpacing: '0.15em',
-              }}>
-                PUSH TO REJECT
-              </span>
             </div>
           </>
         )}
