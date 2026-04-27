@@ -5,11 +5,11 @@ import { useAudio } from '@/hooks/useAudio'
 const BLOCKS = [1, 2, 3, 4, 5]
 
 const BLOCK_COLORS = [
-  'bg-green-400',
-  'bg-green-400',
-  'bg-yellow-400',
-  'bg-orange-400',
-  'bg-red-400',
+  'bg-[var(--text-success)]',
+  'bg-[var(--text-success)]',
+  'bg-[var(--text-warning)]',
+  'bg-[var(--entity-particle)]',
+  'bg-[var(--text-danger)]',
 ]
 
 const VolumeControl = () => {
@@ -37,7 +37,7 @@ const VolumeControl = () => {
     <div className='space-y-3 font-mono text-xs'>
       {/* Master volume */}
       <div className='flex items-center gap-3'>
-        <span className='text-white/40 w-8'>VOL</span>
+        <span className='text-muted-foreground w-8'>VOL</span>
         <div className='flex gap-1'>
           {BLOCKS.map((n) => (
             <button
@@ -46,29 +46,29 @@ const VolumeControl = () => {
               className={`w-6 h-4 border transition-colors ${
                 n <= activeBlocks
                   ? `${BLOCK_COLORS[n - 1]} border-transparent`
-                  : 'bg-white/10 border-white/20 hover:bg-white/20'
+                  : 'bg-surface-subtle border-border hover:bg-surface-medium'
               }`}
               title={`Volume ${n * 20}%`}
             />
           ))}
         </div>
-        <span className='text-white/30'>[1–5]</span>
+        <span className='text-tx-dim'>[1–5]</span>
       </div>
 
       {/* Music toggle */}
       <div className='flex items-center gap-3'>
-        <span className='text-white/40 w-8'>MUS</span>
+        <span className='text-muted-foreground w-8'>MUS</span>
         <button
           onClick={handleMusicToggle}
           className={`px-3 h-4 border text-xs transition-colors leading-none ${
             musicOn
-              ? 'bg-game-blue/80 border-game-blue text-black'
-              : 'bg-white/10 border-white/20 text-white/40 hover:bg-white/20'
+              ? 'bg-primary border-primary text-primary-foreground'
+              : 'bg-surface-subtle border-border text-muted-foreground hover:bg-surface-medium'
           }`}
         >
           {musicOn ? 'ON' : 'OFF'}
         </button>
-        <span className='text-white/30'>[M]</span>
+        <span className='text-tx-dim'>[M]</span>
       </div>
     </div>
   )

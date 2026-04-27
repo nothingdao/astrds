@@ -3,6 +3,7 @@ export const VOLUME_CHANNELS = {
   MASTER: 'master',
   MUSIC: 'music',
   SFX: 'sfx',
+  STINGERS: 'stingers',
 }
 
 export const SOUND_TYPES = {

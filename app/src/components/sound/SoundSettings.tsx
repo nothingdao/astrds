@@ -32,7 +32,7 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
 
   const EffectGroup: React.FC<EffectGroupProps> = ({ groupName, effects }) => (
     <div key={groupName}>
-      <h4 className='font-mono text-[10px] text-white/40 uppercase tracking-widest mb-3'>{groupName}</h4>
+      <h4 className='font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-3'>{groupName}</h4>
       <div className='space-y-2'>
         {effects.map((effect) => (
           <div
@@ -51,8 +51,8 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
               disabled={effectSettings[effect] === 'off'}
               className={`px-2 py-1 rounded flex items-center gap-1 text-xs
                 ${effectSettings[effect] === 'off'
-                  ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                  : 'bg-game-blue/20 text-game-blue hover:bg-game-blue/30'
+                  ? 'bg-muted text-tx-dim cursor-not-allowed'
+                  : 'bg-primary/20 text-primary hover:bg-primary/30'
                 }`}
               title={`Test ${EFFECT_LABELS[effect as EffectType]}`}
             >
@@ -71,8 +71,8 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
         {/* Left Column - Volume Controls & Keyboard Shortcuts */}
         <div className='flex-1 space-y-4'>
           {/* Main Volume Controls */}
-          <div className='bg-neutral-800 border border-white/10 rounded-lg p-4 space-y-4'>
-            <h3 className='font-mono text-[10px] text-game-blue uppercase tracking-widest'>Volume Controls</h3>
+          <div className='bg-card border border-border rounded-lg p-4 space-y-4'>
+            <h3 className='font-mono text-[10px] text-primary uppercase tracking-widest'>Volume Controls</h3>
             {Object.entries(volumes).map(([channel, value]) => (
               <VolumeSlider
                 key={channel}
@@ -85,8 +85,8 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Keyboard Controls Help */}
-          <div className='bg-neutral-800 border border-white/10 rounded-lg p-4'>
-            <h3 className='font-mono text-[10px] text-game-blue uppercase tracking-widest mb-3'>
+          <div className='bg-card border border-border rounded-lg p-4'>
+            <h3 className='font-mono text-[10px] text-primary uppercase tracking-widest mb-3'>
               Keyboard Shortcuts
             </h3>
             <div className='space-y-2'>
@@ -95,8 +95,8 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
                 { label: 'Quick Volume', key: '[1–5]' },
               ].map(({ label, key }) => (
                 <div key={label} className='flex justify-between items-center'>
-                  <span className='font-mono text-xs text-white/50'>{label}</span>
-                  <kbd className='font-mono text-[10px] px-2 py-0.5 bg-neutral-900 text-game-blue border border-game-blue/30'>
+                  <span className='font-mono text-xs text-tx-secondary'>{label}</span>
+                  <kbd className='font-mono text-[10px] px-2 py-0.5 bg-muted text-primary border border-primary/30'>
                     {key}
                   </kbd>
                 </div>
@@ -106,8 +106,8 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Right Column - Effect Settings */}
-        <div className='flex-1 bg-neutral-800 border border-white/10 rounded-lg p-4'>
-          <h3 className='font-mono text-[10px] text-game-blue uppercase tracking-widest mb-4'>Sound Effects</h3>
+        <div className='flex-1 bg-card border border-border rounded-lg p-4'>
+          <h3 className='font-mono text-[10px] text-primary uppercase tracking-widest mb-4'>Sound Effects</h3>
           <div className='space-y-5'>
             {Object.entries(EFFECT_GROUPS).map(([groupName, effects]) => (
               <EffectGroup
@@ -121,10 +121,10 @@ const SoundSettings: React.FC<SoundSettingsProps> = ({ isOpen, onClose }) => {
       </div>
 
       {/* Footer */}
-      <div className='pt-3 border-t border-white/10 flex justify-between items-center'>
+      <div className='pt-3 border-t border-border flex justify-between items-center'>
         <button
           onClick={resetSettings}
-          className='flex items-center gap-2 font-mono text-xs text-white/40 hover:text-white transition-colors group'
+          className='flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors group'
         >
           <RotateCcw
             size={13}

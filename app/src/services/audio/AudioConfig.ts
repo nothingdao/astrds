@@ -53,22 +53,22 @@ export const AUDIO_CONFIG = {
     'joi-lets-fly': {
       path: '/sounds/joi/lets-fly-this-thing-out-of-here.mp3',
       volume: 0.7,
-      category: 'sfx',
+      category: 'stingers',
     },
     'joi-whoa': {
       path: '/sounds/joi/whoa-that-guy-was-no-match-for-you.mp3',
       volume: 0.7,
-      category: 'sfx',
+      category: 'stingers',
     },
     'joi-space': {
       path: '/sounds/joi/we-are-space.mp3',
       volume: 0.7,
-      category: 'sfx',
+      category: 'stingers',
     },
     'joi-helmet': {
       path: '/sounds/joi/im-not-wearing-a-helmet-either.mp3',
       volume: 0.7,
-      category: 'sfx',
+      category: 'stingers',
     },
   },
 
@@ -118,5 +118,6 @@ export const AUDIO_CONFIG = {
     [VOLUME_CHANNELS.MASTER]: 0.5,
     [VOLUME_CHANNELS.MUSIC]: 0.5,
     [VOLUME_CHANNELS.SFX]: 0.5,
+    [VOLUME_CHANNELS.STINGERS]: 0.8,
   },
 }

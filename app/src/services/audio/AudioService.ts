@@ -12,6 +12,7 @@ type AudioEvents = {
   effectSettingChanged: (data: { effectType: string; setting: any }) => void
   musicStarted: (data: { trackId: string }) => void // Updated to expect an object
   musicStopped: (data: { trackId: string }) => void // Updated to expect an object
+  musicEnded: (data: { trackId: string }) => void
 }
 
 class AudioService {
@@ -32,6 +33,8 @@ class AudioService {
   private analyser: AnalyserNode | null = null
   private connectedElements: Set<HTMLAudioElement> = new Set()
   private musicGeneration = 0
+  private musicDuckFactor = 1
+  private duckFadeInterval: ReturnType<typeof setInterval> | null = null
 
   constructor(config: typeof AUDIO_CONFIG) {
     this.config = config
@@ -85,6 +88,11 @@ class AudioService {
     const audio = new Audio(config.path)
     audio.volume = 0
     audio.loop = config.loop
+    audio.addEventListener('ended', () => {
+      if (this.currentMusic?.id === id) {
+        this.eventEmitter.emit('musicEnded', { trackId: id })
+      }
+    })
 
     await new Promise((resolve, reject) => {
       audio.addEventListener('canplaythrough', resolve)
@@ -148,8 +156,8 @@ class AudioService {
       if (myGen !== this.musicGeneration) return
 
       const { audio, config } = music
-      audio.volume = this.calculateVolume('music') * config.volume
       audio.loop = options.loop ?? config.loop
+      audio.volume = this.calculateMusicVolume(config)
 
       if (options.fadeIn) {
         await this.fadeIn(audio, config.fadeInDuration || 1000)
@@ -443,30 +451,29 @@ class AudioService {
     this.loopingSounds.delete(id)
   }
 
-  async playSound(id: string): Promise<void> {
+  async playSound(id: string): Promise<HTMLAudioElement | null> {
     if (!this.initialized) {
       console.warn('Audio system not initialized')
-      return
+      return null
     }
 
     const sound = this.sounds.get(id)
     if (!sound) {
       console.warn(`Sound not found: ${id}`)
-      return
+      return null
     }
 
     try {
       const { audio, config } = sound
-      audio.volume = this.calculateVolume(config.category) * config.volume
-
-      if (audio.currentTime > 0) {
-        audio.currentTime = 0
-      }
-
-      await audio.play()
+      const instance = audio.cloneNode(true) as HTMLAudioElement
+      instance.volume = this.calculateVolume(config.category) * config.volume
+      instance.loop = false
+      await instance.play()
       this.eventEmitter.emit('soundPlayed', { id }) // Updated to provide data
+      return instance
     } catch (error) {
       this.eventEmitter.emit('error', { type: 'playSound', id, error }) // Updated to provide data
+      return null
     }
   }
 
@@ -494,12 +501,53 @@ class AudioService {
     // Update music if playing
     if (this.currentMusic) {
       const { audio, config } = this.currentMusic // Access properties directly from currentMusic
-      audio.volume = this.calculateVolume('music') * config.volume
+      audio.volume = this.calculateMusicVolume(config)
     }
   }
 
   private calculateVolume(category: string): number {
-    return this.volumes[VOLUME_CHANNELS.MASTER] * this.volumes[category]
+    return this.volumes[VOLUME_CHANNELS.MASTER] * (this.volumes[category] ?? 1)
+  }
+
+  private calculateMusicVolume(config: any): number {
+    return this.calculateVolume(VOLUME_CHANNELS.MUSIC) * config.volume * this.musicDuckFactor
+  }
+
+  private fadeCurrentMusicTo(targetFactor: number, duration = 200): Promise<void> {
+    if (this.duckFadeInterval) {
+      clearInterval(this.duckFadeInterval)
+      this.duckFadeInterval = null
+    }
+
+    const current = this.currentMusic
+    this.musicDuckFactor = Math.max(0, Math.min(1, targetFactor))
+    if (!current) return Promise.resolve()
+
+    const startVolume = current.audio.volume
+    const endVolume = this.calculateMusicVolume(current.config)
+    const steps = Math.max(1, Math.ceil(duration / 50))
+    let currentStep = 0
+
+    return new Promise((resolve) => {
+      this.duckFadeInterval = setInterval(() => {
+        currentStep++
+        const t = Math.min(1, currentStep / steps)
+        current.audio.volume = startVolume + (endVolume - startVolume) * t
+        if (currentStep >= steps) {
+          if (this.duckFadeInterval) clearInterval(this.duckFadeInterval)
+          this.duckFadeInterval = null
+          resolve()
+        }
+      }, 50)
+    })
+  }
+
+  duckMusic(targetFactor: number, duration = 200): Promise<void> {
+    return this.fadeCurrentMusicTo(targetFactor, duration)
+  }
+
+  restoreMusic(duration = 800): Promise<void> {
+    return this.fadeCurrentMusicTo(1, duration)
   }
 
   destroy(): void {

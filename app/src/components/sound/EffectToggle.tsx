@@ -12,21 +12,21 @@ const EffectToggle = ({
   const states = {
     off: {
       label: 'Off',
-      color: 'text-gray-400',
-      bgColor: 'bg-black/50',
-      borderColor: 'border-gray-600',
+      color: 'text-muted-foreground',
+      bgColor: 'bg-surface-overlay',
+      borderColor: 'border-border',
     },
     quiet: {
       label: 'Quiet',
-      color: 'text-game-blue',
-      bgColor: 'bg-game-blue/20',
-      borderColor: 'border-game-blue/50',
+      color: 'text-primary',
+      bgColor: 'bg-primary/20',
+      borderColor: 'border-primary/50',
     },
     normal: {
       label: 'Normal',
-      color: 'text-game-blue',
-      bgColor: 'bg-game-blue/30',
-      borderColor: 'border-game-blue',
+      color: 'text-primary',
+      bgColor: 'bg-primary/30',
+      borderColor: 'border-primary',
     },
   }
 
@@ -41,7 +41,7 @@ const EffectToggle = ({
 
   return (
     <div className={`flex items-center justify-between ${className}`}>
-      <span className='text-sm text-white/80'>{label}</span>
+      <span className='text-sm text-tx-primary'>{label}</span>
 
       <button
         onClick={() => onChange(effectType, getNextState(value))}
@@ -50,7 +50,7 @@ const EffectToggle = ({
                    ${currentState.color}
                    ${currentState.bgColor}
                    ${currentState.borderColor}
-                   hover:border-white hover:text-white`}
+                   hover:border-border hover:text-foreground`}
       >
         {currentState.label}
       </button>

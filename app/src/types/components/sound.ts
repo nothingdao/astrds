@@ -37,6 +37,10 @@ export type EffectType =
   | 'countdownPing'
   | 'gameOver'
   | 'spaceWind'
+  | 'joi-lets-fly'
+  | 'joi-whoa'
+  | 'joi-space'
+  | 'joi-helmet'
 
 // Effect groups and labels
 export const EFFECT_GROUPS: Record<string, EffectType[]> = {
@@ -44,6 +48,7 @@ export const EFFECT_GROUPS: Record<string, EffectType[]> = {
   'Ship Sounds': ['thrust', 'explosion'],
   'Game Events': ['collect', 'quarterInsert', 'countdownPing', 'gameOver'],
   Ambient: ['spaceWind'],
+  Stingers: ['joi-lets-fly', 'joi-whoa', 'joi-space', 'joi-helmet'],
 }
 
 export const EFFECT_LABELS: Record<EffectType, string> = {
@@ -55,4 +60,8 @@ export const EFFECT_LABELS: Record<EffectType, string> = {
   countdownPing: 'Countdown',
   gameOver: 'Game Over',
   spaceWind: 'Space Wind',
+  'joi-lets-fly': 'JOI — Let’s Fly',
+  'joi-whoa': 'JOI — Whoa',
+  'joi-space': 'JOI — We Are Space',
+  'joi-helmet': 'JOI — Helmet',
 }
