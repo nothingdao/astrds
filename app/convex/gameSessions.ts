@@ -1,4 +1,5 @@
-import { internalQuery, mutation, query } from './_generated/server'
+import { httpAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
 import { v } from 'convex/values'
 import { Id } from './_generated/dataModel'
 
@@ -23,7 +24,6 @@ export const update = mutation({
     score: v.optional(v.number()),
     levelReached: v.optional(v.number()),
     pillsCollected: v.optional(v.number()),
-    astrdsEarned: v.optional(v.number()),
     status: v.optional(
       v.union(v.literal('active'), v.literal('ending'), v.literal('ended'))
     ),
@@ -36,7 +36,6 @@ export const update = mutation({
     if (fields.score !== undefined) updates.score = fields.score
     if (fields.levelReached !== undefined) updates.levelReached = fields.levelReached
     if (fields.pillsCollected !== undefined) updates.pillsCollected = fields.pillsCollected
-    if (fields.astrdsEarned !== undefined) updates.astrdsEarned = fields.astrdsEarned
     if (fields.status !== undefined) {
       updates.status = fields.status
       if (fields.status === 'ended') updates.sessionEnd = new Date().toISOString()
@@ -45,6 +44,45 @@ export const update = mutation({
     await ctx.db.patch(sessionId, updates)
     return await ctx.db.get(sessionId)
   },
+})
+
+// Only callable from trusted server-side Convex functions (not the browser).
+export const setAstrdsEarned = internalMutation({
+  args: { sessionId: v.id('gameSessions'), amount: v.number() },
+  handler: async (ctx, { sessionId, amount }) => {
+    const session = await ctx.db.get(sessionId)
+    if (!session) throw new Error('Session not found')
+    await ctx.db.patch(sessionId, { astrdsEarned: amount, lastUpdated: new Date().toISOString() })
+  },
+})
+
+// HTTP endpoint for the game server. Validates ADMIN_API_KEY then calls
+// the internal mutation — the browser never has access to call this path directly.
+export const setAstrdsEarnedHttp = httpAction(async (ctx, request) => {
+  const apiKey = process.env.ADMIN_API_KEY
+  if (!apiKey) return new Response('Not configured', { status: 503 })
+
+  if (request.headers.get('Authorization') !== `Bearer ${apiKey}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  let body: unknown
+  try { body = await request.json() } catch { return new Response('Invalid JSON', { status: 400 }) }
+
+  const { sessionId, amount } = body as Record<string, unknown>
+  if (typeof sessionId !== 'string' || typeof amount !== 'number' || amount < 0 || amount > 50) {
+    return new Response('Invalid body', { status: 400 })
+  }
+
+  await ctx.runMutation(internal.gameSessions.setAstrdsEarned, {
+    sessionId: sessionId as Id<'gameSessions'>,
+    amount,
+  })
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
 })
 
 export const incrementPillsCollected = mutation({

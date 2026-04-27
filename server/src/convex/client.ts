@@ -5,6 +5,7 @@ import type { GameConfig } from '../game/gameConfig.js'
 import { DEFAULT_GAME_CONFIG } from '../game/gameConfig.js'
 
 const GAME_SESSIONS_UPDATE = 'gameSessions:update'
+const SET_ASTRDS_EARNED_PATH = '/game-server/set-astrds-earned'
 const GAME_SESSIONS_INCREMENT_PILLS = 'gameSessions:incrementPillsCollected'
 const SPACE_DEPOSITS_COLLECT = 'spaceDeposits:collectFromDeposit'
 const SPACE_DEPOSITS_GET_ACTIVE_POOLS = 'spaceDeposits:getActivePoolsForLevel'
@@ -27,8 +28,12 @@ export class ConvexServerClient {
   private readonly client: ConvexHttpClient | null
   private hasWarnedMissingUrl = false
 
+  private readonly siteUrl: string
+
   constructor(url = process.env.CONVEX_URL) {
     this.client = url ? new ConvexHttpClient(url) : null
+    // Convex HTTP actions live on .convex.site, not .convex.cloud
+    this.siteUrl = process.env.CONVEX_SITE_URL ?? (url ?? '').replace('.convex.cloud', '.convex.site')
   }
 
   async updateGameSession(args: {
@@ -36,10 +41,33 @@ export class ConvexServerClient {
     score?: number
     levelReached?: number
     pillsCollected?: number
-    astrdsEarned?: number
     status?: 'active' | 'ending' | 'ended'
   }): Promise<void> {
     await this.mutation(GAME_SESSIONS_UPDATE, args)
+  }
+
+  async setAstrdsEarned(args: { sessionId: string; amount: number }): Promise<void> {
+    const apiKey = process.env.ADMIN_API_KEY
+    if (!apiKey) {
+      console.warn('ADMIN_API_KEY not set — cannot write astrdsEarned to Convex')
+      return
+    }
+    if (!this.siteUrl) {
+      console.warn('Cannot derive Convex site URL — cannot write astrdsEarned')
+      return
+    }
+    const resp = await fetch(`${this.siteUrl}${SET_ASTRDS_EARNED_PATH}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ sessionId: args.sessionId, amount: args.amount }),
+    })
+    if (!resp.ok) {
+      const text = await resp.text()
+      throw new Error(`setAstrdsEarned failed: ${resp.status} ${text}`)
+    }
   }
 
   async incrementPillsCollected(args: { sessionId: string; amount?: number }): Promise<void> {

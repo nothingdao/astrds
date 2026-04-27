@@ -1,6 +1,7 @@
 import { httpRouter } from 'convex/server'
 import { handleTreasuryWebhook } from './webhookHandlers'
 import { updateConfigHttp } from './admin'
+import { setAstrdsEarnedHttp } from './gameSessions'
 
 const http = httpRouter()
 
@@ -26,6 +27,13 @@ http.route({
   path: '/admin/config',
   method: 'OPTIONS',
   handler: updateConfigHttp,
+})
+
+// Game server only — sets astrdsEarned after game over. Requires ADMIN_API_KEY.
+http.route({
+  path: '/game-server/set-astrds-earned',
+  method: 'POST',
+  handler: setAstrdsEarnedHttp,
 })
 
 export default http

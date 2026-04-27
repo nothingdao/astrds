@@ -331,22 +331,22 @@ export class SessionHandler {
 
     this.didSubmitGameOver = true
     const astrdsEarned = Math.floor(snapshot.pillsCollected * snapshot.emissionTier.astrdsPerPill)
-    void this.convex
-      .updateGameSession({
+    void Promise.all([
+      this.convex.updateGameSession({
         sessionId: gameSessionId,
         score: snapshot.score,
         levelReached: snapshot.level,
         pillsCollected: snapshot.pillsCollected,
-        astrdsEarned,
         status: 'ended',
+      }),
+      this.convex.setAstrdsEarned({ sessionId: gameSessionId, amount: astrdsEarned }),
+    ]).catch((error) => {
+      this.didSubmitGameOver = false
+      console.error('Failed to submit authoritative game-over state', {
+        error,
+        sessionId: this.session.id,
+        convexSessionId: gameSessionId,
       })
-      .catch((error) => {
-        this.didSubmitGameOver = false
-        console.error('Failed to submit authoritative game-over state', {
-          error,
-          sessionId: this.session.id,
-          convexSessionId: gameSessionId,
-        })
-      })
+    })
   }
 }
