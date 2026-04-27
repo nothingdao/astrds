@@ -270,6 +270,377 @@
       ]
     },
     {
+      "name": "crank_liquidity",
+      "discriminator": [
+        1,
+        222,
+        14,
+        191,
+        61,
+        205,
+        81,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyback_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  121,
+                  98,
+                  97,
+                  99,
+                  107,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "meteora_pool",
+          "writable": true
+        },
+        {
+          "name": "position_nft_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  116,
+                  101,
+                  111,
+                  114,
+                  97,
+                  45,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position_nft_mint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteora_program"
+            }
+          }
+        },
+        {
+          "name": "position_nft_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  110,
+                  102,
+                  116,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position_nft_mint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteora_program"
+            }
+          }
+        },
+        {
+          "name": "token_a_mint"
+        },
+        {
+          "name": "token_b_mint"
+        },
+        {
+          "name": "vault_config_token_a_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_a_program"
+              },
+              {
+                "kind": "account",
+                "path": "token_a_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_config_token_b_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_b_program"
+              },
+              {
+                "kind": "account",
+                "path": "token_b_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_a_vault",
+          "writable": true
+        },
+        {
+          "name": "token_b_vault",
+          "writable": true
+        },
+        {
+          "name": "pool_authority",
+          "address": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteora_program"
+            }
+          }
+        },
+        {
+          "name": "meteora_program",
+          "address": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+        },
+        {
+          "name": "position_token_program"
+        },
+        {
+          "name": "token_a_program"
+        },
+        {
+          "name": "token_b_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "deposit",
       "discriminator": [
         242,
@@ -423,6 +794,7 @@
         },
         {
           "name": "vault_config",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -454,8 +826,30 @@
           "writable": true
         },
         {
-          "name": "buyback_wallet",
-          "writable": true
+          "name": "buyback_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  121,
+                  98,
+                  97,
+                  99,
+                  107,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -674,6 +1068,59 @@
       "args": []
     },
     {
+      "name": "set_meteora_pool",
+      "discriminator": [
+        98,
+        249,
+        21,
+        7,
+        173,
+        94,
+        135,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "vault_config"
+          ]
+        },
+        {
+          "name": "vault_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "meteora_pool",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "set_weights",
       "discriminator": [
         25,
@@ -840,6 +1287,46 @@
       "code": 6011,
       "name": "InvalidMint",
       "msg": "Token mint does not match the pool mint."
+    },
+    {
+      "code": 6012,
+      "name": "InvalidMeteoraProgram",
+      "msg": "Invalid Meteora DAMM v2 program account."
+    },
+    {
+      "code": 6013,
+      "name": "InvalidMeteoraPool",
+      "msg": "Failed to deserialize the configured Meteora pool."
+    },
+    {
+      "code": 6014,
+      "name": "InvalidMeteoraMint",
+      "msg": "Meteora mint accounts do not match the configured pool."
+    },
+    {
+      "code": 6015,
+      "name": "InvalidMeteoraVault",
+      "msg": "Meteora vault accounts do not match the configured pool."
+    },
+    {
+      "code": 6016,
+      "name": "InvalidMeteoraPoolAuthority",
+      "msg": "Configured Meteora pool authority is invalid."
+    },
+    {
+      "code": 6017,
+      "name": "InvalidWrappedSolMint",
+      "msg": "Configured Meteora pool must use wrapped SOL as token B."
+    },
+    {
+      "code": 6018,
+      "name": "InsufficientBuybackBalance",
+      "msg": "Insufficient accumulated buyback SOL in the vault config PDA."
+    },
+    {
+      "code": 6019,
+      "name": "InvalidLiquidityQuote",
+      "msg": "Unable to derive a valid Meteora liquidity quote from the pool state."
     }
   ],
   "types": [
@@ -938,7 +1425,7 @@
             }
           },
           {
-            "name": "buyback_rate",
+            "name": "_reserved",
             "type": "u64"
           },
           {
@@ -954,7 +1441,7 @@
             "type": "pubkey"
           },
           {
-            "name": "buyback_wallet",
+            "name": "meteora_pool",
             "type": "pubkey"
           },
           {

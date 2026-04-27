@@ -15,6 +15,18 @@ import {
 const { Keypair, PublicKey, SystemProgram, Ed25519Program, LAMPORTS_PER_SOL } =
   web3;
 
+const METEORA_POOL = new PublicKey("EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG");
+const METEORA_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
+const METEORA_POOL_AUTHORITY = new PublicKey("HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC");
+const METEORA_POSITION_TOKEN_PROGRAM_ID = TOKEN_2022_PROGRAM_ID;
+const POOL_ACCOUNT_DISCRIMINATOR_SIZE = 8;
+const POOL_FEES_STRUCT_SIZE = 160;
+const PUBLIC_KEY_SIZE = 32;
+const TOKEN_A_MINT_OFFSET = POOL_ACCOUNT_DISCRIMINATOR_SIZE + POOL_FEES_STRUCT_SIZE;
+const TOKEN_B_MINT_OFFSET = TOKEN_A_MINT_OFFSET + PUBLIC_KEY_SIZE;
+const TOKEN_A_VAULT_OFFSET = TOKEN_B_MINT_OFFSET + PUBLIC_KEY_SIZE;
+const TOKEN_B_VAULT_OFFSET = TOKEN_A_VAULT_OFFSET + PUBLIC_KEY_SIZE;
+
 const CONVEX_AUTHORITY_SECRET = Uint8Array.from([
   27, 239, 24, 21, 22, 250, 9, 63, 110, 138, 142, 235, 13, 196, 170, 240, 164,
   29, 232, 72, 246, 10, 191, 72, 9, 84, 1, 165, 248, 116, 241, 185, 58, 93, 104,
@@ -51,7 +63,6 @@ describe("space-vault-program", () => {
 
   const operationalWallet = Keypair.generate();
   const operatorWallet = Keypair.generate();
-  const buybackWallet = Keypair.generate();
   const depositor = Keypair.generate();
   const player = Keypair.generate();
   const outsider = Keypair.generate();
@@ -68,6 +79,86 @@ describe("space-vault-program", () => {
   let token2022VaultAta: web3.PublicKey;
 
   const claimId = Array.from(Buffer.alloc(32, 7));
+
+  const readPublicKey = (data: Buffer, offset: number) =>
+    new PublicKey(data.subarray(offset, offset + PUBLIC_KEY_SIZE));
+
+  const loadTokenProgramForMint = async (mintAddress: any) => {
+    const mintAccount = await provider.connection.getAccountInfo(mintAddress);
+    if (!mintAccount) {
+      throw new Error(`Missing mint account: ${mintAddress.toBase58()}`);
+    }
+
+    return mintAccount.owner.equals(TOKEN_2022_PROGRAM_ID)
+      ? TOKEN_2022_PROGRAM_ID
+      : TOKEN_PROGRAM_ID;
+  };
+
+  const deriveMeteoraGamePaymentAccounts = async () => {
+    const poolAccount = await provider.connection.getAccountInfo(METEORA_POOL);
+    if (!poolAccount) {
+      return null;
+    }
+
+    const poolData = Buffer.from(poolAccount.data);
+    const tokenAMint = readPublicKey(poolData, TOKEN_A_MINT_OFFSET);
+    const tokenBMint = readPublicKey(poolData, TOKEN_B_MINT_OFFSET);
+    const tokenAVault = readPublicKey(poolData, TOKEN_A_VAULT_OFFSET);
+    const tokenBVault = readPublicKey(poolData, TOKEN_B_VAULT_OFFSET);
+    const [tokenAProgram, tokenBProgram] = await Promise.all([
+      loadTokenProgramForMint(tokenAMint),
+      loadTokenProgramForMint(tokenBMint),
+    ]);
+    const [positionNftMint] = PublicKey.findProgramAddressSync(
+      [Buffer.from("meteora-position-mint")],
+      program.programId
+    );
+    const [position] = PublicKey.findProgramAddressSync(
+      [Buffer.from("position"), positionNftMint.toBuffer()],
+      METEORA_PROGRAM_ID
+    );
+    const [positionNftAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("position_nft_account"), positionNftMint.toBuffer()],
+      METEORA_PROGRAM_ID
+    );
+    const [eventAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from("__event_authority")],
+      METEORA_PROGRAM_ID
+    );
+    const vaultConfigTokenAAccount = getAssociatedTokenAddressSync(
+      tokenAMint,
+      vaultConfigPda,
+      true,
+      tokenAProgram,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    const vaultConfigTokenBAccount = getAssociatedTokenAddressSync(
+      tokenBMint,
+      vaultConfigPda,
+      true,
+      tokenBProgram,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    return {
+      meteoraPool: METEORA_POOL,
+      positionNftMint,
+      position,
+      positionNftAccount,
+      tokenAMint,
+      tokenBMint,
+      vaultConfigTokenAAccount,
+      vaultConfigTokenBAccount,
+      tokenAVault,
+      tokenBVault,
+      poolAuthority: METEORA_POOL_AUTHORITY,
+      eventAuthority,
+      meteoraProgram: METEORA_PROGRAM_ID,
+      positionTokenProgram: METEORA_POSITION_TOKEN_PROGRAM_ID,
+      tokenAProgram,
+      tokenBProgram,
+    };
+  };
 
   const expectFailure = async (
     promise: Promise<unknown>,
@@ -89,7 +180,6 @@ describe("space-vault-program", () => {
       [
         operationalWallet,
         operatorWallet,
-        buybackWallet,
         depositor,
         player,
         outsider,
@@ -217,7 +307,7 @@ describe("space-vault-program", () => {
         convexAuthority.publicKey,
         operationalWallet.publicKey,
         operatorWallet.publicKey,
-        buybackWallet.publicKey
+        METEORA_POOL
       )
       .accounts({
         authority: authority.publicKey,
@@ -228,10 +318,11 @@ describe("space-vault-program", () => {
 
     const config = await accounts.vaultConfig.fetch(vaultConfigPda);
     expect(config.authority.toBase58()).to.eq(authority.publicKey.toBase58());
-    expect(config.buybackRate.toNumber()).to.eq(25);
+    expect((config._reserved ?? config.reserved).toNumber()).to.eq(25);
     expect(config.convexAuthority.toBase58()).to.eq(
       convexAuthority.publicKey.toBase58()
     );
+    expect(config.meteoraPool.toBase58()).to.eq(METEORA_POOL.toBase58());
     expect(config.paymentWeights.operationalBps).to.eq(weights.operationalBps);
     expect(config.paymentWeights.operatorBps).to.eq(weights.operatorBps);
     expect(config.paymentWeights.buybackBps).to.eq(weights.buybackBps);
@@ -266,7 +357,7 @@ describe("space-vault-program", () => {
       .rpc();
 
     const config = await accounts.vaultConfig.fetch(vaultConfigPda);
-    expect(config.buybackRate.toNumber()).to.eq(50);
+    expect((config._reserved ?? config.reserved).toNumber()).to.eq(50);
     expect(config.convexAuthority.toBase58()).to.eq(
       replacementConvexAuthority.publicKey.toBase58()
     );
@@ -522,7 +613,13 @@ describe("space-vault-program", () => {
     expect(playerAccount.amount).to.eq(BigInt("50000000"));
   });
 
-  it("splits SOL game payments across configured wallets", async () => {
+  it("routes the pool leg into Meteora via the configured pool", async function () {
+    const meteoraAccounts = await deriveMeteoraGamePaymentAccounts();
+    if (!meteoraAccounts) {
+      this.skip();
+      return;
+    }
+
     const amount = new BN(250_000_000);
     const beforeOperational = await provider.connection.getBalance(
       operationalWallet.publicKey
@@ -530,8 +627,8 @@ describe("space-vault-program", () => {
     const beforeOperator = await provider.connection.getBalance(
       operatorWallet.publicKey
     );
-    const beforeBuyback = await provider.connection.getBalance(
-      buybackWallet.publicKey
+    const beforePosition = await provider.connection.getAccountInfo(
+      meteoraAccounts.position
     );
 
     await program.methods
@@ -541,7 +638,8 @@ describe("space-vault-program", () => {
         vaultConfig: vaultConfigPda,
         operationalWallet: operationalWallet.publicKey,
         operatorWallet: operatorWallet.publicKey,
-        buybackWallet: buybackWallet.publicKey,
+        ...meteoraAccounts,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([player])
@@ -553,12 +651,18 @@ describe("space-vault-program", () => {
     const afterOperator = await provider.connection.getBalance(
       operatorWallet.publicKey
     );
-    const afterBuyback = await provider.connection.getBalance(
-      buybackWallet.publicKey
+    const afterPosition = await provider.connection.getAccountInfo(
+      meteoraAccounts.position
     );
 
     expect(afterOperational - beforeOperational).to.eq(100_000_000);
     expect(afterOperator - beforeOperator).to.eq(62_500_000);
-    expect(afterBuyback - beforeBuyback).to.eq(87_500_000);
+    expect(afterPosition).to.not.eq(null);
+    if (!beforePosition) {
+      const positionNftAccount = await provider.connection.getAccountInfo(
+        meteoraAccounts.positionNftAccount
+      );
+      expect(positionNftAccount).to.not.eq(null);
+    }
   });
 });

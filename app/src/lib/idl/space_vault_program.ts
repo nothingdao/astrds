@@ -276,6 +276,377 @@ export type SpaceVaultProgram = {
       ]
     },
     {
+      "name": "crankLiquidity",
+      "discriminator": [
+        1,
+        222,
+        14,
+        191,
+        61,
+        205,
+        81,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vaultConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buybackVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  121,
+                  98,
+                  97,
+                  99,
+                  107,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "meteoraPool",
+          "writable": true
+        },
+        {
+          "name": "positionNftMint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  116,
+                  101,
+                  111,
+                  114,
+                  97,
+                  45,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "positionNftMint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteoraProgram"
+            }
+          }
+        },
+        {
+          "name": "positionNftAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  110,
+                  102,
+                  116,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "positionNftMint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteoraProgram"
+            }
+          }
+        },
+        {
+          "name": "tokenAMint"
+        },
+        {
+          "name": "tokenBMint"
+        },
+        {
+          "name": "vaultConfigTokenAAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vaultConfig"
+              },
+              {
+                "kind": "account",
+                "path": "tokenAProgram"
+              },
+              {
+                "kind": "account",
+                "path": "tokenAMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vaultConfigTokenBAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vaultConfig"
+              },
+              {
+                "kind": "account",
+                "path": "tokenBProgram"
+              },
+              {
+                "kind": "account",
+                "path": "tokenBMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "tokenAVault",
+          "writable": true
+        },
+        {
+          "name": "tokenBVault",
+          "writable": true
+        },
+        {
+          "name": "poolAuthority",
+          "address": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "meteoraProgram"
+            }
+          }
+        },
+        {
+          "name": "meteoraProgram",
+          "address": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+        },
+        {
+          "name": "positionTokenProgram"
+        },
+        {
+          "name": "tokenAProgram"
+        },
+        {
+          "name": "tokenBProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "deposit",
       "discriminator": [
         242,
@@ -429,6 +800,7 @@ export type SpaceVaultProgram = {
         },
         {
           "name": "vaultConfig",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -460,8 +832,30 @@ export type SpaceVaultProgram = {
           "writable": true
         },
         {
-          "name": "buybackWallet",
-          "writable": true
+          "name": "buybackVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  121,
+                  98,
+                  97,
+                  99,
+                  107,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -680,6 +1074,59 @@ export type SpaceVaultProgram = {
       "args": []
     },
     {
+      "name": "setMeteoraPool",
+      "discriminator": [
+        98,
+        249,
+        21,
+        7,
+        173,
+        94,
+        135,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "vaultConfig"
+          ]
+        },
+        {
+          "name": "vaultConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "meteoraPool",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "setWeights",
       "discriminator": [
         25,
@@ -846,6 +1293,46 @@ export type SpaceVaultProgram = {
       "code": 6011,
       "name": "invalidMint",
       "msg": "Token mint does not match the pool mint."
+    },
+    {
+      "code": 6012,
+      "name": "invalidMeteoraProgram",
+      "msg": "Invalid Meteora DAMM v2 program account."
+    },
+    {
+      "code": 6013,
+      "name": "invalidMeteoraPool",
+      "msg": "Failed to deserialize the configured Meteora pool."
+    },
+    {
+      "code": 6014,
+      "name": "invalidMeteoraMint",
+      "msg": "Meteora mint accounts do not match the configured pool."
+    },
+    {
+      "code": 6015,
+      "name": "invalidMeteoraVault",
+      "msg": "Meteora vault accounts do not match the configured pool."
+    },
+    {
+      "code": 6016,
+      "name": "invalidMeteoraPoolAuthority",
+      "msg": "Configured Meteora pool authority is invalid."
+    },
+    {
+      "code": 6017,
+      "name": "invalidWrappedSolMint",
+      "msg": "Configured Meteora pool must use wrapped SOL as token B."
+    },
+    {
+      "code": 6018,
+      "name": "insufficientBuybackBalance",
+      "msg": "Insufficient accumulated buyback SOL in the vault config PDA."
+    },
+    {
+      "code": 6019,
+      "name": "invalidLiquidityQuote",
+      "msg": "Unable to derive a valid Meteora liquidity quote from the pool state."
     }
   ],
   "types": [
@@ -944,7 +1431,7 @@ export type SpaceVaultProgram = {
             }
           },
           {
-            "name": "buybackRate",
+            "name": "reserved",
             "type": "u64"
           },
           {
@@ -960,7 +1447,7 @@ export type SpaceVaultProgram = {
             "type": "pubkey"
           },
           {
-            "name": "buybackWallet",
+            "name": "meteoraPool",
             "type": "pubkey"
           },
           {
