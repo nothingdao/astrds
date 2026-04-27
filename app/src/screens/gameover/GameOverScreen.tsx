@@ -1,5 +1,5 @@
 // src/screens/gameover/GameOverScreen.tsx
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useGameData } from '../../stores/gameData'
 import { useStateMachine } from '@/stores/stateMachine'
@@ -12,16 +12,20 @@ import ASTRDSMinting from '@/components/tokens/ASTRDSMinting'
 import SpaceTokenClaim from './SpaceTokenClaim'
 import { MachineState } from '@/types/machine'
 import { useServerStore } from '@/stores/serverStore'
+import ScreenContainer from '@/components/common/ScreenContainer'
+import { audioManager } from '@/services/audio/AudioManager'
 
 const GameOverScreen: React.FC = () => {
   const wallet = useWallet()
   const score = useGameData((state) => state.score)
   const lastGameStats = useGameData((state) => state.lastGameStats)
-  const tokens = useInventoryStore((state) => state.items.tokens)
+  const astrdsEarned = useInventoryStore((state) => state.astrdsEarned)
+  const currentSessionId = useGameData((state) => state.currentSessionId)
   const endGameSession = useGameData((state) => state.endGameSession)
   const submitFinalScore = useGameData((state) => state.submitFinalScore)
   const startTransition = useStateMachine((state) => state.startTransition)
   const selectedUrl = useServerStore((s) => s.selectedUrl)
+  const playedScoreStingerRef = useRef(false)
 
   useEffect(() => {
     if (selectedUrl) {
@@ -34,6 +38,18 @@ const GameOverScreen: React.FC = () => {
     endGameSession().catch(console.error)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (playedScoreStingerRef.current || !lastGameStats) return
+    playedScoreStingerRef.current = true
+    if (lastGameStats.rank === 1) {
+      audioManager.playFromSfxBucket('newTopScore')
+      audioManager.playFromStingerPlaylist('newTopScore')
+    } else if (lastGameStats.isHighScore) {
+      audioManager.playFromSfxBucket('personalBest')
+      audioManager.playFromStingerPlaylist('personalBest')
+    }
+  }, [lastGameStats])
+
   const handleReturnToTitle = async () => {
     try {
       await startTransition(MachineState.GAME_OVER, MachineState.INITIAL)
@@ -43,60 +59,60 @@ const GameOverScreen: React.FC = () => {
   }
 
   return (
-    <div className='fixed inset-0 flex items-center justify-center z-40 bg-black/90'>
-      <div className='max-w-lg w-full mx-4 text-center'>
-          <div className='bg-black border border-white/20 p-8 animate-fadeIn space-y-6'>
-            <GameTitle />
-            <h1 className='text-game-red text-4xl'>GAME OVER</h1>
+    <ScreenContainer screenType='GAME_OVER' mode='fullscreen' className='z-40'>
+      <div className='w-full h-full flex items-center justify-center px-4 pt-24 pb-10 overflow-y-auto'>
+        <div className='max-w-lg w-full mx-auto text-center bg-surface-overlay border border-edge-medium p-8 animate-fadeIn space-y-6'>
+          <GameTitle />
+          <h1 className='text-destructive text-4xl'>GAME OVER</h1>
 
-            <Separator className='bg-white/10' />
+          <Separator className='bg-surface-subtle' />
 
-            <ASTRDSMinting tokenCount={tokens} />
-            <SpaceTokenClaim />
+          <ASTRDSMinting tokenCount={astrdsEarned} gameSessionId={currentSessionId} />
+          <SpaceTokenClaim />
 
-            {lastGameStats?.isHighScore && (
-              <Badge className='bg-yellow-400/10 text-yellow-400 border-yellow-400/50 text-sm px-4 py-1 animate-pulse'>
-                NEW HIGH SCORE
-              </Badge>
-            )}
+          {lastGameStats?.isHighScore && (
+            <Badge className='bg-[var(--text-warning)]/10 text-tx-warning border-[var(--text-warning)]/50 text-sm px-4 py-1 animate-pulse'>
+              NEW HIGH SCORE
+            </Badge>
+          )}
 
-            {!lastGameStats?.isHighScore && lastGameStats?.rank <= 3 && (
-              <Badge className='bg-game-blue/10 text-game-blue border-game-blue/50 text-sm px-4 py-1'>
-                TOP 3
-              </Badge>
-            )}
+          {!lastGameStats?.isHighScore && lastGameStats?.rank <= 3 && (
+            <Badge className='bg-primary/10 text-primary border-primary/50 text-sm px-4 py-1'>
+              TOP 3
+            </Badge>
+          )}
 
-            <div>
-              <div className='text-sm text-gray-400 mb-1'>Final Score</div>
-              <div className='text-3xl text-game-blue font-bold font-mono'>
-                {score.toLocaleString()}
-              </div>
+          <div>
+            <div className='text-sm text-muted-foreground mb-1'>Final Score</div>
+            <div className='text-3xl text-primary font-bold font-mono'>
+              {score.toLocaleString()}
             </div>
-
-            {lastGameStats && (
-              <div className='text-xs text-gray-500'>
-                Rank #{lastGameStats.rank} of {lastGameStats.totalPlayers}
-              </div>
-            )}
-
-            <Separator className='bg-white/10' />
-
-            <Button
-              variant='quarter'
-              size='lg'
-              onClick={handleReturnToTitle}
-              disabled={!wallet.connected}
-              className='w-full'
-            >
-              Play Again
-            </Button>
-
-            <p className='text-xs text-gray-600'>
-              Tip: Practice makes perfect. Keep playing to improve your score.
-            </p>
           </div>
+
+          {lastGameStats && (
+            <div className='text-xs text-muted-foreground'>
+              Rank #{lastGameStats.rank} of {lastGameStats.totalPlayers}
+            </div>
+          )}
+
+          <Separator className='bg-surface-subtle' />
+
+          <Button
+            variant='quarter'
+            size='lg'
+            onClick={handleReturnToTitle}
+            disabled={!wallet.connected}
+            className='w-full'
+          >
+            Play Again
+          </Button>
+
+          <p className='text-xs text-tx-dim'>
+            Tip: Practice makes perfect. Keep playing to improve your score.
+          </p>
         </div>
       </div>
+    </ScreenContainer>
   )
 }
 

@@ -92,10 +92,10 @@ const SpaceTokenClaim: React.FC = () => {
   }
 
   return (
-    <div className='bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 space-y-3'>
+    <div className='bg-[var(--entity-shield)]/10 border border-[var(--entity-shield)]/30 rounded-lg p-4 space-y-3'>
       <div className='flex items-center gap-2'>
-        <Rocket size={14} className='text-purple-400' />
-        <span className='font-mono text-xs text-purple-300 uppercase tracking-wider'>
+        <Rocket size={14} className='text-[var(--entity-shield)]' />
+        <span className='font-mono text-xs text-[var(--entity-shield)] uppercase tracking-wider'>
           Space Tokens Collected
         </span>
       </div>
@@ -109,8 +109,8 @@ const SpaceTokenClaim: React.FC = () => {
               const perPillUi = g.tokensPerPill / 10 ** g.decimals
               return (
                 <div key={g.mintAddress} className='flex justify-between font-mono text-xs'>
-                  <span className='text-white/60'>{g.symbol}</span>
-                  <span className='text-purple-300'>
+                  <span className='text-tx-secondary'>{g.symbol}</span>
+                  <span className='text-[var(--entity-shield)]'>
                     {pillCount} collected × {perPillUi.toLocaleString()} = {uiAmount.toLocaleString()}
                   </span>
                 </div>
@@ -120,7 +120,7 @@ const SpaceTokenClaim: React.FC = () => {
           <button
             onClick={handleClaim}
             disabled={!wallet.connected || grouped.length === 0}
-            className='btn-grain w-full h-9 font-mono text-xs bg-purple-500 text-white hover:bg-purple-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+            className='btn-grain w-full h-9 font-mono text-xs bg-[var(--entity-shield)] text-foreground hover:bg-[var(--entity-shield)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
           >
             Claim all space tokens
           </button>
@@ -128,21 +128,21 @@ const SpaceTokenClaim: React.FC = () => {
       )}
 
       {claimState === 'claiming' && (
-        <p className='font-mono text-xs text-white/40 text-center py-2'>
+        <p className='font-mono text-xs text-muted-foreground text-center py-2'>
           Claiming tokens from the vault...
         </p>
       )}
 
       {claimState === 'done' && (
         <div className='flex items-start gap-2'>
-          <CheckCircle2 size={14} className='text-green-400 mt-0.5 shrink-0' />
+          <CheckCircle2 size={14} className='text-tx-success mt-0.5 shrink-0' />
           <div className='space-y-0.5'>
             {results.length > 0 ? results.map((r) => (
-              <p key={r.symbol} className='font-mono text-xs text-white/60'>
+              <p key={r.symbol} className='font-mono text-xs text-tx-secondary'>
                 {(r.totalClaimed / 10 ** r.decimals).toLocaleString()} {r.symbol} sent to your wallet
               </p>
             )) : (
-              <p className='font-mono text-xs text-white/60'>Nothing to claim right now.</p>
+              <p className='font-mono text-xs text-tx-secondary'>Nothing to claim right now.</p>
             )}
           </div>
         </div>
@@ -150,12 +150,12 @@ const SpaceTokenClaim: React.FC = () => {
 
       {claimState === 'error' && (
         <div className='flex items-start gap-2'>
-          <AlertCircle size={14} className='text-game-red mt-0.5 shrink-0' />
+          <AlertCircle size={14} className='text-destructive mt-0.5 shrink-0' />
           <div>
-            <p className='font-mono text-xs text-white/60'>{errorMsg}</p>
+            <p className='font-mono text-xs text-tx-secondary'>{errorMsg}</p>
             <button
               onClick={() => setClaimState('idle')}
-              className='font-mono text-xs text-game-blue hover:text-white transition-colors mt-1'
+              className='font-mono text-xs text-primary hover:text-foreground transition-colors mt-1'
             >
               Try again
             </button>
