@@ -94,6 +94,7 @@ export default {
         'blink': 'blink 1s infinite',
         'pulse': 'pulse 0.2s ease-in-out',
         'scale': 'scale 0.2s ease-in-out',
+        'flicker': 'flicker 1.6s linear infinite',
       },
 
       keyframes: {
@@ -130,6 +131,23 @@ export default {
         scale: {
           '0%': { transform: 'scale(1)' },
           '100%': { transform: 'scale(1.1)' },
+        },
+        flicker: {
+          '0%, 100%': { opacity: '1' },
+          '4%':        { opacity: '0.3' },
+          '5%':        { opacity: '1' },
+          '8%':        { opacity: '0.8' },
+          '30%':       { opacity: '1' },
+          '48%':       { opacity: '0.15' },
+          '49%':       { opacity: '1' },
+          '52%':       { opacity: '0.6' },
+          '53%':       { opacity: '1' },
+          '78%':       { opacity: '1' },
+          '80%':       { opacity: '0.35' },
+          '81%':       { opacity: '1' },
+          '90%':       { opacity: '0.85' },
+          '91%':       { opacity: '0.2' },
+          '92%':       { opacity: '1' },
         },
       },
     },
