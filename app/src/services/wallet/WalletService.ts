@@ -1,12 +1,15 @@
 // src/services/wallet/WalletService.ts
 class WalletService {
+  disconnectCallback: (() => void) | null
+
   constructor() {
     this.disconnectCallback = null
   }
 
-  getProvider() {
-    if ('phantom' in window && window.phantom?.solana) {
-      return window.phantom.solana
+  getProvider(): any {
+    const w = window as any
+    if ('phantom' in w && w.phantom?.solana) {
+      return w.phantom.solana
     }
     return null
   }
@@ -22,7 +25,7 @@ class WalletService {
       this.setupDisconnectListener()
       return true
     } catch (err) {
-      if (err.code !== 4001) {
+      if ((err as any).code !== 4001) {
         console.error('Auto-connect error:', err)
       }
       return false
@@ -43,7 +46,7 @@ class WalletService {
     })
   }
 
-  onDisconnect(callback) {
+  onDisconnect(callback: () => void) {
     this.disconnectCallback = callback
   }
 }

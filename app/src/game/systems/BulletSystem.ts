@@ -3,7 +3,15 @@ import { useEngineStore } from '@/stores/engineStore'
 import { getCanvasTokens } from '@/lib/designTokens'
 import Bullet from '../entities/Bullet'
 
+type BulletSlot = { bullet: Bullet | null; active: boolean; createTime: number }
+
+type PowerUpType = 'normal' | 'spread' | 'beam' | 'rapid'
+
 export class BulletSystem {
+  maxBullets: number
+  pool: BulletSlot[]
+  lastShot: number
+
   constructor(maxBullets = 15) {
     this.maxBullets = maxBullets
     this.pool = Array(maxBullets)
@@ -16,7 +24,7 @@ export class BulletSystem {
     this.lastShot = 0
   }
 
-  releaseBullet(bullet) {
+  releaseBullet(bullet: Bullet) {
     const slot = this.pool.find((item) => item.bullet === bullet)
     if (slot) {
       slot.bullet = null // Remove bullet reference
@@ -25,7 +33,7 @@ export class BulletSystem {
     }
   }
 
-  createBullet(args) {
+  createBullet(args: any) {
     // Force cleanup old bullets first
     const now = Date.now()
     this.pool.forEach((slot) => {
@@ -63,7 +71,7 @@ export class BulletSystem {
     return slot.bullet
   }
 
-  fireBullet(ship, powerUpType = 'normal') {
+  fireBullet(ship: any, powerUpType: PowerUpType = 'normal') {
     const patterns = {
       normal: () => {
         this.createBullet({
@@ -122,7 +130,7 @@ export class BulletSystem {
     }
 
     this.lastShot = now
-    patterns[powerUpType]?.() || patterns.normal()
+    ;(patterns[powerUpType] ?? patterns.normal)()
   }
 }
 

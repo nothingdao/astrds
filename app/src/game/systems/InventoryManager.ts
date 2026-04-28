@@ -1,5 +1,14 @@
 // src/game/systems/InventoryManager.ts
+type InventoryItem = {
+  max: number
+  default: number
+  icon: string
+  onUse: (gameState: any) => boolean
+}
+
 export class InventoryManager {
+  items: Record<string, InventoryItem>
+
   constructor() {
     this.items = {
       ships: {
@@ -43,7 +52,7 @@ export class InventoryManager {
   }
 
   // Add item to inventory
-  addItem(state, itemType, amount = 1) {
+  addItem(state: any, itemType: string, amount = 1) {
     if (!this.items[itemType]) return false
 
     const currentAmount = state.inventory[itemType] || 0
@@ -54,7 +63,7 @@ export class InventoryManager {
   }
 
   // Remove item from inventory
-  removeItem(state, itemType, amount = 1) {
+  removeItem(state: any, itemType: string, amount = 1) {
     if (!this.items[itemType]) return false
 
     const currentAmount = state.inventory[itemType] || 0
@@ -65,13 +74,13 @@ export class InventoryManager {
   }
 
   // Use an item
-  useItem(state, itemType) {
+  useItem(state: any, itemType: string) {
     if (!this.items[itemType] || !this.items[itemType].onUse) return false
     return this.items[itemType].onUse(state)
   }
 
   // Check if can add item
-  canAddItem(state, itemType, amount = 1) {
+  canAddItem(state: any, itemType: string, amount = 1) {
     if (!this.items[itemType]) return false
 
     const currentAmount = state.inventory[itemType] || 0
@@ -79,12 +88,12 @@ export class InventoryManager {
   }
 
   // Get item maximum
-  getItemMax(itemType) {
+  getItemMax(itemType: string) {
     return this.items[itemType]?.max || 0
   }
 
   // Reset inventory to defaults
-  resetInventory(state) {
+  resetInventory(state: any) {
     state.inventory = Object.keys(this.items).reduce((acc, itemType) => {
       acc[itemType] = this.items[itemType].default
       return acc

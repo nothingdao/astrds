@@ -33,7 +33,7 @@ const AudioWidget: React.FC<AudioWidgetProps> = ({ compact = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>()
 
-  const trackName = currentMusic ? (TRACK_NAMES[currentMusic] ?? currentMusic.toUpperCase()) : null
+  const trackName = currentMusic ? (TRACK_NAMES[String(currentMusic)] ?? String(currentMusic).toUpperCase()) : null
   const activeBlocks = Math.round(volumes.master * 5)
   const barH = compact ? 16 : 24
 

@@ -61,6 +61,13 @@ const INITIAL_STATE: EngineStoreState = {
   powerupTimeout: null,
   gameLoopId: null,
   devFastSpawn: false,
+  performance: {
+    fps: 0,
+    frameTime: 0,
+    entityCounts: {},
+    frameCount: 0,
+    lastFrameTimestamp: 0,
+  },
 }
 
 

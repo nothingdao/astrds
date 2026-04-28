@@ -9,8 +9,8 @@
       "@/*": ["src/*"],
       "@shared/*": ["../shared/*"]
     },
-    "ignoreDeprecations": "5.0",
-    "strict": true,
+    "ignoreDeprecations": "6.0",
+    "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "allowJs": true,

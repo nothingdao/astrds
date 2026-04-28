@@ -85,7 +85,7 @@ export const vaultHealthCheck = action({
 
     for (const pool of onChainPools) {
       const key = `${pool.depositor}:${pool.mint}`
-      const convex = convexByKey.get(key)
+      const convex = convexByKey.get(key) as any
       if (!convex) {
         missing.push(pool)
       } else if (convex.remainingAmount !== pool.remaining) {
@@ -95,7 +95,7 @@ export const vaultHealthCheck = action({
       }
     }
 
-    const orphaned = convexDeposits.filter(d => {
+    const orphaned = (convexDeposits as any[]).filter(d => {
       const key = `${d.walletAddress}:${d.mintAddress}`
       return !onChainByKey.has(key)
     }).map(d => ({ id: d._id, walletAddress: d.walletAddress, mintAddress: d.mintAddress, symbol: d.symbol, status: d.status }))

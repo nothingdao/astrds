@@ -81,7 +81,7 @@ export async function fetchMeteoraPoolSnapshot(): Promise<MeteoraPoolSnapshot> {
     throw new Error('Meteora DAMM v2 pool account not found on devnet')
   }
 
-  const data = new Uint8Array(accountInfo.data as ArrayBuffer)
+  const data = new Uint8Array(accountInfo.data as unknown as ArrayBuffer)
   const tokenAMint = readPublicKey(data, TOKEN_A_MINT_OFFSET)
   const tokenBMint = readPublicKey(data, TOKEN_B_MINT_OFFSET)
   const tokenAVault = readPublicKey(data, TOKEN_A_VAULT_OFFSET)

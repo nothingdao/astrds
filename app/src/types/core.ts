@@ -12,6 +12,13 @@ export interface ScreenBounds {
   height: number
 }
 
+export interface Overlay {
+  id: string
+  title?: string
+  component?: unknown
+  props?: Record<string, unknown>
+}
+
 export interface BaseEntity {
   id: string
   position: Vector2D

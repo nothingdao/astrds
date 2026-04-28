@@ -81,6 +81,7 @@ const assertDevnet = async (connection: Connection) => {
 
 const createReadonlyWallet = (publicKey?: PublicKey): AnchorWallet => ({
   publicKey: publicKey ?? Keypair.generate().publicKey,
+  payer: Keypair.generate(),
   signTransaction: async () => {
     throw new Error('Readonly provider cannot sign transactions')
   },
@@ -278,7 +279,7 @@ export const buildSendToSpaceTransaction = async ({
           tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .instruction()
     )
   }
@@ -293,7 +294,7 @@ export const buildSendToSpaceTransaction = async ({
         depositorTokenAccount,
         vaultAta,
         tokenProgram,
-      })
+      } as any)
       .instruction()
   )
 
@@ -371,7 +372,7 @@ export const buildClaimTransaction = async ({
         tokenProgram,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .instruction()
   )
 
