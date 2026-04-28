@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-23
+updated: 2026-04-27
 ---
 
 # ASTRDS — Product Spec
@@ -17,11 +17,11 @@ Feature source of truth. Update this as features ship, change, or get cut.
 - Session expires; expired session returns to `INITIAL`
 
 ### 2. Gameplay — ASTRDS Tokens
-- Player flies ship, shoots asteroids, collects Pill entities
-- Each Pill collected increments `inventoryStore` ASTRDS count
-- Max 200 ASTRDS tokens per game session
-- On game over → `ASTRDSMinting` component shows count and triggers `mintTokens` action
-- `mintTokens` calls SPL `mintTo` via authority keypair → tokens land in player wallet
+- Player flies ship, shoots asteroids, collects Pill entities (server-authoritative)
+- Each Pill collected increments `inventoryStore` ASTRDS count and is tracked server-side
+- Max 50 ASTRDS per game session; emission tier (1–5 by pool price) controls pills spawned + ASTRDS per pill; uncollected pills are burned
+- Emission tier locked at session start by the game server reading the Meteora pool — client cannot influence rate
+- On game over → game server POSTs earned amount to Convex → `ASTRDSMinting` shows count → `prepareMint` action signs ed25519 authorization → client submits on-chain `mint_astrds` tx → VaultConfig PDA CPIs `mintTo` → tokens land in player wallet
 
 ### 3. Tokens in Space — Deposit
 - Any wallet can open `SendToSpaceOverlay` and deposit any SPL token into the on-chain vault
@@ -36,9 +36,8 @@ Feature source of truth. Update this as features ship, change, or get cut.
 - `tokensPerPill` and level range (minLevel/maxLevel) configurable per deposit
 
 ### 4. Tokens in Space — Spawn & Collection
-- During gameplay, `engineStore.spawnToken()` selects eligible pools for current level
-- `requestSpawnTicket` mutation validates player has an active paid session, checks per-player spawn cooldown (by spawn mode: steady / escalating / wave), and issues a one-time `spawnTickets` record
-- Token entity spawned client-side only after a valid ticket is returned
+- During gameplay, the game server selects eligible pools for the current level and calls `requestSpawnTicket` (Convex mutation) — validates active paid session, checks per-player cooldown by spawn mode (steady / escalating / wave), and issues a one-time `spawnTickets` record
+- Game server injects a `Token` entity into the authoritative simulation only after a valid ticket is returned; client renders from snapshot
 - Token entities spawn with deterministic color per mint address
 - Ship-token collision → `collectFromDeposit` mutation validates and marks ticket used, atomically decrements pool, writes persistent `collections` record
 - HUD shows per-token-type dot + symbol + count (bottom-right)
@@ -67,7 +66,7 @@ Feature source of truth. Update this as features ship, change, or get cut.
 
 - [x] Wallet auth survives page refresh within session expiry window
 - [x] Light/dark theme persists across refresh and applies to both React UI and live canvas gameplay
-- [x] ASTRDS mint is server-side — client cannot trigger minting without verified session
+- [x] ASTRDS mint is server-authoritative — game server writes earned amount via authenticated HTTP; client submits on-chain tx with ed25519 authorization from `prepareMint`
 - [x] Space deposit amounts verified on-chain via `tx.meta` — client input not trusted for amounts
 - [x] Pool decrement is atomic (Convex serialized mutations) — safe under concurrent players
 - [x] Spawn requires server-issued ticket — validates paid session before any pool decrement
@@ -80,7 +79,7 @@ Feature source of truth. Update this as features ship, change, or get cut.
 ## Non-Functional Requirements
 
 - Convex mutations are serialized per document — race conditions on pool decrement are structurally impossible
-- Convex authority keypair `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF` signs ed25519 claim authorizations; on-chain program verifies against `VaultConfig.convexAuthority`
+- Convex authority keypair `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF` signs ed25519 claim + mint authorizations; on-chain program verifies against `VaultConfig.convexAuthority`. Mint authority is held by VaultConfig PDA — direct SPL `mintTo` via keypair is not possible.
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` never leaves Convex — never in frontend bundle
 - Helius webhook secret (`HELIUS_WEBHOOK_SECRET`) validated server-side on every POST
 - Depleted pools remain queryable — needed to serve pending claim payouts

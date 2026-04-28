@@ -134,7 +134,7 @@ Each `DepositPool` owns an associated token account (`vaultAta`) derived as:
 │  └──────────────────────────┘                                       │
 │                                                                     │
 │  ASTRDS Token-2022 Mint                                             │
-│  Mint authority: Convex authority wallet                            │
+│  Mint authority: VaultConfig PDA (on-chain only via mint_astrds)    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -222,14 +222,16 @@ Pills spawn in asteroid field during gameplay (server-authoritative)
     ├──► Player collects pill
     │         │
     │         ▼
-    │    collectFromDeposit (Convex — atomic)
-    │         └─ writes collections record (status: pending)
-    │         └─ ASTRDS minted to player at game over
+    │    Server increments pillsCollected in game session
+    │         │
+    │         └─ At game over: astrdsEarned = floor(pillsCollected × astrdsPerPill)
+    │              └─ Game server POSTs to /game-server/set-astrds-earned (ADMIN_API_KEY)
+    │              └─ prepareMint signs ed25519 auth → client submits mint_astrds tx
     │
     └──► Pill despawns uncollected
               │
               ▼
-         ASTRDS allocation for that pill → burned
+         ASTRDS allocation for that pill → burned (never minted)
               └─ circulating supply shrinks → sell pressure falls
 ```
 
@@ -314,7 +316,7 @@ finalizeClaim mutation (Convex)
 ### Drain Detection / Reconcile
 
 ```
-Helius webhook fires on any tx touching treasury wallet
+Helius webhook fires on any tx touching Space Vault Program ID
     │
     ├──► Inbound transfer → deposit flow (above)
     │
@@ -376,9 +378,10 @@ Hourly cron: reconcileAllPools
 
 | Key | Purpose |
 |---|---|
-| `PROGRAM_AUTHORITY_PRIVATE_KEY` | JSON array — Convex authority keypair (ASTRDS minting + ed25519 claim signing) |
+| `PROGRAM_AUTHORITY_PRIVATE_KEY` | JSON array — Convex authority keypair (ed25519 claim + mint authorization signing) |
 | `SOLANA_RPC_ENDPOINT` | RPC used by Convex actions |
 | `HELIUS_WEBHOOK_SECRET` | Shared secret for webhook validation |
+| `ADMIN_API_KEY` | Required for `/admin/config` and `/game-server/set-astrds-earned` HTTP endpoints |
 
 ---
 

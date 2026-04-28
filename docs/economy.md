@@ -28,12 +28,12 @@ Deposited shitcoins are separate — chaotic, social, player-driven. Not part of
 
 ## Supply
 
-- Hard cap: 21,000,000 ASTRDS
+- Hard cap: 21,000,000 ASTRDS *(target — not yet enforced on-chain; see `docs/security.md`)*
 - Allocation per game: 50 ASTRDS (reserved at game start)
 - Total games to full emission: 420,000
 - Total cash inflow at full emission: $105,000
 - Emission unit: pills collected during a game
-- Uncollected allocation: burned at game end
+- Uncollected allocation: burned at game end *(currently tracked as "never minted" — no on-chain burn record yet; see `docs/security.md`)*
 - Pills spawned but not collected are never minted — emission is skill-gated
 
 ---
@@ -215,7 +215,7 @@ Everything soft. Structure hard.
 **On-chain (trustless — target state):**
 - Quarter price in SOL
 - Revenue split weights and slice destinations
-- Hard supply cap (21M)
+- Hard supply cap (21M) *(target — not yet enforced on-chain)*
 - Allocation per game (50 ASTRDS)
 - Emission tier bands (price breakpoints)
 - Pills per tier, ASTRDS per pill per tier

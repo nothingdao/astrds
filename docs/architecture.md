@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-26
+updated: 2026-04-27
 ---
 
 # Architecture
@@ -17,7 +17,7 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 - **Design/theme system** — shadcn-compatible CSS variables in `src/styles/style.css` are the source of truth. `themeStore.ts` persists `dark` / `light`; `ThemeController` applies `theme-dark` / `theme-light` to `document.documentElement`; `ThemeToggle` lives in the Header. React UI uses semantic Tailwind classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `text-tx-*`, `bg-surface-*`, `border-edge-*`). Canvas rendering cannot use Tailwind, so `src/lib/designTokens.ts` reads and caches CSS vars for renderers. `resolveCanvasColor` maps historical server snapshot colors (e.g. `#fff`) to current theme tokens so active gameplay remains visible in both themes.
 - **Themed screen art** — `ScreenContainer.tsx` selects per-theme image assets for `INITIAL`, `READY_TO_PLAY`, and `GAME_OVER` (`title-dark/light`, `ready-dark/light`, `end-game-dark/light`). Title and game-over screens use fullscreen backgrounds; content panels supply their own readability overlays.
 - **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
-- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `authStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `spaceTokenStore`. Stores are hydrated from `GameSnapshot` on each server tick.
+- **State** — Zustand stores. `stateMachine.ts` is the source of truth for screen flow. Other stores: `audioStore`, `chatStore`, `engineStore`, `gameData`, `inventoryStore`, `levelStore`, `overlayStore`, `powerupStore`, `serverStore`, `settingsPanelStore`, `spaceTokenStore`, `themeStore`. Stores are hydrated from `GameSnapshot` on each server tick.
 - **Blockchain** — Solana wallet-adapter. Auth via wallet signature verified server-side in Convex. Space token claims and ASTRDS minting both via on-chain vault program instructions (`spaceVault.ts`). Wallet connect dialog is a custom component (`GameWalletModal.tsx`) — does not use the library's default modal.
 - **Chat** — Reactive via Convex `useQuery(api.chat.getMessages)`. No Pusher.
 
@@ -60,7 +60,7 @@ All backend logic runs in Convex. No Netlify Functions.
 | `scores.ts` | Top-10 leaderboard (getScores query, submitScore mutation) |
 | `gameSessions.ts` | Game session lifecycle (create, update, get) |
 | `chat.ts` | Reactive chat — last 100 messages, reactive via useQuery |
-| `tokens.ts` | "use node" action — SPL mintTo for ASTRDS via authority keypair |
+| `tokens.ts` | "use node" actions — `prepareMint` signs ed25519 mint authorization; `mintTokens` is deprecated (mint authority transferred to VaultConfig PDA) |
 | `prices.ts` | SOL/USD price feed — server-side Convex action; tries Coinbase → Binance → CoinGecko to avoid browser CORS/fallback pricing issues |
 | `economySnapshots.ts` | Periodic snapshots of live economic state (pool price, tier, circulating supply) |
 | `admin.ts` | Admin-gated mutations for operator tooling |
@@ -89,67 +89,25 @@ All backend logic runs in Convex. No Netlify Functions.
 
 ### Token — ASTRDS
 
-- Mint: `5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB`
-- Program: Token-2022 (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`)
-- Authority: `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF` (treasury / Convex authority wallet)
-- Metadata: name=ASTRDS, symbol=ASTRDS, URI=https://astrds.ndao.computer/token.json
-- 9 decimals, 1 token collected in-game = 1 $ASTRDS minted
+- Mint: `5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB` (Token-2022)
+- **Mint authority**: VaultConfig PDA `6zsWYibNCYYQJikHv8BHXRNynEACgFKsZPNXqWqBPbvv` — minting only possible via on-chain `mint_astrds` instruction; no direct keypair mintTo
+- **Ed25519 signing authority**: Convex keypair `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF` — signs `prepareMint` and `prepareClaims` authorizations; verified on-chain against `VaultConfig.convexAuthority`
+- **Freeze authority**: Convex keypair `CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF`
+- 9 decimals; max 50 ASTRDS earned per game (emission tiers, see `docs/economy.md`); uncollected pills burned
+
+See `docs/chain.md` for full address table and PDA seeds.
 
 ### Tokens in Space
 
-Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. Deposited tokens spawn as collectibles during gameplay and are claimed by players via on-chain vault instructions.
+Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault via `SendToSpaceOverlay`. Tokens land in a `DepositPool` PDA's `vaultAta` — not the treasury wallet. Deposit amounts are verified by reading `tx.meta` directly from RPC; client-supplied amounts are never trusted. The Helius webhook auto-activates deposits; `reconcileAllPools` cron reconciles balances hourly.
 
-**Deposit flow:**
-1. Depositor opens `SendToSpaceOverlay`, configures token + amount + level range + tokensPerPill
-2. `registerDepositIntent` mutation creates a `pending_verification` record in Convex
-3. Frontend calls `buildSendToSpaceTransaction` (spaceVault.ts) — builds `registerPool` + `deposit` instructions (registerPool only if pool PDA doesn't yet exist)
-4. Player signs and sends on-chain → tokens land in DepositPool PDA's `vaultAta` (not treasury wallet)
-5. `confirmDepositFromChain` mutation sets pool address and activates the record
-6. `verifyAndConfirmDeposit` action runs in parallel — reads `tx.meta.postTokenBalances - preTokenBalances` directly from RPC and overwrites Convex amount with verified on-chain value
+During gameplay, the game server issues `spawnTickets` (Convex mutation) gated on active paid session + cooldown. Ship-token collision triggers `collectFromDeposit` (serialized Convex mutation) which atomically decrements the pool and writes a persistent `collections` record. At claim time, `prepareClaims` signs an ed25519 authorization; the client submits a `claim` instruction that creates a `ClaimRecord` PDA for replay protection and transfers tokens from `vaultAta` to the player's ATA.
 
-**Amount verification — the on-chain source of truth:**
-- `parseTreasuryTokenDelta` reads the actual on-chain transfer delta from `tx.meta` — client cannot inflate amounts
-- The on-chain `DepositPool` PDA also tracks `remaining` — `reconcileAllPools` caps Convex balances to on-chain reality hourly
-
-**Webhook security:**
-- All POSTs to `/treasury-webhook` must carry `Authorization: <HELIUS_WEBHOOK_SECRET>`
-- Outbound transfers checked against `claims` table — unknown outbound triggers `reconcilePool` action
-- `reconcileAllPools` cron runs hourly as devnet fallback
-
-**Spawn flow:**
-1. Game server checks eligible pools for the current level and calls `requestSpawnTicket` (Convex mutation) — validates player has an active paid session, checks per-player cooldown, issues a one-time `spawnTickets` record
-2. If valid ticket returned → game server injects a `Token` entity into the authoritative simulation; snapshot is sent to client for rendering
-3. Token entity rendered with deterministic color from `src/lib/tokenColors.ts`
-4. Ship-token collision (server-authoritative) → `collectFromDeposit` mutation validates the ticket, marks it used, atomically decrements `remainingAmount`, and writes a persistent `collections` record
-5. HUD (bottom-right) shows per-type dot + symbol + count for all collected space tokens
-
-**Claim flow:**
-1. `SpaceTokenClaim` component reads pending `collections` records from Convex, groups by mint, shows totals
-2. Player clicks claim → `prepareClaims` Convex action:
-   - Fetches pending collections grouped by deposit
-   - Signs a claim authorization message `{player, pool, amount, claimId, expiry}` with Convex authority keypair
-   - Returns signed claim data to the client
-3. Client calls `buildClaimTransaction` (spaceVault.ts) per claim:
-   - Adds Ed25519Program verification instruction
-   - Adds `claim` instruction — on-chain program verifies ed25519 signature, creates `ClaimRecord` PDA (replay protection), transfers tokens from `vaultAta` to player ATA
-4. Player signs and submits on-chain
-5. `finalizeClaim` mutation marks collections as `claimed` and writes to `claims` table
-6. `SpaceTokenClaim` is also available on AccountScreen — pending collections persist across sessions
-
-**Race condition handling:**
-- Pool is decremented at collection time via a server-issued ticket — prevents over-commitment with multiple concurrent players
-- `collectFromDeposit` is a Convex mutation (serialized) — no two players can take the same slot
-- `depleted` status means `remainingAmount < tokensPerPill` — players who collected can still claim their share
-
-**Token colors:**
-- `src/lib/tokenColors.ts` — `getTokenColor(mintAddress)` hashes mint address to one of 10 CSS-variable-backed palette slots (`--space-token-0` … `--space-token-9`)
-- `getAstrdsColor()` reads `--canvas-token` for standard ASTRDS tokens (not from space pools)
-- Colors are stable by mint address, but the actual rendered values can differ by theme for contrast
-- The server/shared simulation may still emit historical protocol hex colors; the client resolves those via `resolveCanvasColor` before rendering
+See `docs/chain.md` for the full deposit → spawn → collect → claim flow diagrams, PDA seeds, and on-chain mechanics.
 
 ## Data Flow (typical game)
 
-1. Wallet connects → `authStore` updates → title screen unlocks
+1. Wallet connects → wallet-adapter state updates → title screen unlocks
 2. "Insert Quarter" → wallet signs tx → `verifyPayment` action verifies on-chain → session stored in Convex → `INITIAL → READY_TO_PLAY`
 3. Game starts → `gameSessions.create` → `READY_TO_PLAY → PLAYING`; `SpacePoolSync` mounts, polls active deposits into `spaceTokenStore`
 4. Gameplay → score increments in `gameData`; ASTRDS tokens increment `inventoryStore`; space tokens collected → `requestSpawnTicket` → `collectFromDeposit` (atomic decrement + persistent collection record) + `spaceTokenStore` update; HUD reflects both
@@ -162,13 +120,9 @@ Any SPL token (Token-2022 or legacy) can be deposited into the on-chain vault. D
 
 - `netlify.toml` — static build only, no functions
 - `vite.config.ts` — Vite/React build
-- `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims
-- `VITE_CONVEX_URL` — Convex deployment URL (frontend)
-- `VITE_HELIUS_API_KEY` — Helius API key (network hardcoded in `src/lib/solana.ts`)
-- `VITE_WS_URL` — WebSocket server URL (e.g. `ws://localhost:3001` for local dev, Railway URL for prod); game server is required
-- `PROGRAM_AUTHORITY_PRIVATE_KEY` — SPL authority keypair JSON array (Convex env, never in frontend)
-- `SOLANA_RPC_ENDPOINT` — RPC used by Convex actions (Convex env)
-- `HELIUS_WEBHOOK_SECRET` — shared secret for webhook auth (Convex env)
+- `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims, gameConfig, economySnapshots
+
+See `README.md` for the full env var reference (frontend, Convex, and game server).
 
 ## Dev Tooling
 
