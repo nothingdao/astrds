@@ -223,23 +223,32 @@ export const prepareClaims = action({
       }
       if (!deposit || !deposit.poolAddress) continue
 
-      const totalAmount = cols.reduce((sum, c) => sum + c.amount, 0)
+      const totalAmount = cols.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0)
       if (totalAmount <= 0) continue
+
+      const reservedCols: typeof cols = []
+      for (const col of cols) {
+        const reserved = await ctx.runMutation(internal.spaceDeposits.markCollectionClaiming, { id: col._id })
+        if (reserved) reservedCols.push(col)
+      }
+      if (reservedCols.length === 0) continue
+      const reservedTotalAmount = reservedCols.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0)
+      if (reservedTotalAmount <= 0) continue
 
       const claimId = randomBytes(32)
       const poolPubkey = new PublicKey(deposit.poolAddress)
-      const message = buildClaimMessage(playerPubkey, poolPubkey, totalAmount, claimId, expiry)
+      const message = buildClaimMessage(playerPubkey, poolPubkey, reservedTotalAmount, claimId, expiry)
       const signature = nacl.sign.detached(message, authority.secretKey)
 
       claims.push({
         depositId: String(deposit._id),
-        collectionIds: cols.map((c) => String(c._id)),
+        collectionIds: reservedCols.map((c: { _id: unknown }) => String(c._id)),
         poolAddress: deposit.poolAddress,
         mintAddress: deposit.mintAddress,
         programId: deposit.programId,
         symbol: deposit.symbol,
         decimals: deposit.decimals ?? 6,
-        totalAmount,
+        totalAmount: reservedTotalAmount,
         claimId: Array.from(claimId),
         expiry,
         signature: Array.from(signature),

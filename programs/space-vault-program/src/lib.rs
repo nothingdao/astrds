@@ -25,6 +25,7 @@ const CLAIM_RECORD_SEED: &[u8] = b"claim-record";
 const MINT_RECORD_SEED: &[u8] = b"mint-record";
 const BUYBACK_VAULT_SEED: &[u8] = b"buyback-vault";
 const ASTRDS_MINT: Pubkey = pubkey!("5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB");
+const ASTRDS_SUPPLY_CAP_RAW: u64 = 21_000_000_000_000_000; // 21M with 9 decimals
 const METEORA_POSITION_NFT_MINT_SEED: &[u8] = b"meteora-position-mint";
 const METEORA_POSITION_SEED: &[u8] = b"position";
 const METEORA_POSITION_NFT_ACCOUNT_SEED: &[u8] = b"position_nft_account";
@@ -349,6 +350,16 @@ pub mod space_vault_program {
             session_id,
             expiry,
         )?;
+
+        require!(
+            ctx.accounts
+                .astrds_mint
+                .supply
+                .checked_add(amount)
+                .ok_or(SpaceVaultError::MathOverflow)?
+                <= ASTRDS_SUPPLY_CAP_RAW,
+            SpaceVaultError::SupplyCapExceeded
+        );
 
         let vault_bump = ctx.accounts.vault_config.bump;
         let signer_seeds: &[&[u8]] = &[VAULT_CONFIG_SEED, &[vault_bump]];
@@ -1121,4 +1132,6 @@ pub enum SpaceVaultError {
     InvalidLiquidityQuote,
     #[msg("Mint address does not match the configured ASTRDS token.")]
     InvalidAstrdsMint,
+    #[msg("ASTRDS supply cap exceeded.")]
+    SupplyCapExceeded,
 }

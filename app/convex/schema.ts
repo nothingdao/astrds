@@ -8,7 +8,10 @@ export default defineSchema({
     paymentType: v.union(v.literal('SOL'), v.literal('ASTRDS')),
     verifiedAt: v.number(),
     expiresAt: v.number(),
-  }).index('by_wallet', ['walletAddress']),
+    consumed: v.optional(v.boolean()),
+  })
+    .index('by_wallet', ['walletAddress'])
+    .index('by_tx', ['txSignature']),
 
   scores: defineTable({
     walletAddress: v.string(),
@@ -22,6 +25,9 @@ export default defineSchema({
     levelReached: v.number(),
     pillsCollected: v.optional(v.number()),
     astrdsEarned: v.optional(v.number()),  // authoritative ASTRDS to mint, written by game server at game over
+    astrdsEarnedRaw: v.optional(v.string()), // raw 9-decimal units, supports fractional ASTRDS
+    astrdsAllocated: v.optional(v.number()),
+    astrdsBurned: v.optional(v.number()),
     sessionStart: v.string(),
     lastUpdated: v.string(),
     sessionEnd: v.optional(v.string()),
@@ -102,7 +108,7 @@ export default defineSchema({
     mintAddress: v.string(),
     amount: v.number(),              // raw units owed to player
     spawnId: v.id('spawnTickets'),   // the ticket that authorized this collection
-    status: v.union(v.literal('pending'), v.literal('claimed')),
+    status: v.union(v.literal('pending'), v.literal('claiming'), v.literal('claimed')),
     collectedAt: v.number(),
     claimedTxSignature: v.optional(v.string()),
   })

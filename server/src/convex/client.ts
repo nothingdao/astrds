@@ -6,6 +6,7 @@ import { DEFAULT_GAME_CONFIG } from '../game/gameConfig.js'
 
 const GAME_SESSIONS_UPDATE = 'gameSessions:update'
 const SET_ASTRDS_EARNED_PATH = '/game-server/set-astrds-earned'
+const CONSUME_SESSION_PATH = '/game-server/consume-session'
 const GAME_SESSIONS_INCREMENT_PILLS = 'gameSessions:incrementPillsCollected'
 const SPACE_DEPOSITS_COLLECT = 'spaceDeposits:collectFromDeposit'
 const SPACE_DEPOSITS_GET_ACTIVE_POOLS = 'spaceDeposits:getActivePoolsForLevel'
@@ -46,7 +47,13 @@ export class ConvexServerClient {
     await this.mutation(GAME_SESSIONS_UPDATE, args)
   }
 
-  async setAstrdsEarned(args: { sessionId: string; amount: number }): Promise<void> {
+  async setAstrdsEarned(args: {
+    sessionId: string
+    amount: number
+    amountRaw?: string
+    allocated?: number
+    burned?: number
+  }): Promise<void> {
     const apiKey = process.env.ADMIN_API_KEY
     if (!apiKey) {
       console.warn('ADMIN_API_KEY not set — cannot write astrdsEarned to Convex')
@@ -62,12 +69,38 @@ export class ConvexServerClient {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ sessionId: args.sessionId, amount: args.amount }),
+      body: JSON.stringify(args),
     })
     if (!resp.ok) {
       const text = await resp.text()
       throw new Error(`setAstrdsEarned failed: ${resp.status} ${text}`)
     }
+  }
+
+  async consumeSession(args: { walletAddress: string }): Promise<boolean> {
+    const apiKey = process.env.ADMIN_API_KEY
+    if (!apiKey) {
+      console.warn('ADMIN_API_KEY not set — cannot consume verified session')
+      return false
+    }
+    if (!this.siteUrl) {
+      console.warn('Cannot derive Convex site URL — cannot consume verified session')
+      return false
+    }
+    const resp = await fetch(`${this.siteUrl}${CONSUME_SESSION_PATH}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ walletAddress: args.walletAddress }),
+    })
+    if (!resp.ok) {
+      const text = await resp.text()
+      throw new Error(`consumeSession failed: ${resp.status} ${text}`)
+    }
+    const body = await resp.json() as { consumed?: unknown }
+    return body.consumed === true
   }
 
   async incrementPillsCollected(args: { sessionId: string; amount?: number }): Promise<void> {

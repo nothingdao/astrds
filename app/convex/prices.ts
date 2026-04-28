@@ -1,6 +1,4 @@
-"use node"
-
-import { action } from './_generated/server'
+import { action, httpAction } from './_generated/server'
 import { v } from 'convex/values'
 
 const CACHE_TTL_MS = 60_000
@@ -63,32 +61,45 @@ const providers: Array<() => Promise<PriceResult>> = [
   },
 ]
 
+const getCachedSolUsdPrice = async (maxAgeMs = CACHE_TTL_MS): Promise<PriceResult> => {
+  const now = Date.now()
+  if (cached && now - cached.fetchedAt < maxAgeMs) {
+    return { ...cached, provider: `${cached.provider}:cache` }
+  }
+
+  const errors: string[] = []
+  for (const provider of providers) {
+    try {
+      const result = await provider()
+      cached = result
+      return result
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  if (cached) {
+    return { ...cached, provider: `${cached.provider}:stale` }
+  }
+
+  throw new Error(`Unable to fetch SOL/USD from all providers: ${errors.join(' | ')}`)
+}
+
 export const getSolUsdPrice = action({
   args: {
     maxAgeMs: v.optional(v.number()),
   },
-  handler: async (_ctx, args): Promise<PriceResult> => {
-    const now = Date.now()
-    const maxAgeMs = args.maxAgeMs ?? CACHE_TTL_MS
-    if (cached && now - cached.fetchedAt < maxAgeMs) {
-      return { ...cached, provider: `${cached.provider}:cache` }
-    }
+  handler: async (_ctx, args): Promise<PriceResult> => getCachedSolUsdPrice(args.maxAgeMs ?? CACHE_TTL_MS),
+})
 
-    const errors: string[] = []
-    for (const provider of providers) {
-      try {
-        const result = await provider()
-        cached = result
-        return result
-      } catch (err) {
-        errors.push(err instanceof Error ? err.message : String(err))
-      }
-    }
-
-    if (cached) {
-      return { ...cached, provider: `${cached.provider}:stale` }
-    }
-
-    throw new Error(`Unable to fetch SOL/USD from all providers: ${errors.join(' | ')}`)
-  },
+export const solUsdPriceHttp = httpAction(async () => {
+  try {
+    const result = await getCachedSolUsdPrice(CACHE_TTL_MS)
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch (err) {
+    return new Response(err instanceof Error ? err.message : 'Unable to fetch SOL/USD price', { status: 503 })
+  }
 })

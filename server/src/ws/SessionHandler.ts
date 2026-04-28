@@ -143,17 +143,19 @@ export class SessionHandler {
     }
 
     this.helloVerifying = true
-    let isVerified = true
+    let isVerified = false
 
     try {
       isVerified = await this.convex.isVerifiedSession({ walletAddress })
+      if (isVerified) {
+        isVerified = await this.convex.consumeSession({ walletAddress })
+      }
     } catch (error) {
-      console.error('Failed to verify session; allowing gameplay to proceed', {
+      console.error('Session verification failed; rejecting connection', {
         error,
         sessionId: this.session.id,
         walletAddress,
       })
-      isVerified = true
     } finally {
       this.helloVerifying = false
     }
@@ -330,7 +332,11 @@ export class SessionHandler {
     if (!gameSessionId) return
 
     this.didSubmitGameOver = true
-    const astrdsEarned = Math.floor(snapshot.pillsCollected * snapshot.emissionTier.astrdsPerPill)
+    const rawPerPill = BigInt(Math.round(snapshot.emissionTier.astrdsPerPill * 1_000_000_000))
+    const earnedRaw = BigInt(snapshot.pillsCollected) * rawPerPill
+    const astrdsEarned = Number(earnedRaw) / 1_000_000_000
+    const astrdsAllocated = 50
+    const astrdsBurned = Math.max(0, astrdsAllocated - astrdsEarned)
     void Promise.all([
       this.convex.updateGameSession({
         sessionId: gameSessionId,
@@ -339,7 +345,13 @@ export class SessionHandler {
         pillsCollected: snapshot.pillsCollected,
         status: 'ended',
       }),
-      this.convex.setAstrdsEarned({ sessionId: gameSessionId, amount: astrdsEarned }),
+      this.convex.setAstrdsEarned({
+        sessionId: gameSessionId,
+        amount: astrdsEarned,
+        amountRaw: earnedRaw.toString(),
+        allocated: astrdsAllocated,
+        burned: astrdsBurned,
+      }),
     ]).catch((error) => {
       this.didSubmitGameOver = false
       console.error('Failed to submit authoritative game-over state', {

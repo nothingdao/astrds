@@ -48,11 +48,23 @@ export const update = mutation({
 
 // Only callable from trusted server-side Convex functions (not the browser).
 export const setAstrdsEarned = internalMutation({
-  args: { sessionId: v.id('gameSessions'), amount: v.number() },
-  handler: async (ctx, { sessionId, amount }) => {
+  args: {
+    sessionId: v.id('gameSessions'),
+    amount: v.number(),
+    amountRaw: v.optional(v.string()),
+    allocated: v.optional(v.number()),
+    burned: v.optional(v.number()),
+  },
+  handler: async (ctx, { sessionId, amount, amountRaw, allocated, burned }) => {
     const session = await ctx.db.get(sessionId)
     if (!session) throw new Error('Session not found')
-    await ctx.db.patch(sessionId, { astrdsEarned: amount, lastUpdated: new Date().toISOString() })
+    await ctx.db.patch(sessionId, {
+      astrdsEarned: amount,
+      astrdsEarnedRaw: amountRaw,
+      astrdsAllocated: allocated,
+      astrdsBurned: burned,
+      lastUpdated: new Date().toISOString(),
+    })
   },
 })
 
@@ -69,14 +81,20 @@ export const setAstrdsEarnedHttp = httpAction(async (ctx, request) => {
   let body: unknown
   try { body = await request.json() } catch { return new Response('Invalid JSON', { status: 400 }) }
 
-  const { sessionId, amount } = body as Record<string, unknown>
+  const { sessionId, amount, amountRaw, allocated, burned } = body as Record<string, unknown>
   if (typeof sessionId !== 'string' || typeof amount !== 'number' || amount < 0 || amount > 50) {
     return new Response('Invalid body', { status: 400 })
+  }
+  if (amountRaw !== undefined && (typeof amountRaw !== 'string' || !/^\d+$/.test(amountRaw))) {
+    return new Response('Invalid amountRaw', { status: 400 })
   }
 
   await ctx.runMutation(internal.gameSessions.setAstrdsEarned, {
     sessionId: sessionId as Id<'gameSessions'>,
     amount,
+    amountRaw: amountRaw as string | undefined,
+    allocated: typeof allocated === 'number' ? allocated : undefined,
+    burned: typeof burned === 'number' ? burned : undefined,
   })
 
   return new Response(JSON.stringify({ ok: true }), {

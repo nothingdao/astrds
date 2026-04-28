@@ -301,7 +301,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           tokens: snap.tokensCollected,
           pills: snap.pillsCollected,
         },
-        astrdsEarned: Math.floor(snap.pillsCollected * snap.emissionTier.astrdsPerPill),
+        astrdsEarned: snap.pillsCollected * snap.emissionTier.astrdsPerPill,
       })
       usePowerupStore.setState({
         powerups: {

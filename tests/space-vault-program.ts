@@ -15,6 +15,8 @@ import {
 const { Keypair, PublicKey, SystemProgram, Ed25519Program, LAMPORTS_PER_SOL } =
   web3;
 
+const ASTRDS_MINT = new PublicKey("5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB");
+const ASTRDS_SUPPLY_CAP_RAW = BigInt("21000000000000000");
 const METEORA_POOL = new PublicKey("EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG");
 const METEORA_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
 const METEORA_POOL_AUTHORITY = new PublicKey("HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC");
@@ -79,6 +81,7 @@ describe("space-vault-program", () => {
   let token2022VaultAta: web3.PublicKey;
 
   const claimId = Array.from(Buffer.alloc(32, 7));
+  let supplyCapTestCounter = 0;
 
   const readPublicKey = (data: Buffer, offset: number) =>
     new PublicKey(data.subarray(offset, offset + PUBLIC_KEY_SIZE));
@@ -173,6 +176,64 @@ describe("space-vault-program", () => {
         expect(message).to.include(expectedMessage);
       }
     }
+  };
+
+  const supplyCapTestsEnabled = () => process.env.RUN_ASTRDS_SUPPLY_CAP_TESTS === "1";
+
+  const requireAstrdsMintForSupplyCapTest = async function (this: Mocha.Context) {
+    if (!supplyCapTestsEnabled()) {
+      this.skip();
+    }
+    const mintAccount = await provider.connection.getAccountInfo(ASTRDS_MINT);
+    if (!mintAccount) {
+      this.skip();
+    }
+  };
+
+  const mintAstrdsForTest = async (amount: bigint, sessionLabel: string) => {
+    const sessionId = Buffer.alloc(32);
+    sessionId.set(Buffer.from(`${sessionLabel}-${supplyCapTestCounter++}`).subarray(0, 32));
+    const sessionIdArray = Array.from(sessionId);
+    const expiry = new BN(Math.floor(Date.now() / 1000) + 60);
+    const amountBn = new BN(amount.toString());
+    const [mintRecordPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("mint-record"), sessionId],
+      program.programId
+    );
+    const playerAstrdsAta = getAssociatedTokenAddressSync(
+      ASTRDS_MINT,
+      player.publicKey,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    const message = Buffer.concat([
+      player.publicKey.toBuffer(),
+      amountBn.toArrayLike(Buffer, "le", 8),
+      sessionId,
+      expiry.toArrayLike(Buffer, "le", 8),
+    ]);
+    const ed25519Ix = Ed25519Program.createInstructionWithPrivateKey({
+      privateKey: replacementConvexAuthority.secretKey,
+      message,
+    });
+
+    return program.methods
+      .mintAstrds(amountBn, sessionIdArray, expiry)
+      .accounts({
+        player: player.publicKey,
+        vaultConfig: vaultConfigPda,
+        astrdsMint: ASTRDS_MINT,
+        playerTokenAccount: playerAstrdsAta,
+        mintRecord: mintRecordPda,
+        instructionsSysvar: web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .preInstructions([ed25519Ix])
+      .signers([player])
+      .rpc();
   };
 
   before(async () => {
@@ -611,6 +672,42 @@ describe("space-vault-program", () => {
     expect(pool.totalDeposited.toString()).to.eq("200000000");
     expect(pool.remaining.toString()).to.eq("150000000");
     expect(playerAccount.amount).to.eq(BigInt("50000000"));
+  });
+
+  it("mints ASTRDS below the 21M cap", async function () {
+    await requireAstrdsMintForSupplyCapTest.call(this);
+    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    if (supply >= ASTRDS_SUPPLY_CAP_RAW) this.skip();
+
+    await mintAstrdsForTest(1n, "below-cap");
+
+    const afterSupply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    expect(afterSupply).to.eq(supply + 1n);
+  });
+
+  it("mints ASTRDS exactly up to the 21M cap", async function () {
+    await requireAstrdsMintForSupplyCapTest.call(this);
+    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    if (supply >= ASTRDS_SUPPLY_CAP_RAW) this.skip();
+
+    const remaining = ASTRDS_SUPPLY_CAP_RAW - supply;
+    await mintAstrdsForTest(remaining, "exact-cap");
+
+    const afterSupply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    expect(afterSupply).to.eq(ASTRDS_SUPPLY_CAP_RAW);
+  });
+
+  it("rejects minting ASTRDS one raw unit over the 21M cap", async function () {
+    await requireAstrdsMintForSupplyCapTest.call(this);
+    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    if (supply < ASTRDS_SUPPLY_CAP_RAW) {
+      await mintAstrdsForTest(ASTRDS_SUPPLY_CAP_RAW - supply, "fill-cap");
+    }
+
+    await expectFailure(
+      mintAstrdsForTest(1n, "over-cap"),
+      "SupplyCapExceeded"
+    );
   });
 
   it("routes the pool leg into Meteora via the configured pool", async function () {

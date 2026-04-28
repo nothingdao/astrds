@@ -20,12 +20,15 @@ export const getEconomyStats = query({
     const uniqueMints = new Set(deposits.map((d) => d.mintAddress)).size
     const tokensInSpace = deposits.reduce((sum, d) => sum + d.remainingAmount, 0)
     const uniqueClaimers = new Set(allClaims.map((c) => c.playerWalletAddress)).size
+    const sessions = await ctx.db.query('gameSessions').collect()
+    const totalAstrdsBurned = sessions.reduce((sum, session) => sum + (session.astrdsBurned ?? 0), 0)
     return {
       activePools: deposits.length,
       uniqueMints,
       tokensInSpace,
       totalClaims: allClaims.length,
       uniqueClaimers,
+      totalAstrdsBurned,
     }
   },
 })
@@ -533,6 +536,27 @@ export const recordClaim = internalMutation({
 })
 
 // Marks a batch of collection records as claimed after the on-chain transfer succeeds.
+export const markCollectionClaiming = internalMutation({
+  args: { id: v.id('collections') },
+  handler: async (ctx, { id }) => {
+    const col = await ctx.db.get(id)
+    if (!col || col.status !== 'pending') return false
+    await ctx.db.patch(id, { status: 'claiming' })
+    return true
+  },
+})
+
+export const revertClaimingCollections = mutation({
+  args: { collectionIds: v.array(v.id('collections')), playerWalletAddress: v.string() },
+  handler: async (ctx, { collectionIds, playerWalletAddress }) => {
+    for (const id of collectionIds) {
+      const col = await ctx.db.get(id)
+      if (!col || col.playerWalletAddress !== playerWalletAddress) continue
+      if (col.status === 'claiming') await ctx.db.patch(id, { status: 'pending' })
+    }
+  },
+})
+
 export const markCollectionsClaimed = internalMutation({
   args: {
     collectionIds: v.array(v.id('collections')),

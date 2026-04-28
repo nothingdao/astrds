@@ -5,7 +5,6 @@ import { DEFAULT_GAME_CONFIG } from './gameConfig.js'
 
 const ASTRDS_MINT = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const METEORA_DAMM_POOL = new PublicKey('EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG')
-const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const SOL_FALLBACK_USD = 150
 const CACHE_TTL_MS = 60_000
 const POOL_ACCOUNT_DISCRIMINATOR_SIZE = 8
@@ -56,12 +55,16 @@ async function fetchSolPriceUsd(): Promise<number> {
   }
 
   try {
-    const response = await fetch(`https://api.jup.ag/price/v2?ids=${SOL_MINT}`)
-    const json = await response.json()
-    const price = Number(json?.data?.[SOL_MINT]?.price)
-    if (Number.isFinite(price) && price > 0) {
-      cachedSolUsd = { value: price, fetchedAt: now }
-      return price
+    const convexUrl = process.env.CONVEX_SITE_URL ?? process.env.CONVEX_URL?.replace('.convex.cloud', '.convex.site')
+    if (convexUrl) {
+      const response = await fetch(`${convexUrl}/prices/sol-usd`)
+      if (!response.ok) throw new Error(`Convex price endpoint returned ${response.status}`)
+      const json = await response.json()
+      const price = Number(json?.priceUsd)
+      if (Number.isFinite(price) && price > 0) {
+        cachedSolUsd = { value: price, fetchedAt: now }
+        return price
+      }
     }
   } catch {
     // Fall through to cached/fallback value.

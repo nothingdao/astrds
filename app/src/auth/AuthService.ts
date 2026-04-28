@@ -164,10 +164,9 @@ class AuthService {
     return true
   }
 
-  async clearSession(publicKey: PublicKey): Promise<void> {
-    await convex.mutation(api.sessions.clearSession, {
-      walletAddress: publicKey.toString(),
-    })
+  async clearSession(_publicKey: PublicKey): Promise<void> {
+    // Verified sessions are consumed by the trusted game server when play starts.
+    // Do not expose a public client-side mutation that can clear arbitrary wallets.
   }
 }
 

@@ -20,7 +20,7 @@ const ASTRDSMinting: React.FC<{ tokenCount: number; gameSessionId?: string | nul
     api.gameSessions.get,
     gameSessionId ? { sessionId: gameSessionId as Id<'gameSessions'> } : 'skip'
   )
-  const serverSettled = !gameSessionId || session?.astrdsEarned !== undefined
+  const serverSettled = !gameSessionId || session?.astrdsEarned !== undefined || session?.astrdsEarnedRaw !== undefined
 
   const [status, setStatus] = useState<{
     loading: boolean
@@ -34,9 +34,10 @@ const ASTRDSMinting: React.FC<{ tokenCount: number; gameSessionId?: string | nul
     if (!publicKey || !gameSessionId) return
     setStatus({ loading: true, error: null, signature: null })
     try {
+      const tokenAmountRaw = Math.round(tokenCount * 1_000_000_000).toString()
       const mintData = await prepareMint({
         playerWalletAddress: publicKey.toString(),
-        tokenCount,
+        tokenAmountRaw,
         gameSessionId,
       })
 

@@ -2,6 +2,8 @@ import { httpRouter } from 'convex/server'
 import { handleTreasuryWebhook } from './webhookHandlers'
 import { updateConfigHttp } from './admin'
 import { setAstrdsEarnedHttp } from './gameSessions'
+import { consumeSessionHttp } from './sessions'
+import { solUsdPriceHttp } from './prices'
 
 const http = httpRouter()
 
@@ -34,6 +36,26 @@ http.route({
   path: '/game-server/set-astrds-earned',
   method: 'POST',
   handler: setAstrdsEarnedHttp,
+})
+
+// Game server only — consumes a paid session at game admission. Requires ADMIN_API_KEY.
+http.route({
+  path: '/game-server/consume-session',
+  method: 'POST',
+  handler: consumeSessionHttp,
+})
+
+http.route({
+  path: '/game-server/consume-session',
+  method: 'OPTIONS',
+  handler: consumeSessionHttp,
+})
+
+// Cached SOL/USD price feed used by the game server.
+http.route({
+  path: '/prices/sol-usd',
+  method: 'GET',
+  handler: solUsdPriceHttp,
 })
 
 export default http

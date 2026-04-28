@@ -3,23 +3,12 @@
 import { action } from './_generated/server'
 import { v } from 'convex/values'
 import {
-  Connection,
   Keypair,
   PublicKey,
-  Transaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js'
-import {
-  getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountIdempotentInstruction,
-  createMintToInstruction,
-  TOKEN_2022_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-} from '@solana/spl-token'
 import nacl from 'tweetnacl'
 import { internal } from './_generated/api'
 
-const MINT_ADDRESS = new PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
 const TOKEN_DECIMALS = 9
 // Max ASTRDS any emission tier can award per game (100 pills × 0.5 = 50 at tier 5).
 // Checked server-side before minting.
@@ -57,70 +46,9 @@ const loadAuthority = (): Keypair => {
 }
 
 export const mintTokens = action({
-  args: {
-    playerPublicKey: v.string(),
-    tokenCount: v.number(),
-    gameSessionId: v.optional(v.string()),
-  },
-  handler: async (ctx, { playerPublicKey, tokenCount, gameSessionId }) => {
-    if (!Number.isInteger(tokenCount) || tokenCount <= 0 || tokenCount > MAX_ASTRDS_PER_GAME) {
-      throw new Error(`Invalid token count: must be a whole number between 1 and ${MAX_ASTRDS_PER_GAME}`)
-    }
-
-    // Verify against the authoritative astrdsEarned written by the game server.
-    // If no session ID is supplied (legacy path), skip verification.
-    if (gameSessionId) {
-      const session = await ctx.runQuery(internal.gameSessions.getInternal, {
-        sessionId: gameSessionId,
-      })
-      if (!session) throw new Error('Game session not found')
-      if (session.astrdsEarned === undefined) {
-        throw new Error('ASTRDS amount not yet recorded for this session — game server may still be submitting game over')
-      }
-      if (tokenCount > session.astrdsEarned) {
-        throw new Error(`Claimed amount (${tokenCount}) exceeds earned amount (${session.astrdsEarned})`)
-      }
-    }
-
-    const rpcEndpoint = process.env.SOLANA_RPC_ENDPOINT
-    if (!rpcEndpoint) throw new Error('SOLANA_RPC_ENDPOINT not set')
-
-    const authority = loadAuthority()
-    const connection = new Connection(rpcEndpoint, 'confirmed')
-    const playerPubkey = new PublicKey(playerPublicKey)
-
-    const ata = getAssociatedTokenAddressSync(
-      MINT_ADDRESS,
-      playerPubkey,
-      false,
-      TOKEN_2022_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    )
-
-    const amount = BigInt(tokenCount) * BigInt(10 ** TOKEN_DECIMALS)
-
-    const tx = new Transaction().add(
-      createAssociatedTokenAccountIdempotentInstruction(
-        authority.publicKey,
-        ata,
-        playerPubkey,
-        MINT_ADDRESS,
-        TOKEN_2022_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      ),
-      createMintToInstruction(
-        MINT_ADDRESS,
-        ata,
-        authority.publicKey,
-        amount,
-        [],
-        TOKEN_2022_PROGRAM_ID
-      )
-    )
-
-    const signature = await sendAndConfirmTransaction(connection, tx, [authority])
-
-    return { success: true, signature }
+  args: {},
+  handler: async () => {
+    throw new Error('Disabled — use prepareMint + mint_astrds on-chain instruction')
   },
 })
 
@@ -129,30 +57,38 @@ export const mintTokens = action({
 export const prepareMint = action({
   args: {
     playerWalletAddress: v.string(),
-    tokenCount: v.number(),
+    tokenCount: v.optional(v.number()),
+    tokenAmountRaw: v.optional(v.string()),
     gameSessionId: v.string(),
   },
-  handler: async (ctx, { playerWalletAddress, tokenCount, gameSessionId }) => {
-    if (!Number.isInteger(tokenCount) || tokenCount <= 0 || tokenCount > MAX_ASTRDS_PER_GAME) {
-      throw new Error(`Invalid token count: must be a whole number between 1 and ${MAX_ASTRDS_PER_GAME}`)
+  handler: async (ctx, { playerWalletAddress, tokenCount, tokenAmountRaw, gameSessionId }) => {
+    const rawAmount = tokenAmountRaw !== undefined
+      ? BigInt(tokenAmountRaw)
+      : BigInt(Math.round((tokenCount ?? 0) * 10 ** TOKEN_DECIMALS))
+    const maxRaw = BigInt(MAX_ASTRDS_PER_GAME) * BigInt(10 ** TOKEN_DECIMALS)
+    if (rawAmount <= 0n || rawAmount > maxRaw) {
+      throw new Error(`Invalid token amount: must be between 0 and ${MAX_ASTRDS_PER_GAME} ASTRDS`)
     }
 
     // Poll until the game server writes astrdsEarned (it does so async after game over).
-    let session = null
+    let session: any = null
     for (let attempt = 0; attempt < 8; attempt++) {
       session = await ctx.runQuery(internal.gameSessions.getInternal, { sessionId: gameSessionId })
-      if (session?.astrdsEarned !== undefined) break
+      if (session?.astrdsEarned !== undefined || session?.astrdsEarnedRaw !== undefined) break
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
     if (!session) throw new Error('Game session not found')
     if (session.walletAddress !== playerWalletAddress) {
       throw new Error('Session does not belong to this wallet')
     }
-    if (session.astrdsEarned === undefined) {
+    const earnedRaw = session.astrdsEarnedRaw !== undefined
+      ? BigInt(session.astrdsEarnedRaw)
+      : BigInt(Math.round((session.astrdsEarned ?? 0) * 10 ** TOKEN_DECIMALS))
+    if (earnedRaw <= 0n) {
       throw new Error('Game server has not submitted your final score yet — please wait a moment and try again')
     }
-    if (tokenCount > session.astrdsEarned) {
-      throw new Error(`Claimed amount (${tokenCount}) exceeds earned amount (${session.astrdsEarned})`)
+    if (rawAmount > earnedRaw) {
+      throw new Error(`Claimed amount exceeds earned amount`)
     }
 
     const authority = loadAuthority()
@@ -165,7 +101,6 @@ export const prepareMint = action({
     const encoded = Buffer.from(gameSessionId, 'utf8')
     sessionIdBytes.set(encoded.subarray(0, 32))
 
-    const rawAmount = BigInt(tokenCount) * BigInt(10 ** TOKEN_DECIMALS)
     const message = buildMintMessage(playerPubkey, rawAmount, sessionIdBytes, expiry)
     const signature = nacl.sign.detached(message, authority.secretKey)
 

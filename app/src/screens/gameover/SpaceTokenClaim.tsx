@@ -23,6 +23,7 @@ const SpaceTokenClaim: React.FC = () => {
   )
   const prepareClaims = useAction(api.spaceDepositsActions.prepareClaims)
   const finalizeClaim = useMutation(api.spaceDeposits.finalizeClaim)
+  const revertClaimingCollections = useMutation(api.spaceDeposits.revertClaimingCollections)
 
   const [claimState, setClaimState] = useState<ClaimState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -48,8 +49,10 @@ const SpaceTokenClaim: React.FC = () => {
     if (!walletAddress || !wallet.publicKey || !wallet.signTransaction) return
     setClaimState('claiming')
     setErrorMsg('')
+    let reservedCollectionIds: string[] = []
     try {
       const prepared = await prepareClaims({ playerWalletAddress: walletAddress })
+      reservedCollectionIds = prepared.claims.flatMap((claim: any) => claim.collectionIds ?? [])
       const connection = new Connection(RPC_ENDPOINT, 'confirmed')
       const claimed: { symbol: string; totalClaimed: number; decimals: number }[] = []
 
@@ -86,6 +89,13 @@ const SpaceTokenClaim: React.FC = () => {
       setResults(claimed)
       setClaimState('done')
     } catch (err: unknown) {
+      if (reservedCollectionIds.length > 0) {
+        try {
+          await revertClaimingCollections({ collectionIds: reservedCollectionIds as any, playerWalletAddress: walletAddress })
+        } catch (revertErr) {
+          console.error('Failed to revert claiming collections', revertErr)
+        }
+      }
       setErrorMsg(err instanceof Error ? err.message : 'Claim failed')
       setClaimState('error')
     }
