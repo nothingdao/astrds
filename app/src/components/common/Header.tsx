@@ -44,13 +44,14 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({
       onClick={handleClick}
       disabled={isDisabled}
       title={`${label} [${shortcut.toUpperCase()}]${isDisabled ? ' (Unavailable during gameplay)' : ''}`}
-      className={`btn-grain h-8 px-4 flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider transition-colors
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background
+      className={`btn-grain h-10 px-4 flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider transition-colors
+        border border-foreground outline outline-1 outline-offset-2 outline-foreground disabled:border-muted-foreground disabled:outline-muted-foreground
+        focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background
         ${isDisabled
-          ? 'bg-surface-subtle text-tx-dim cursor-not-allowed'
+          ? 'bg-muted text-muted-foreground cursor-not-allowed'
           : isSelected
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-primary text-primary-foreground hover:bg-card hover:text-card-foreground'
+            ? 'bg-primary text-primary-foreground shadow-[var(--shadow-accent-glow)] [.theme-light_&]:bg-card [.theme-light_&]:text-card-foreground'
+            : 'bg-primary text-primary-foreground hover:bg-card hover:text-card-foreground [.theme-light_&]:bg-card [.theme-light_&]:text-card-foreground [.theme-light_&]:hover:bg-primary [.theme-light_&]:hover:text-primary-foreground'
         }`}
     >
       <Icon size={13} />
@@ -79,7 +80,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* Nav buttons — center */}
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-4'>
           {headerButtons.map(({ key, ...props }) => (
             <HeaderButton key={key} {...props} />
           ))}
