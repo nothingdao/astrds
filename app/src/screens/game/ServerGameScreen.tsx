@@ -12,10 +12,10 @@ import { particleSystem } from '@/game/systems/ParticleSystem'
 import { audioService } from '@/services/audio/AudioService'
 import { audioManager } from '@/services/audio/AudioManager'
 import { ShipIcon } from '@/components/icons/GameIcons'
-import { getAstrdsColor, getTokenColor, getTokenProtocolColor } from '@/lib/tokenColors'
+import { getAstrdsColor } from '@/lib/tokenColors'
 import { resolveCanvasColor } from '@/lib/designTokens'
 import { getCanvasTokens } from '@/lib/designTokens'
-import { SHIELD_PICKUP_COLOR, RAPID_FIRE_PICKUP_COLOR } from '@shared/game/simulation'
+import { COMBO_POWERUP_COLOR, SHIELD_PICKUP_COLOR } from '@shared/game/simulation'
 import type {
   ClientToServerMessage,
   GameSnapshot,
@@ -189,7 +189,7 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           }
         }
 
-        // Tokens — diff prev.tokens for exact position; look up pool in activePools by color
+        // Space tokens — diff prev.tokens for exact position and use snapshot metadata to identify the deposit.
         if (snap.tokensCollected > prevTokensRef.current) {
           audioManager.playFromSfxBucket('spaceTokenCollect')
           const delta = snap.tokensCollected - prevTokensRef.current
@@ -200,8 +200,10 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
             if (shown >= delta) break
             if (!newTokenIds.has(token.id)) {
               shown++
-              const pool = activePools.find((p) => getTokenProtocolColor(p.mintAddress) === token.color || getTokenColor(p.mintAddress) === token.color)
-              let text: string
+              const pool = activePools.find((p) =>
+                p._id === token.depositId || p.mintAddress === token.mintAddress
+              )
+              let text = '+SPACE TOKEN'
               if (pool) {
                 recordCollection(pool)
                 const displayAmt = pool.tokensPerPill / Math.pow(10, pool.decimals)
@@ -209,8 +211,6 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
                   ? displayAmt.toLocaleString()
                   : displayAmt.toLocaleString(undefined, { maximumFractionDigits: 4 })
                 text = `+${formatted} ${pool.symbol}`
-              } else {
-                text = '+1'
               }
               const id = ++floatingIdRef.current
               setFloatingTexts((ft) => [...ft.slice(-9), {
@@ -224,17 +224,23 @@ const ServerGameScreen: React.FC<{ className?: string }> = ({ className }) => {
           }
         }
 
-        // Powerup pickups — diff prev.powerupPickups for exact position and type
-        const newPowerupIds = new Set(snap.powerupPickups.map((p) => p.id))
-        for (const pickup of prev.powerupPickups) {
-          if (!newPowerupIds.has(pickup.id)) {
+        // Powerup pickups — only show collection text when a vanished pickup actually activated/extended a powerup.
+        const powerupActivated =
+          (!prev.powerups.invincible && snap.powerups.invincible) ||
+          (!prev.powerups.rapidFire && snap.powerups.rapidFire) ||
+          Boolean(snap.powerups.expiresAt && prev.powerups.expiresAt !== snap.powerups.expiresAt)
+        if (powerupActivated) {
+          const newPowerupIds = new Set(snap.powerupPickups.map((p) => p.id))
+          const pickup = prev.powerupPickups.find((p) => !newPowerupIds.has(p.id))
+          if (pickup) {
+            const isCombo = pickup.color === COMBO_POWERUP_COLOR
             const isShield = pickup.color === SHIELD_PICKUP_COLOR
             const id = ++floatingIdRef.current
             setFloatingTexts((ft) => [...ft.slice(-9), {
               id,
               x: pickup.position.x,
               y: pickup.position.y - pickup.radius - 4,
-              text: isShield ? 'SHIELD' : 'RAPID FIRE',
+              text: isCombo ? 'SHIELD + RAPID FIRE' : isShield ? 'SHIELD' : 'RAPID FIRE',
               color: resolveCanvasColor(pickup.color),
             }])
           }

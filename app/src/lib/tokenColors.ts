@@ -32,7 +32,7 @@ const getTokenIndex = (mintAddress: string): number => {
   return Math.abs(hash) % SPACE_TOKEN_VAR_COUNT
 }
 
-export const getAstrdsColor = (): string => readCssVar('--canvas-token')
+export const getAstrdsColor = (): string => readCssVar('--canvas-pill')
 
 export function getTokenColor(mintAddress: string): string {
   return readCssVar(`--space-token-${getTokenIndex(mintAddress)}`)

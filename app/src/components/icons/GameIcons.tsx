@@ -43,10 +43,11 @@ export const TokenIcon = ({ className = '' }) => (
   </svg>
 )
 
-export const PillIcon = ({ className = '' }) => (
+export const PillIcon = ({ className = '', style }: { className?: string; style?: React.CSSProperties }) => (
   <svg
     viewBox='0 0 24 24'
     className={className}
+    style={style}
   >
     {/* Matches Pill.js render method design */}
     <circle

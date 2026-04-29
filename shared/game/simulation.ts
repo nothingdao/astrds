@@ -22,7 +22,8 @@ const SHIP_INVULNERABILITY_MS = 3000
 const PILL_SPAWN_DELAY_MS = 3000
 const TOKEN_SPAWN_DELAY_MS = 5000
 const SPACE_TOKEN_SPAWN_CHANCE = 0.25
-const STANDARD_TOKEN_COLOR = '#FF642D'
+export const ASTRDS_PILL_COLOR = '#FF642D'
+export const COMBO_POWERUP_COLOR = '#4dc1f9'
 export const SHIELD_PICKUP_COLOR = '#c084fc'
 export const RAPID_FIRE_PICKUP_COLOR = '#fbbf24'
 
@@ -55,7 +56,7 @@ interface MutableShip extends ShipSnapshot {
 interface MutableAsteroid extends AsteroidSnapshot {}
 
 interface MutableBullet extends BulletSnapshot {
-  lifeSpan: number
+  previousPosition: Vector2D
   createdAt: number
 }
 
@@ -64,7 +65,7 @@ interface MutablePickup extends PickupSnapshot {
 }
 
 interface MutableTokenPickup extends MutablePickup {
-  source: 'standard' | 'space'
+  source: 'space'
   spawnId?: string
   depositId?: string
   mintAddress?: string
@@ -161,6 +162,42 @@ export function checkCollision(
   return Math.sqrt(dx * dx + dy * dy) < a.radius + b.radius
 }
 
+function segmentCircleCollision(
+  start: Vector2D,
+  end: Vector2D,
+  circle: { position: Vector2D; radius: number }
+): boolean {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) {
+    const sx = start.x - circle.position.x
+    const sy = start.y - circle.position.y
+    return sx * sx + sy * sy <= circle.radius * circle.radius
+  }
+
+  const t = Math.max(
+    0,
+    Math.min(1, ((circle.position.x - start.x) * dx + (circle.position.y - start.y) * dy) / lenSq)
+  )
+  const closestX = start.x + dx * t
+  const closestY = start.y + dy * t
+  const cx = closestX - circle.position.x
+  const cy = closestY - circle.position.y
+  return cx * cx + cy * cy <= circle.radius * circle.radius
+}
+
+function bulletHitsAsteroid(bullet: MutableBullet, asteroid: MutableAsteroid): boolean {
+  // Asteroid vertices intentionally jitter beyond the nominal radius. Use a swept
+  // circle test with a little forgiveness so fast bullets don't tunnel through
+  // and hits match what the player sees on the irregular outline.
+  const visualRadius = asteroid.radius * 1.25 + bullet.radius + 3
+  return segmentCircleCollision(bullet.previousPosition, bullet.position, {
+    position: asteroid.position,
+    radius: visualRadius,
+  })
+}
+
 function createShip(screen: ScreenBounds, now: number): MutableShip {
   return {
     id: createId('ship'),
@@ -194,7 +231,6 @@ function createBullet(ship: MutableShip, rapidFire: boolean, now: number): Mutab
   const speed = rapidFire ? 20 : 15
   const power = rapidFire ? 2 : 1
   const radius = rapidFire ? 1.5 : 2
-  const lifeSpan = rapidFire ? 25 : 35
   const color = '#fff'
   const posDelta = rotatePoint(
     { x: 0, y: -20 },
@@ -202,12 +238,15 @@ function createBullet(ship: MutableShip, rapidFire: boolean, now: number): Mutab
     (ship.rotation * Math.PI) / 180
   )
 
+  const position = {
+    x: ship.position.x + posDelta.x,
+    y: ship.position.y + posDelta.y,
+  }
+
   return {
     id: createId('bullet'),
-    position: {
-      x: ship.position.x + posDelta.x,
-      y: ship.position.y + posDelta.y,
-    },
+    position,
+    previousPosition: { ...position },
     velocity: {
       x: ((posDelta.x / 2) * speed) / 10,
       y: ((posDelta.y / 2) * speed) / 10,
@@ -216,7 +255,6 @@ function createBullet(ship: MutableShip, rapidFire: boolean, now: number): Mutab
     radius,
     power,
     color,
-    lifeSpan,
     createdAt: now,
   }
 }
@@ -264,13 +302,12 @@ function createEdgePickup(
 function createTokenPickup(
   screen: ScreenBounds,
   now: number,
-  color = STANDARD_TOKEN_COLOR,
-  source: 'standard' | 'space' = 'standard',
-  metadata?: Pick<MutableTokenPickup, 'spawnId' | 'depositId' | 'mintAddress'>
+  color: string,
+  metadata: Pick<MutableTokenPickup, 'spawnId' | 'depositId' | 'mintAddress'>
 ): MutableTokenPickup {
   return {
     ...createEdgePickup('token', screen, color, now),
-    source,
+    source: 'space',
     ...metadata,
   }
 }
@@ -406,13 +443,12 @@ function updateAsteroids(state: SimulationState, dt: number): void {
   })
 }
 
-function updateBullets(state: SimulationState, dt: number, now: number): void {
+function updateBullets(state: SimulationState, dt: number, _now: number): void {
   state.bullets = state.bullets.filter((bullet) => {
-    if (now - bullet.createdAt > 1000) return false
+    bullet.previousPosition = { ...bullet.position }
     bullet.position.x += bullet.velocity.x * dt
     bullet.position.y += bullet.velocity.y * dt
-    bullet.lifeSpan -= dt
-    if (bullet.lifeSpan <= 0) return false
+
     if (
       bullet.position.x < 0 ||
       bullet.position.y < 0 ||
@@ -452,7 +488,7 @@ function resolveBulletAsteroidCollisions(state: SimulationState): void {
 
     state.asteroids.forEach((asteroid) => {
       if (hit || destroyedAsteroids.has(asteroid.id)) return
-      if (!checkCollision(bullet, asteroid)) return
+      if (!bulletHitsAsteroid(bullet, asteroid)) return
 
       hit = true
       destroyedAsteroids.add(asteroid.id)
@@ -577,7 +613,7 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
   const cfg = state.config
 
   if (state.pillsSpawned < state.pillsPerGameCap && now - state.lastPillSpawnAt >= PILL_SPAWN_DELAY_MS) {
-    state.pills.push(createEdgePickup('pill', state.screen, '#4dc1f9', now))
+    state.pills.push(createEdgePickup('pill', state.screen, ASTRDS_PILL_COLOR, now))
     state.lastPillSpawnAt = now
     state.pillsSpawned += 1
   }
@@ -591,8 +627,6 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
         type: 'spaceTokenSpawnRequested',
         pool,
       })
-    } else {
-      state.tokens.push(createTokenPickup(state.screen, now))
     }
     state.lastTokenSpawnAt = now
   }
@@ -609,8 +643,7 @@ function maybeSpawnPickups(state: SimulationState, now: number): void {
     state.powerupPickups.length < cfg.maxPowerupsOnScreen &&
     now - state.lastPowerupSpawnAt >= cfg.powerupSpawnDelayMs
   ) {
-    const color = Math.random() < 0.5 ? SHIELD_PICKUP_COLOR : RAPID_FIRE_PICKUP_COLOR
-    state.powerupPickups.push(createEdgePickup('powerup', state.screen, color, now))
+    state.powerupPickups.push(createEdgePickup('powerup', state.screen, COMBO_POWERUP_COLOR, now))
     state.lastPowerupSpawnAt = now
   }
 }
@@ -642,8 +675,10 @@ export function updateSimulation(state: SimulationState, dt: number, now = Date.
       if (!checkCollision(state.ship!, pickup)) return true
       if (pickup.color === SHIELD_PICKUP_COLOR) {
         state.powerups = { ...state.powerups, invincible: true, expiresAt: now + state.config.powerupDurationMs }
-      } else {
+      } else if (pickup.color === RAPID_FIRE_PICKUP_COLOR) {
         state.powerups = { ...state.powerups, rapidFire: true, expiresAt: now + state.config.powerupDurationMs }
+      } else {
+        state.powerups = { invincible: true, rapidFire: true, expiresAt: now + state.config.powerupDurationMs }
       }
       return false
     })
@@ -694,7 +729,7 @@ export function injectAuthorizedSpaceToken(
   now = Date.now()
 ): void {
   state.tokens.push(
-    createTokenPickup(state.screen, now, spawn.color, 'space', {
+    createTokenPickup(state.screen, now, spawn.color, {
       spawnId: spawn.spawnId,
       depositId: spawn.depositId,
       mintAddress: spawn.mintAddress,
@@ -759,6 +794,9 @@ export function simulationToSnapshot(state: SimulationState): GameSnapshot {
       rotation: pickup.rotation,
       radius: pickup.radius,
       color: pickup.color,
+      spawnId: pickup.spawnId,
+      depositId: pickup.depositId,
+      mintAddress: pickup.mintAddress,
     })),
     shipPickups: state.shipPickups.map((pickup) => ({
       id: pickup.id,

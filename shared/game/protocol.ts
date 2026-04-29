@@ -55,6 +55,9 @@ export interface PickupSnapshot {
   rotation: number
   radius: number
   color: string
+  spawnId?: string
+  depositId?: string
+  mintAddress?: string
 }
 
 export interface PowerupSnapshot {
@@ -120,7 +123,7 @@ export type SimulationEvent =
     }
   | {
       type: 'tokenCollected'
-      source: 'standard' | 'space'
+      source: 'space'
       spawnId?: string
       depositId?: string
       mintAddress?: string

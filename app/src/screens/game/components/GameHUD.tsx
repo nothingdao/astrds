@@ -95,8 +95,14 @@ export const GameHUD: React.FC = () => {
       <div className='fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-3 pointer-events-none'>
         {/* Pills */}
         <div className='flex items-center gap-2'>
-          <PillIcon className={`w-5 h-5 ${items.pills > 0 ? 'text-primary' : 'text-tx-dim'}`} />
-          <span className={`font-mono text-sm ${items.pills > 0 ? 'text-tx-secondary' : 'text-tx-dim'}`}> 
+          <PillIcon
+            className='w-5 h-5'
+            style={{ color: items.pills > 0 ? 'var(--entity-pill)' : 'var(--text-dim)' }}
+          />
+          <span
+            className='font-mono text-sm'
+            style={{ color: items.pills > 0 ? 'var(--entity-pill)' : 'var(--text-dim)' }}
+          >
             ×{items.pills}
           </span>
         </div>
@@ -124,11 +130,11 @@ export const GameHUD: React.FC = () => {
           <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${powerups.rapidFire ? 'opacity-100' : 'opacity-20'}`}>
             <Zap
               size={16}
-              className={powerups.rapidFire ? 'text-tx-warning' : 'text-tx-primary'}
+              className={powerups.rapidFire ? 'text-primary' : 'text-tx-primary'}
             />
             <div className='w-14 h-1 bg-surface-subtle rounded-full overflow-hidden'>
               <div
-                className='h-full bg-[var(--text-warning)] rounded-full'
+                className='h-full bg-primary rounded-full'
                 style={{
                   width: powerups.rapidFire ? `${powerupProgress * 100}%` : '0%',
                   transition: powerups.rapidFire ? 'none' : undefined,
@@ -157,7 +163,7 @@ export const GameHUD: React.FC = () => {
               alt='ASTRDS'
               className='w-5 h-5 rounded-full object-cover'
             />
-            <span className='font-mono text-sm text-primary'>
+            <span className='font-mono text-sm' style={{ color: 'var(--entity-pill)' }}>
               ×{astrdsEarned}
             </span>
           </div>

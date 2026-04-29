@@ -140,7 +140,9 @@ export const getCanvasTokens = (): CanvasTokens => tokenCache
 const PROTOCOL_COLOR_ALIASES: Record<string, keyof CanvasTokens> = {
   '#fff': 'bulletDefault',
   '#ffffff': 'bulletDefault',
-  '#ff642d': 'token',
+  '#ff642d': 'pill',
+  '#4dc1f9': 'shipGlow',
+  '#34d399': 'token',
   '#c084fc': 'shieldPowerup',
   '#fbbf24': 'rapidFirePowerup',
   '#a855f7': 'spaceToken0',

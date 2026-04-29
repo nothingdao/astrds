@@ -75,8 +75,8 @@
     --entity-ship: #ffffff;
     --entity-ship-glow: #4dc1f9;
     --entity-asteroid: #ffffff;
-    --entity-pill: #4dc1f9;
-    --entity-token: #FF642D;
+    --entity-pill: #FF642D;
+    --entity-token: #34d399;
     --entity-ship-pickup: #87CEEB;
     --entity-shield: #c084fc;
     --entity-rapidfire: #fbbf24;
@@ -160,8 +160,8 @@
     --entity-ship: #0a0a0a;
     --entity-ship-glow: #1a91d0;
     --entity-asteroid: #1f2937;
-    --entity-pill: #1a91d0;
-    --entity-token: #c2410c;
+    --entity-pill: #c2410c;
+    --entity-token: #059669;
     --entity-ship-pickup: #7dd3fc;
     --entity-shield: #7c3aed;
     --entity-rapidfire: #d97706;
