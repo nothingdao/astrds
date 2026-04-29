@@ -108,11 +108,11 @@ export class SessionHandler {
         return
       case 'reset': {
         this.didSubmitGameOver = false
-        const snapshot = this.session.reset()
+        this.session.reset()
         this.session.setSpaceTokenPools(this.activeSpaceTokenPools)
         this.session.applyConfig(this.gameConfig)
         this.refreshSpaceTokenPools(this.session.level)
-        this.send({ type: 'state', snapshot })
+        this.send({ type: 'state', snapshot: this.session.snapshot() })
         return
       }
       case 'ping':
@@ -168,19 +168,19 @@ export class SessionHandler {
 
     this.helloHandled = true
     this.binding = { ...message.session, walletAddress }
-    void fetchEmissionTier(this.gameConfig)
-      .then((tier) => {
-        this.session.setEmissionTier(tier)
+    await this.refreshGameConfig()
+    this.session.applyConfig(this.gameConfig)
+    this.session.reset(message.screen)
+    try {
+      this.session.setEmissionTier(await fetchEmissionTier(this.gameConfig))
+    } catch (error) {
+      console.error('Failed to fetch emission tier; falling back to tier 2', {
+        error,
+        sessionId: this.session.id,
       })
-      .catch((error) => {
-        console.error('Failed to fetch emission tier; falling back to tier 2', {
-          error,
-          sessionId: this.session.id,
-        })
-        this.session.setEmissionTier(getFallbackEmissionTier(this.gameConfig))
-      })
+      this.session.setEmissionTier(getFallbackEmissionTier(this.gameConfig))
+    }
 
-    this.refreshGameConfig()
     this.refreshSpaceTokenPools(this.session.level)
     const snapshot = this.session.resize(message.screen)
     this.send({ type: 'state', snapshot })
@@ -230,7 +230,7 @@ export class SessionHandler {
     }
   }
 
-  private refreshGameConfig(): void {
+  private refreshGameConfig(): Promise<void> {
     this.refreshingConfig = this.convex
       .getGameConfig()
       .then((config) => {
@@ -251,6 +251,7 @@ export class SessionHandler {
       .finally(() => {
         this.refreshingConfig = null
       })
+    return this.refreshingConfig
   }
 
   private maybeRefreshSpaceTokenPools(now: number, level: number): void {

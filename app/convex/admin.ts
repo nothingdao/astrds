@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { httpAction, internalMutation, mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
+import { DEFAULT_SIMULATION_CONFIG } from '../../shared/game/simulation'
 
 // Wallets allowed to save config directly via the Convex mutation (no API key needed).
 // The HTTP endpoint is still available for scripted access with ADMIN_API_KEY.
@@ -16,11 +17,7 @@ export const DEFAULT_ASTRDS_PER_PILL  = [10, 5, 2, 1, 0.5]
 export const DEFAULT_CONFIG = {
   version: 1,
   applyToRunning: false,
-  powerupSpawnDelayMs: 15000,
-  shipPickupSpawnDelayMs: 20000,
-  maxPowerupsOnScreen: 2,
-  powerupDurationMs: 10000,
-  maxLives: 5,
+  ...DEFAULT_SIMULATION_CONFIG,
   quarterUsd: 0.25,
   tierBreakpointsUsd: DEFAULT_TIER_BREAKPOINTS,
   pillsPerTier: DEFAULT_PILLS_PER_TIER,
@@ -51,6 +48,36 @@ const CONFIG_ARGS = {
   maxPowerupsOnScreen: v.number(),
   powerupDurationMs: v.number(),
   maxLives: v.number(),
+  startingLives: v.number(),
+  shipRadius: v.number(),
+  shipRotationSpeed: v.number(),
+  shipAcceleration: v.number(),
+  shipInertia: v.number(),
+  shipInvulnerabilityMs: v.number(),
+  normalBulletSpeed: v.number(),
+  rapidBulletSpeed: v.number(),
+  normalFireDelayMs: v.number(),
+  rapidFireDelayMs: v.number(),
+  bulletRadius: v.number(),
+  rapidBulletRadius: v.number(),
+  rapidBulletPower: v.number(),
+  bulletCollisionPadding: v.number(),
+  largeAsteroidRadius: v.number(),
+  mediumAsteroidRadius: v.number(),
+  smallAsteroidRadius: v.number(),
+  asteroidVelocityMin: v.number(),
+  asteroidVelocityMax: v.number(),
+  asteroidScoreLarge: v.number(),
+  asteroidScoreMedium: v.number(),
+  asteroidScoreSmall: v.number(),
+  pillSpawnDelayMs: v.number(),
+  tokenSpawnDelayMs: v.number(),
+  spaceTokenSpawnChance: v.number(),
+  pickupTtlMs: v.number(),
+  pickupRadius: v.number(),
+  shipPickupRadius: v.number(),
+  maxShipPickupsOnScreen: v.number(),
+  progressionBands: v.any(),
   quarterUsd: v.number(),
   tierBreakpointsUsd: v.array(v.number()),
   pillsPerTier: v.array(v.number()),
@@ -105,7 +132,14 @@ export const updateConfigHttp = httpAction(async (ctx, request) => {
 
   const requiredNumbers = [
     'powerupSpawnDelayMs', 'shipPickupSpawnDelayMs', 'maxPowerupsOnScreen',
-    'powerupDurationMs', 'maxLives', 'quarterUsd',
+    'powerupDurationMs', 'maxLives', 'startingLives', 'quarterUsd',
+    'shipRadius', 'shipRotationSpeed', 'shipAcceleration', 'shipInertia', 'shipInvulnerabilityMs',
+    'normalBulletSpeed', 'rapidBulletSpeed', 'normalFireDelayMs', 'rapidFireDelayMs',
+    'bulletRadius', 'rapidBulletRadius', 'rapidBulletPower', 'bulletCollisionPadding',
+    'largeAsteroidRadius', 'mediumAsteroidRadius', 'smallAsteroidRadius',
+    'asteroidVelocityMin', 'asteroidVelocityMax', 'asteroidScoreLarge', 'asteroidScoreMedium', 'asteroidScoreSmall',
+    'pillSpawnDelayMs', 'tokenSpawnDelayMs', 'spaceTokenSpawnChance', 'pickupTtlMs',
+    'pickupRadius', 'shipPickupRadius', 'maxShipPickupsOnScreen',
   ]
   for (const key of requiredNumbers) {
     if (typeof c[key] !== 'number' || isNaN(c[key] as number)) {
@@ -113,25 +147,23 @@ export const updateConfigHttp = httpAction(async (ctx, request) => {
     }
   }
 
-  const requiredArrays = ['tierBreakpointsUsd', 'pillsPerTier', 'astrdsPerPill']
+  const requiredArrays = ['tierBreakpointsUsd', 'pillsPerTier', 'astrdsPerPill', 'progressionBands']
   for (const key of requiredArrays) {
     if (!Array.isArray(c[key])) {
       return new Response(`Missing or invalid field: ${key}`, { status: 400, headers: CORS_HEADERS })
     }
   }
 
-  await ctx.runMutation(internal.admin.setGameConfigInternal, {
+  const payload = {
     applyToRunning: Boolean(c.applyToRunning),
-    powerupSpawnDelayMs: c.powerupSpawnDelayMs as number,
-    shipPickupSpawnDelayMs: c.shipPickupSpawnDelayMs as number,
-    maxPowerupsOnScreen: c.maxPowerupsOnScreen as number,
-    powerupDurationMs: c.powerupDurationMs as number,
-    maxLives: c.maxLives as number,
-    quarterUsd: c.quarterUsd as number,
+    ...Object.fromEntries(requiredNumbers.map((key) => [key, c[key] as number])),
     tierBreakpointsUsd: c.tierBreakpointsUsd as number[],
     pillsPerTier: c.pillsPerTier as number[],
     astrdsPerPill: c.astrdsPerPill as number[],
-  })
+    progressionBands: c.progressionBands as unknown,
+  } as any
+
+  await ctx.runMutation(internal.admin.setGameConfigInternal, payload)
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,

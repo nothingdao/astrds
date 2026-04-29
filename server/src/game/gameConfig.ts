@@ -1,4 +1,4 @@
-import type { SimulationConfig } from '../../../shared/game/simulation.js'
+import { DEFAULT_SIMULATION_CONFIG, type SimulationConfig } from '../../../shared/game/simulation.js'
 
 export type GameConfig = SimulationConfig & {
   version: number
@@ -12,11 +12,7 @@ export type GameConfig = SimulationConfig & {
 export const DEFAULT_GAME_CONFIG: GameConfig = {
   version: 0,
   applyToRunning: false,
-  powerupSpawnDelayMs: 15_000,
-  shipPickupSpawnDelayMs: 20_000,
-  maxPowerupsOnScreen: 2,
-  powerupDurationMs: 10_000,
-  maxLives: 5,
+  ...DEFAULT_SIMULATION_CONFIG,
   quarterUsd: 0.25,
   tierBreakpointsUsd: [0.0024, 0.01, 0.05, 0.1],
   pillsPerTier: [5, 10, 25, 50, 100],

@@ -73,7 +73,10 @@ export class GameSession {
   }
 
   reset(screen: ScreenBounds = this.state.screen): GameSnapshot {
+    const prevConfig = this.state.config
     const nextState = createInitialSimulationState(this.id, screen)
+    applySimulationConfig(nextState, prevConfig)
+    nextState.lives = Math.min(prevConfig.startingLives, nextState.config.maxLives)
     setEmissionTier(nextState, this.state.emissionTier)
     setSpaceTokenPools(nextState, this.state.spaceTokenPools)
     this.state = nextState

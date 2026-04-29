@@ -8,14 +8,10 @@ import DevTools from '@/components/dev/DevTools'
 import SoundManager from './SoundManager'
 import { useArrowTabNav } from '@/hooks/useArrowTabNav'
 import { DEFAULT_TIER_BREAKPOINTS, DEFAULT_PILLS_PER_TIER, DEFAULT_ASTRDS_PER_PILL } from '../../../convex/admin'
+import { DEFAULT_SIMULATION_CONFIG, type SimulationConfig } from '../../../../shared/game/simulation'
 
-interface ConfigFields {
+interface ConfigFields extends SimulationConfig {
   applyToRunning: boolean
-  powerupSpawnDelayMs: number
-  shipPickupSpawnDelayMs: number
-  maxPowerupsOnScreen: number
-  powerupDurationMs: number
-  maxLives: number
   quarterUsd: number
   tierBreakpointsUsd: number[]
   pillsPerTier: number[]
@@ -51,6 +47,8 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
   const currentConfig: ConfigFields | null = draft ?? (configDoc
     ? {
         applyToRunning: configDoc.applyToRunning,
+        ...DEFAULT_SIMULATION_CONFIG,
+        ...(configDoc as Partial<SimulationConfig>),
         powerupSpawnDelayMs: configDoc.powerupSpawnDelayMs,
         shipPickupSpawnDelayMs: configDoc.shipPickupSpawnDelayMs,
         maxPowerupsOnScreen: configDoc.maxPowerupsOnScreen,
@@ -139,6 +137,9 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
       <div className='flex-1 overflow-y-auto min-h-0'>
         {activeTab === 'config' && currentConfig && (
           <div className='p-6 space-y-5 font-mono text-xs'>
+            <div className='border border-primary/30 bg-primary/5 px-3 py-2 text-[10px] text-muted-foreground'>
+              <span className='text-primary'>LIVE:</span> fields on this tab are persisted in Convex and consumed by the game server. Level Bands are also persisted and enforced before they are shown as authoritative.
+            </div>
 
             {/* Apply to running */}
             <div className='flex items-center justify-between border border-border px-3 py-2.5'>
@@ -259,12 +260,62 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
               </div>
             </div>
 
-            {/* Lives */}
+            {/* Ship */}
             <div>
-              <div className='text-muted-foreground text-[9px] uppercase tracking-widest mb-2'>Lives</div>
+              <div className='text-muted-foreground text-[9px] uppercase tracking-widest mb-2'>Ship tuning</div>
               <div className='space-y-1.5'>
+                <NumericRow label='Ship radius' value={currentConfig.shipRadius} min={8} max={40} step={1} onChange={v => setField('shipRadius', v)} />
+                <NumericRow label='Rotation speed' value={currentConfig.shipRotationSpeed} min={1} max={15} step={0.5} onChange={v => setField('shipRotationSpeed', v)} />
+                <NumericRow label='Acceleration' value={currentConfig.shipAcceleration} min={0.05} max={1} step={0.05} onChange={v => setField('shipAcceleration', v)} />
+                <NumericRow label='Inertia' value={currentConfig.shipInertia} min={0.9} max={1} step={0.005} onChange={v => setField('shipInertia', v)} />
+                <NumericRow label='Respawn invulnerability' value={currentConfig.shipInvulnerabilityMs} min={0} max={10000} step={500} display={v => `${v / 1000}s`} onChange={v => setField('shipInvulnerabilityMs', v)} />
+                <NumericRow label='Starting lives' value={currentConfig.startingLives} min={1} max={10} step={1} onChange={v => setField('startingLives', v)} />
+                <NumericRow label='Max lives (cap)' value={currentConfig.maxLives} min={1} max={10} step={1} onChange={v => setField('maxLives', v)} />
+              </div>
+            </div>
+
+            {/* Bullets */}
+            <div>
+              <div className='text-muted-foreground text-[9px] uppercase tracking-widest mb-2'>Bullet tuning</div>
+              <div className='space-y-1.5'>
+                <NumericRow label='Normal speed' value={currentConfig.normalBulletSpeed} min={5} max={40} step={1} onChange={v => setField('normalBulletSpeed', v)} />
+                <NumericRow label='Rapid speed' value={currentConfig.rapidBulletSpeed} min={5} max={50} step={1} onChange={v => setField('rapidBulletSpeed', v)} />
+                <NumericRow label='Normal fire delay' value={currentConfig.normalFireDelayMs} min={25} max={1000} step={25} display={v => `${v}ms`} onChange={v => setField('normalFireDelayMs', v)} />
+                <NumericRow label='Rapid fire delay' value={currentConfig.rapidFireDelayMs} min={10} max={500} step={10} display={v => `${v}ms`} onChange={v => setField('rapidFireDelayMs', v)} />
+                <NumericRow label='Bullet radius' value={currentConfig.bulletRadius} min={0.5} max={8} step={0.5} onChange={v => setField('bulletRadius', v)} />
+                <NumericRow label='Rapid bullet radius' value={currentConfig.rapidBulletRadius} min={0.5} max={8} step={0.5} onChange={v => setField('rapidBulletRadius', v)} />
+                <NumericRow label='Rapid bullet power' value={currentConfig.rapidBulletPower} min={1} max={5} step={1} onChange={v => setField('rapidBulletPower', v)} />
+                <NumericRow label='Collision padding' value={currentConfig.bulletCollisionPadding} min={0} max={20} step={1} onChange={v => setField('bulletCollisionPadding', v)} />
+              </div>
+            </div>
+
+            {/* Asteroids */}
+            <div>
+              <div className='text-muted-foreground text-[9px] uppercase tracking-widest mb-2'>Asteroids</div>
+              <div className='space-y-1.5'>
+                <NumericRow label='Large radius' value={currentConfig.largeAsteroidRadius} min={20} max={80} step={2} onChange={v => setField('largeAsteroidRadius', v)} />
+                <NumericRow label='Medium radius' value={currentConfig.mediumAsteroidRadius} min={10} max={50} step={2} onChange={v => setField('mediumAsteroidRadius', v)} />
+                <NumericRow label='Small radius' value={currentConfig.smallAsteroidRadius} min={5} max={30} step={1} onChange={v => setField('smallAsteroidRadius', v)} />
+                <NumericRow label='Velocity min' value={currentConfig.asteroidVelocityMin} min={-5} max={0} step={0.1} onChange={v => setField('asteroidVelocityMin', v)} />
+                <NumericRow label='Velocity max' value={currentConfig.asteroidVelocityMax} min={0} max={5} step={0.1} onChange={v => setField('asteroidVelocityMax', v)} />
+                <NumericRow label='Score large' value={currentConfig.asteroidScoreLarge} min={0} max={1000} step={5} onChange={v => setField('asteroidScoreLarge', v)} />
+                <NumericRow label='Score medium' value={currentConfig.asteroidScoreMedium} min={0} max={1000} step={5} onChange={v => setField('asteroidScoreMedium', v)} />
+                <NumericRow label='Score small' value={currentConfig.asteroidScoreSmall} min={0} max={1000} step={5} onChange={v => setField('asteroidScoreSmall', v)} />
+              </div>
+            </div>
+
+            {/* Pickups */}
+            <div>
+              <div className='text-muted-foreground text-[9px] uppercase tracking-widest mb-2'>Pickup tuning</div>
+              <div className='space-y-1.5'>
+                <NumericRow label='ASTRDS pill interval' value={currentConfig.pillSpawnDelayMs} min={500} max={60000} step={500} display={v => `${v / 1000}s`} onChange={v => setField('pillSpawnDelayMs', v)} />
+                <NumericRow label='Space-token opportunity interval' value={currentConfig.tokenSpawnDelayMs} min={1000} max={120000} step={1000} display={v => `${v / 1000}s`} onChange={v => setField('tokenSpawnDelayMs', v)} />
+                <NumericRow label='Space-token spawn chance' value={currentConfig.spaceTokenSpawnChance} min={0} max={1} step={0.05} display={v => `${Math.round(v * 100)}%`} onChange={v => setField('spaceTokenSpawnChance', v)} />
+                <NumericRow label='Pickup TTL' value={currentConfig.pickupTtlMs} min={1000} max={120000} step={1000} display={v => `${v / 1000}s`} onChange={v => setField('pickupTtlMs', v)} />
+                <NumericRow label='Pickup radius' value={currentConfig.pickupRadius} min={2} max={30} step={1} onChange={v => setField('pickupRadius', v)} />
+                <NumericRow label='Ship pickup radius' value={currentConfig.shipPickupRadius} min={5} max={50} step={1} onChange={v => setField('shipPickupRadius', v)} />
                 <NumericRow label='Ship pickup interval' value={currentConfig.shipPickupSpawnDelayMs} min={5000} max={120000} step={5000} display={v => `${v / 1000}s`} onChange={v => setField('shipPickupSpawnDelayMs', v)} />
-                <NumericRow label='Max lives (global cap)' value={currentConfig.maxLives} min={1} max={10} step={1} onChange={v => setField('maxLives', v)} />
+                <NumericRow label='Max ship pickups on screen' value={currentConfig.maxShipPickupsOnScreen} min={0} max={5} step={1} onChange={v => setField('maxShipPickupsOnScreen', v)} />
               </div>
             </div>
 
@@ -300,7 +351,19 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onClose: _ }) => {
 
         {activeTab === 'bands' && (
           <div className='p-6'>
-            <LevelBandEditor />
+            {currentConfig && (
+              <LevelBandEditor
+                bands={currentConfig.progressionBands}
+                onChange={(bands) => setField('progressionBands', bands)}
+                pillsPerTier={currentConfig.pillsPerTier}
+                astrdsPerPill={currentConfig.astrdsPerPill}
+                onSave={handleSave}
+                saving={saving}
+                apiKey={apiKey}
+                onApiKeyChange={(value) => { setApiKey(value); localStorage.setItem('admin_api_key', value) }}
+                status={status}
+              />
+            )}
           </div>
         )}
 

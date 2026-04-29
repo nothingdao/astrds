@@ -174,19 +174,24 @@ export class ConvexServerClient {
       const v = r[key]
       return Array.isArray(v) && v.every(x => typeof x === 'number') ? v as number[] : DEFAULT_GAME_CONFIG[key] as number[]
     }
-    return {
+    const config: GameConfig = {
+      ...DEFAULT_GAME_CONFIG,
       version: typeof r.version === 'number' ? r.version : 0,
       applyToRunning: Boolean(r.applyToRunning),
-      powerupSpawnDelayMs: typeof r.powerupSpawnDelayMs === 'number' ? r.powerupSpawnDelayMs : DEFAULT_GAME_CONFIG.powerupSpawnDelayMs,
-      shipPickupSpawnDelayMs: typeof r.shipPickupSpawnDelayMs === 'number' ? r.shipPickupSpawnDelayMs : DEFAULT_GAME_CONFIG.shipPickupSpawnDelayMs,
-      maxPowerupsOnScreen: typeof r.maxPowerupsOnScreen === 'number' ? r.maxPowerupsOnScreen : DEFAULT_GAME_CONFIG.maxPowerupsOnScreen,
-      powerupDurationMs: typeof r.powerupDurationMs === 'number' ? r.powerupDurationMs : DEFAULT_GAME_CONFIG.powerupDurationMs,
-      maxLives: typeof r.maxLives === 'number' ? r.maxLives : DEFAULT_GAME_CONFIG.maxLives,
       quarterUsd: typeof r.quarterUsd === 'number' ? r.quarterUsd : DEFAULT_GAME_CONFIG.quarterUsd,
       tierBreakpointsUsd: numArr('tierBreakpointsUsd'),
       pillsPerTier: numArr('pillsPerTier'),
       astrdsPerPill: numArr('astrdsPerPill'),
+      progressionBands: Array.isArray(r.progressionBands) ? r.progressionBands as GameConfig['progressionBands'] : DEFAULT_GAME_CONFIG.progressionBands,
     }
+
+    for (const key of Object.keys(DEFAULT_GAME_CONFIG) as (keyof GameConfig)[]) {
+      if (typeof DEFAULT_GAME_CONFIG[key] === 'number' && typeof r[key] === 'number') {
+        ;(config as unknown as Record<string, unknown>)[key] = r[key]
+      }
+    }
+
+    return config
   }
 
   private async mutation(name: ConvexFunctionName, args: Record<string, unknown>): Promise<unknown> {
