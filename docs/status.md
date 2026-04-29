@@ -33,8 +33,8 @@ updated: 2026-04-29
   - Spawn tickets: `requestSpawnTicket` mutation validates active session + cooldown before any pool decrement
   - Deposits spawn as colored Token entities during gameplay at level-appropriate times
   - Deterministic color per mint address (`src/lib/tokenColors.ts`) — stable across sessions
-  - `SpacePoolSync` component reactively syncs active pools from Convex into `spaceTokenStore`
-  - Collision: `collectFromDeposit` mutation validates ticket, atomically decrements pool — race-safe, multi-player safe
+  - Game server periodically refreshes eligible pools from Convex by current level and injects Space Token entities only after a valid spawn ticket is issued
+  - Collision: server-authoritative `collectFromDeposit` mutation validates ticket, atomically decrements pool — race-safe, multi-player safe
   - Persistent `collections` table records every pill collected — survives browser close
   - HUD (bottom-right) shows per-type space token counts with color dots; ASTRDS count separate
   - Game over screen + AccountScreen: `SpaceTokenClaim` shows pending collections, player claims via on-chain vault instruction
@@ -76,7 +76,7 @@ updated: 2026-04-29
 ## Next
 
 - Audio system: SFX buckets, stinger playlists with ducking, level band playlists (issue #2)
-- `crank_liquidity` end-to-end test on devnet — verify game payment → BuybackVault accumulation → LP add → position locked
+- Continue monitoring `crank_liquidity` on devnet/mainnet-like conditions — game payment → BuybackVault accumulation → LP add → position locked
 - Finalize revenue split percentages (operational / operator / buyback bps) for mainnet
 - Mainnet migration when economy design is settled
 - Mobile controls (Big fat maybe... [phonefags seething])

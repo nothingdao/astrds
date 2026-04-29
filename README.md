@@ -55,7 +55,9 @@ Required env vars in `server/.env`:
 
 ```
 CONVEX_URL=https://your-deployment.convex.cloud
-ADMIN_API_KEY=<same key as Convex>   # used to POST astrdsEarned after game over
+CONVEX_SITE_URL=https://your-deployment.convex.site   # optional; derived from CONVEX_URL if omitted
+SOLANA_RPC_URL=https://api.devnet.solana.com           # optional; used for Meteora pool reads
+ADMIN_API_KEY=<same key as Convex>                     # used to consume sessions and POST game-over ASTRDS accounting
 ```
 
 `ServerGameScreen` connects to `VITE_WS_URL` if set, otherwise defaults to `ws://localhost:3001`.

@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-04-24
+updated: 2026-04-29
 ---
 
 # ASTRDS Economy Design
@@ -47,7 +47,7 @@ The market and liquidity layer is a **Meteora DAMM v2 pool: ASTRDS/SOL**.
 - A permissionless `crank_liquidity` instruction flushes accumulated SOL: wraps it, swaps half → ASTRDS, adds two-sided liquidity to the pool, permanently locks the position
 - LP position owned by the vault is permanently locked — liquidity is never withdrawable
 - All subsequent price movement is organic from gameplay
-- SOL/USD price read from Jupiter API (60s cache) to derive USD-denominated emission tiers
+- SOL/USD price read from the shared Convex `/prices/sol-usd` endpoint (Coinbase → Binance → CoinGecko fallback, 60s cache) to derive USD-denominated emission tiers
 
 **crank_liquidity = buyback + LP in one crank.** The instruction swaps half the accumulated SOL to ASTRDS (buying from the pool) and adds both sides as balanced liquidity. Net effect: every quarter deepens the pool and supports price — just asynchronously rather than inline.
 
@@ -65,7 +65,7 @@ Price is determined by the AMM pool ratio — no oracle needed.
 
 ```
 price_sol  = sol_reserve / astrds_reserve   (live from DAMM v2 pool)
-price_usd  = price_sol × sol_usd_price      (Jupiter API, 60s cache)
+price_usd  = price_sol × sol_usd_price      (Convex price endpoint, 60s cache)
 ```
 
 Pool depth grows with every quarter (SOL deposited → LP locked). Burn pressure reduces circulating supply, reducing sell pressure on the pool. Both forces support price over time.
@@ -108,7 +108,7 @@ Tiers move up and down fluidly as price crosses bands. Not a one-way ratchet.
 - Price up → more pills spawn → harder to capture all 50 → more burns → less sell pressure → price up further
 - Price down → fewer pills → less sell pressure from new emissions → natural emission brake
 
-**Emission is now server-authoritative.** The game server reads the pool at session start, locks in the emission tier for that session, and enforces the pill cap. The client cannot influence emission rate.
+**Emission is now server-authoritative.** The game server refreshes Convex admin config, reads the pool at session start, locks in the emission tier for that session, and enforces the pill cap. The client cannot influence emission rate.
 
 ---
 
@@ -213,23 +213,29 @@ Operational split % adjusted once real costs are known. Structure does not chang
 Everything soft. Structure hard.
 
 **On-chain (trustless — target state):**
-- Quarter price in SOL
 - Revenue split weights and slice destinations
+- DAMM v2 pool address (stored in VaultConfig for CPI target)
 - Hard supply cap (21M) *(target — not yet enforced on-chain)*
-- Allocation per game (50 ASTRDS)
+- Allocation per game (50 ASTRDS) *(target — currently enforced by game server config/tier caps)*
+- Per-wallet cooldown / rate limiting *(target — currently Convex/game-server enforced)*
+
+**Convex admin config (current live state):**
+- Quarter price display/payment target
 - Emission tier bands (price breakpoints)
 - Pills per tier, ASTRDS per pill per tier
-- DAMM v2 pool address (stored in VaultConfig for CPI target)
-- Per-wallet cooldown / rate limiting
+- Ship, bullet, asteroid, pickup, and Space Token opportunity tuning
+- Persisted level-band progression policies
 
-**Convex (game state only):**
+**Convex game state:**
 - Session lifecycle, scores, leaderboard
 - Space deposit pools, spawn tickets, collections, claims
 - Chat
+- Off-chain ASTRDS allocation/earned/burned accounting per game session
 
 **Game server (authoritative):**
-- Emission tier enforcement (reads pool at session start, locks tier for session)
+- Emission tier enforcement (refreshes config, reads pool at session start, locks tier for session)
 - Pill cap enforcement
+- Progression policy enforcement
 - Score, pills, and token collection written to Convex
 
 ---
@@ -245,7 +251,8 @@ NOW (devnet)
   ✓ Emission tier read from live Meteora pool at session start
   ✓ Space token deposits, spawn tickets, collections, claims live
   ✓ Tokenomics overlay showing live pool state
-  → crank_liquidity: verify end-to-end on devnet (game payment → buyback vault → LP add)
+  ✓ crank_liquidity verified end-to-end on devnet (game payment → buyback vault → LP add → permanent lock)
+  ✓ Admin config/progression planner live via Convex-backed gameConfig
   → Finalize 3-way split percentages for mainnet
 
 MAINNET
@@ -272,7 +279,7 @@ A separate buyback step (swap SOL → ASTRDS via Jupiter) is unnecessary. A sing
 DAMM v2 supports permanently locked liquidity. LP tokens minted from pool deposits go to the vault PDA and are never redeemable. Liquidity is permanently locked — verifiable on-chain. Irreversibility is a feature.
 
 **Quote asset → SOL**
-SOL/USD price fetched from Jupiter API to derive USD-denominated emission tiers. Devnet pool validated this approach.
+SOL/USD price is fetched through the shared Convex price endpoint (Coinbase → Binance → CoinGecko fallback) to derive USD-denominated emission tiers. Devnet pool validated this approach.
 
 **Pool → Meteora DAMM v2**
 Token-2022 compatible, open source, locked liquidity support. DLMM rejected — concentrated liquidity adds complexity not needed at this stage.

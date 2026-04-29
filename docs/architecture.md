@@ -111,12 +111,13 @@ See `docs/chain.md` for the full deposit → spawn → collect → claim flow di
 
 1. Wallet connects → wallet-adapter state updates → title screen unlocks
 2. "Insert Quarter" → wallet signs tx → `verifyPayment` action verifies on-chain → session stored in Convex → `INITIAL → READY_TO_PLAY`
-3. Game starts → `gameSessions.create` → `READY_TO_PLAY → PLAYING`; `SpacePoolSync` mounts, polls active deposits into `spaceTokenStore`
-4. Gameplay → score increments in `gameData`; ASTRDS tokens increment `inventoryStore`; space tokens collected → `requestSpawnTicket` → `collectFromDeposit` (atomic decrement + persistent collection record) + `spaceTokenStore` update; HUD reflects both
-5. Death → `PLAYING → GAME_OVER` → `endGameSession` submits score; `ASTRDSMinting` claims ASTRDS; `SpaceTokenClaim` shows pending collections
-6. ASTRDS claim → `prepareMint` action signs ed25519 authorization → client builds + submits on-chain `mint_astrds` instruction → VaultConfig PDA CPIs `mintTo` → `MintRecord` PDA created for replay protection
-7. Space token claim → `prepareClaims` issues ed25519 authorization → client builds + submits on-chain `claim` instruction → vault transfers tokens to player → `finalizeClaim` persists to `claims` table
-8. AccountScreen → `getClaimsByWallet` query returns all historical claims; `SpaceTokenClaim` shows any still-unclaimed collections; `TokenManager` (Tokens tab) lets player launch tokens into Space or burn + close unwanted token accounts
+3. Game starts → `gameSessions.create` → `READY_TO_PLAY → PLAYING`; the browser opens the WebSocket and sends `hello` with the Convex game session binding
+4. Game server verifies/consumes the paid session, refreshes admin config, applies progression settings, locks emission tier, and periodically refreshes eligible Space Token pools for the current level
+5. Gameplay → server simulation updates score/level/pills/tokens; ASTRDS pills increment server-side counters; Space Token spawn opportunities go through `requestSpawnTicket`; ship-token collision triggers `collectFromDeposit` (atomic decrement + persistent collection record); snapshots hydrate client HUD/stores
+6. Death → `PLAYING → GAME_OVER` → game server submits authoritative score/level/pills and ASTRDS earned/burned accounting; `ASTRDSMinting` claims ASTRDS; `SpaceTokenClaim` shows pending collections
+7. ASTRDS claim → `prepareMint` action signs ed25519 authorization → client builds + submits on-chain `mint_astrds` instruction → VaultConfig PDA CPIs `mintTo` → `MintRecord` PDA created for replay protection
+8. Space token claim → `prepareClaims` issues ed25519 authorization → client builds + submits on-chain `claim` instruction → vault transfers tokens to player → `finalizeClaim` persists to `claims` table
+9. AccountScreen → `getClaimsByWallet` query returns all historical claims; `SpaceTokenClaim` shows any still-unclaimed collections; `TokenManager` (Tokens tab) lets player launch tokens into Space or burn + close unwanted token accounts
 
 ## Key Config
 

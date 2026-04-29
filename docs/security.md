@@ -1,5 +1,5 @@
 ---
-updated: 2026-04-27
+updated: 2026-04-29
 ---
 
 # Security & Economy Findings
@@ -137,25 +137,17 @@ Players at tier 5 collecting an odd number of pills lose 0.5 ASTRDS per uncounte
 
 ---
 
-### Server uses Jupiter for SOL/USD; frontend uses Convex price feed
+### Burned ASTRDS accounting is off-chain only
 
-`server/src/game/emissionTiers.ts` fetches `api.jup.ag` directly. The frontend and Convex use a Coinbase → Binance → CoinGecko fallback chain. Emission tier decisions and display pricing can diverge.
+The stated model is "50 ASTRDS reserved per game; uncollected amount burned." The game server now records `astrdsAllocated`, `astrdsEarned`, and `astrdsBurned` at game over via the authenticated `/game-server/set-astrds-earned` path, so the accounting is queryable in Convex. There is still no on-chain reservation or burn transaction; uncollected allocation is represented as "never minted" plus Convex accounting.
 
-**Fix:** Expose a Convex HTTP action the game server can query, or move the server to the same provider chain.
-
----
-
-### Uncollected ASTRDS not tracked as burned
-
-The stated model is "50 ASTRDS reserved per game; uncollected amount burned." Currently, uncollected allocation is simply never minted — no reservation is created at game start, no burned record is written, and `BURNED_ASTRDS_STUB = 0` in the frontend. Any charts or formulas depending on burned supply are displaying 0.
-
-**Fix:** At game over, record `astrdsAllocated = 50`, `astrdsEarned = actual`, `astrdsBurned = 50 - actual` in the session. Aggregate as an accounting total — no on-chain burn transaction required.
+**Fix before mainnet:** Decide whether Convex accounting is sufficient for the product narrative, or add explicit on-chain supply/accounting state.
 
 ---
 
 ### 420,000 game cap and pricing formula are docs-only
 
-The 420,000 game emission schedule and the issue #5 burn-adjusted pricing formula (`price = pool SOL value × SOL/USD / (21M - burned)`) exist as documentation and frontend constants but are not enforced anywhere. The code uses AMM reserve ratio spot price.
+The 420,000 game emission schedule and the older burn-adjusted pricing formula (`price = pool SOL value × SOL/USD / (21M - burned)`) exist as design targets but are not enforced on-chain. Current runtime tiering uses the Meteora DAMM reserve-ratio spot price and SOL/USD from the shared Convex price endpoint.
 
 These are design decisions that need to be made canonical before mainnet — either implement them or update the docs to match what the code actually does.
 

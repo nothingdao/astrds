@@ -66,7 +66,13 @@ Convex env vars (dashboard or `npx convex env set`):
 - `PROGRAM_AUTHORITY_PRIVATE_KEY` — Convex authority keypair (`CNhWD1cXNaCMcjJmFcK25aFgV3ZTAFtyFDBvGfKZcpzF`); signs ed25519 authorizations for `mint_astrds` and `claim` instructions. No longer holds ASTRDS mint authority (transferred to VaultConfig PDA).
 - `SOLANA_RPC_ENDPOINT`
 - `HELIUS_WEBHOOK_SECRET`
-- `ADMIN_API_KEY` — required for HTTP admin endpoints: `/admin/config` and `/game-server/set-astrds-earned`
+- `ADMIN_API_KEY` — required for HTTP admin endpoints: `/admin/config`, `/game-server/consume-session`, and `/game-server/set-astrds-earned`
+
+Game server env vars:
+- `CONVEX_URL`
+- `CONVEX_SITE_URL` — optional; derived from `CONVEX_URL` when omitted
+- `SOLANA_RPC_URL` — optional; defaults to devnet RPC for Meteora pool reads
+- `ADMIN_API_KEY` — same value as Convex; required to consume sessions and write game-over ASTRDS accounting
 
 ## Key Files
 

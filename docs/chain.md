@@ -47,7 +47,7 @@ Mint authority is held by the **VaultConfig PDA** (`6zsWYibNCYYQJikHv8BHXRNynEAC
 | Liquidity | Permanently locked |
 | Owner | Deployer wallet `jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE` |
 
-Pool price is read as `sol_reserve / astrds_reserve`. SOL/USD is fetched from Jupiter API (60s cache) to derive USD-denominated emission tiers. See `docs/economy.md` for the full pricing model.
+Pool price is read as `sol_reserve / astrds_reserve`. SOL/USD is fetched from the shared Convex `/prices/sol-usd` endpoint (Coinbase → Binance → CoinGecko fallback, 60s cache) to derive USD-denominated emission tiers. See `docs/economy.md` for the full pricing model.
 
 ---
 
@@ -202,7 +202,7 @@ Game session starts
 Game server reads DAMM v2 pool at session start
     │
     │  price_sol = sol_reserve / astrds_reserve   (live from pool)
-    │  price_usd = price_sol × sol_usd_price       (Jupiter API, 60s cache)
+    │  price_usd = price_sol × sol_usd_price       (Convex price endpoint, 60s cache)
     │
     ▼
 Emission tier lookup → pills spawned this game, ASTRDS per pill
@@ -348,7 +348,7 @@ Hourly cron: reconcileAllPools
 │                     ├──► price_sol = sol_reserve /           │
 │   astrds_reserve ───┘              astrds_reserve            │
 │                                    │                         │
-│                        × sol_usd_price (Jupiter API)         │
+│                        × sol_usd_price (Convex price endpoint)│
 │                                    │                         │
 │                          emission tier lookup                │
 │                                    │                         │

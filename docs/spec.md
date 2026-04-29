@@ -111,6 +111,6 @@ Feature source of truth. Update this as features ship, change, or get cut.
 
 - Player who collects a space token but closes browser before claiming: pool slot consumed, vault tokens never paid out (accepted limitation)
 - Two players simultaneously collecting the last token in a pool: first mutation wins, second player's token vanishes silently (extremely rare edge case, accepted)
-- Pre-existing TypeScript strict mode errors in game entities and UI components (implicit `any`)
+- Older client-side entity code remains outside the server-authoritative path and should be treated as legacy unless reused intentionally
 - `eval` warning from a rollup dependency in the build
 - Helius devnet `INITIALIZE_ACCOUNT` transactions have empty `tokenTransfers` in enhanced format — webhook handler falls back to `verifyAndConfirmDeposit` action path in this case
