@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-27
+updated: 2026-04-29
 ---
 
 # Architecture
@@ -13,7 +13,7 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 
 ### Frontend (src/)
 
-- **Game engine** — canvas-based renderer. `GameScreen` delegates unconditionally to `ServerGameScreen`, which receives `GameSnapshot` over WebSocket and calls `renderServerSnapshot`. Entity classes (`Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`) have separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods, enabling the simulation to run in Node without browser APIs.
+- **Game engine** — canvas-based renderer. `GameScreen` delegates unconditionally to `ServerGameScreen`, which receives `GameSnapshot` over WebSocket and calls `renderServerSnapshot`. Entity classes (`Ship`, `Asteroid`, `Bullet`, `Particle`, `Pill`, `Token`, `ShipPickup`) have separated `update(dt, screen)` (physics) and `render(ctx)` (canvas) methods, enabling the simulation to run in Node without browser APIs. Authoritative physics and gameplay rules live in `shared/game/simulation.ts`; per-level progression policies are resolved in `shared/game/progression.ts`.
 - **Design/theme system** — shadcn-compatible CSS variables in `src/styles/style.css` are the source of truth. `themeStore.ts` persists `dark` / `light`; `ThemeController` applies `theme-dark` / `theme-light` to `document.documentElement`; `ThemeToggle` lives in the Header. React UI uses semantic Tailwind classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `text-tx-*`, `bg-surface-*`, `border-edge-*`). Canvas rendering cannot use Tailwind, so `src/lib/designTokens.ts` reads and caches CSS vars for renderers. `resolveCanvasColor` maps historical server snapshot colors (e.g. `#fff`) to current theme tokens so active gameplay remains visible in both themes.
 - **Themed screen art** — `ScreenContainer.tsx` selects per-theme image assets for `INITIAL`, `READY_TO_PLAY`, and `GAME_OVER` (`title-dark/light`, `ready-dark/light`, `end-game-dark/light`). Title and game-over screens use fullscreen backgrounds; content panels supply their own readability overlays.
 - **Screens** — `title`, `ready`, `game`, `gameover`, `leaderboard`, `account`, `tokenomics`. Managed by `GameStateManager.tsx` which reads the state machine.
@@ -26,9 +26,10 @@ ASTRDS is a browser-based canvas game built with React/Vite. Players connect a S
 Required Node.js WebSocket server that owns the authoritative game loop. The client is a pure renderer — `GameScreen` always delegates to `ServerGameScreen`.
 
 - **`server/src/index.ts`** — HTTP health check + WebSocket upgrade, one `SessionHandler` per connection
-- **`server/src/ws/SessionHandler.ts`** — 30 tick/s `setInterval` loop; handles `hello`, `resize`, `input`, `pause`, `resume`, `reset`, `ping` messages; sends `welcome`, `state`, `gameOver` snapshots
+- **`server/src/ws/SessionHandler.ts`** — 30 tick/s `setInterval` loop; handles `hello`, `resize`, `input`, `pause`, `resume`, `reset`, `ping` messages; sends `welcome`, `state`, `gameOver` snapshots. On `hello`, it verifies/consumes the paid session, refreshes Convex admin config, applies it to the simulation, then fetches and locks the emission tier.
 - **`server/src/game/GameSession.ts`** — thin wrapper around `shared/game/simulation.ts`; exposes `snapshot()`, `update()`, `resize()`, `reset()`
-- **`shared/game/simulation.ts`** — authoritative physics: no React, canvas, Zustand, Convex, or browser APIs; safe to run in Node or browser
+- **`shared/game/simulation.ts`** — authoritative physics: no React, canvas, Zustand, Convex, or browser APIs; safe to run in Node or browser. Consumes `SimulationConfig` for ship, bullet, asteroid, pickup, and progression behavior.
+- **`shared/game/progression.ts`** — shared progression policy resolver. Supports curve modes (`fixed`, `linear`, `step`, `randomRange`) and budget distributions (`even`, `random`, `early`, `late`, `manual`) for level-band previews and server enforcement.
 - **`shared/game/protocol.ts`** — `ClientToServerMessage`, `ServerToClientMessage`, `GameSnapshot`, `InputState` types shared across client and server
 
 Running the game server locally:
@@ -63,7 +64,7 @@ All backend logic runs in Convex. No Netlify Functions.
 | `tokens.ts` | "use node" actions — `prepareMint` signs ed25519 mint authorization; `mintTokens` is deprecated (mint authority transferred to VaultConfig PDA) |
 | `prices.ts` | SOL/USD price feed — server-side Convex action; tries Coinbase → Binance → CoinGecko to avoid browser CORS/fallback pricing issues |
 | `economySnapshots.ts` | Periodic snapshots of live economic state (pool price, tier, circulating supply) |
-| `admin.ts` | Admin-gated mutations for operator tooling |
+| `admin.ts` | Admin config query + authenticated HTTP update path for live game tuning, economy tiers, and progression bands |
 | `spaceDeposits.ts` | Queries + mutations for space token pools, spawn tickets, collections, and claims |
 | `spaceDepositsActions.ts` | "use node" actions — verify deposit tx, prepare ed25519 claim authorizations, reconcile pools |
 | `http.ts` | Convex HTTP router — registers `/treasury-webhook` endpoint |
@@ -85,6 +86,7 @@ All backend logic runs in Convex. No Netlify Functions.
 | `spawnTickets` | Server-issued one-time spawn authorizations — validates player session before pool decrement |
 | `collections` | Individual pill collection events, persistent across sessions (index: `by_status_wallet`) |
 | `claims` | On-chain claim transfer records (indexes: `by_signature`, `by_deposit`, `by_player_wallet`) |
+| `gameConfig` | Singleton admin config: economy tiers, gameplay tuning constants, `applyToRunning`, and persisted progression bands |
 | `economySnapshots` | Shared economy history snapshots for price chart / supply visualization |
 
 ### Token — ASTRDS
@@ -121,8 +123,24 @@ See `docs/chain.md` for the full deposit → spawn → collect → claim flow di
 - `netlify.toml` — static build only, no functions
 - `vite.config.ts` — Vite/React build
 - `convex/schema.ts` — DB tables: verifiedSessions, scores, gameSessions, chatMessages, players, spaceDeposits, spawnTickets, collections, claims, gameConfig, economySnapshots
+- `convex/admin.ts` + `/admin/config` — admin config read/write path. Frontend saves require `ADMIN_API_KEY`; game server consumes via `admin:getGameConfig`.
 
 See `README.md` for the full env var reference (frontend, Convex, and game server).
+
+## Admin Config + Progression
+
+`src/screens/admin/AdminScreen.tsx` is dev-wallet-gated and exposes live Convex-backed configuration. Saving uses the Convex HTTP endpoint `/admin/config` with `ADMIN_API_KEY`; the same payload is read by the game server through `admin:getGameConfig`.
+
+Live global tuning includes:
+
+- quarter price and ASTRDS emission tier arrays
+- `applyToRunning` for mid-session config adoption
+- ship tuning: starting/max lives, radius, rotation, acceleration, inertia, respawn invulnerability
+- bullet tuning: speeds, fire delays, radii, rapid-fire power, collision padding
+- asteroid tuning: size radii, velocity range, score by size
+- pickup tuning: ASTRDS pill interval, Space Token opportunity interval/chance, TTL/radii, powerup duration and on-screen caps
+
+`src/screens/admin/LevelBandEditor.tsx` edits persisted progression bands. Bands define policies over level ranges rather than only fixed values: asteroid count/speed curves, ship pickup budgets, powerup budgets, and max-life caps. The preview can be viewed as a table or left-to-right chart. Space Token availability in the preview is read-only and comes from active `spaceDeposits.minLevel/maxLevel`, because depositors own those ranges.
 
 ## Dev Tooling
 

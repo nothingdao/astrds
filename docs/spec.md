@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-27
+updated: 2026-04-29
 ---
 
 # ASTRDS — Product Spec
@@ -20,7 +20,7 @@ Feature source of truth. Update this as features ship, change, or get cut.
 - Player flies ship, shoots asteroids, collects Pill entities (server-authoritative)
 - Each Pill collected increments `inventoryStore` ASTRDS count and is tracked server-side
 - Max 50 ASTRDS per game session; emission tier (1–5 by pool price) controls pills spawned + ASTRDS per pill; uncollected pills are burned
-- Emission tier locked at session start by the game server reading the Meteora pool — client cannot influence rate
+- Emission tier locked at session start by the game server after refreshing latest admin config and reading the Meteora pool — client cannot influence rate
 - On game over → game server POSTs earned amount to Convex → `ASTRDSMinting` shows count → `prepareMint` action signs ed25519 authorization → client submits on-chain `mint_astrds` tx → VaultConfig PDA CPIs `mintTo` → tokens land in player wallet
 
 ### 3. Tokens in Space — Deposit
@@ -53,7 +53,17 @@ Feature source of truth. Update this as features ship, change, or get cut.
   3. Player signs and submits each tx on-chain
   4. `finalizeClaim` mutation marks collections as `claimed`, writes to `claims` table
 
-### 6. Account Screen
+### 6. Admin Config + Level Progression
+
+- Dev-wallet-gated Admin overlay exposes live game configuration saved through `/admin/config` with `ADMIN_API_KEY`
+- Config tab persists economy tiers and gameplay tuning for ship, bullets, asteroids, pickups, ASTRDS pill cadence, and Space Token opportunity cadence/chance
+- Level Bands tab persists progression policy bands consumed by the game server
+- Bands support asteroid count/speed curves plus ship and powerup budgets over a level range
+- Admin can define ranges such as “levels 1–10 have exactly 3 ship pickup opportunities”
+- Preview is available as both a table and a chart, showing per-level asteroids, speed, ships, powerups, max lives, ASTRDS tier info, and active Space Token overlays
+- Space Token availability in the progression preview is read-only and comes from depositor-authored `minLevel`/`maxLevel` ranges
+
+### 7. Account Screen
 - Shows wallet SOL + ASTRDS balances (fetched from chain via `getTokenBalances`)
 - Performance stats: total games, best score, average score, play time, leaderboard rank
 - Recent games list (last 5)
@@ -75,6 +85,9 @@ Feature source of truth. Update this as features ship, change, or get cut.
 - [x] Webhook handler verifies `Authorization` header before processing
 - [x] `reconcileAllPools` cron runs hourly to cap balances to on-chain reality
 - [x] External treasury drains detected via webhook outbound check against `claims` table
+- [x] Admin config distinguishes live persisted settings from preview data and exposes live ship, bullet, asteroid, pickup, economy, and progression tuning
+- [x] Level Bands are persisted in Convex and consumed by the game server for server-authoritative progression
+- [x] Admin progression preview supports table/chart views and read-only Space Token availability overlays
 
 ## Non-Functional Requirements
 

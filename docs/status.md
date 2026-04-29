@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-04-26
+updated: 2026-04-29
 ---
 
 # Status
@@ -9,9 +9,9 @@ updated: 2026-04-26
 
 - Core game loop — ship, asteroids, bullets, collisions, particles, scoring
 - **Game server** (`server/`) — authoritative WebSocket server deployed to Railway; client is pure renderer. Pause/resume wired via message protocol. Entity classes refactored to separate `update(dt, screen)` (physics) from `render(ctx)` (canvas) so simulation runs in Node without browser APIs. Game loop gated behind quarter verification via Convex sessions.
-- **Emission tiers** — server reads Meteora pool price at session start, locks the emission tier (tier 1–5 by price, 5–100 pills at varying ASTRDS-per-pill denominations, always 50 ASTRDS total allocation). Client cannot influence emission rate.
+- **Emission tiers** — server refreshes admin config, reads Meteora pool price at session start, then locks the emission tier (tier 1–5 by price, 5–100 pills at varying ASTRDS-per-pill denominations, always 50 ASTRDS total allocation). Client cannot influence emission rate.
 - **On-chain buyback accumulator** — `game_payment` routes `buyback_bps` slice to `BuybackVault` PDA. `crank_liquidity` (permissionless, separate tx) swaps half the accumulated SOL → ASTRDS via Meteora, adds two-sided LP, permanently locks position.
-- **Shared simulation** (`shared/game/simulation.ts`) — browser-free physics layer; same code runs on server and is renderable client-side
+- **Shared simulation** (`shared/game/simulation.ts`) — browser-free physics layer; same code runs on server and is renderable client-side. Gameplay constants are admin-configurable via Convex-backed `gameConfig`; level difficulty/pickup budgets are resolved from persisted progression bands in `shared/game/progression.ts`.
 - Solana wallet connection (Solana wallet-adapter) and signature-based auth ("Insert Quarter")
 - State machine with validated transitions across all five states
 - Screen flow: title → ready → game → gameover → leaderboard/account/tokenomics
@@ -45,6 +45,7 @@ updated: 2026-04-26
   - `reconcileAllPools` cron runs hourly — reconciles Convex pool balances against on-chain PDA reality
   - **Vault health check** (`VaultHealthCheck.tsx` in DEV overlay): enumerates all on-chain DepositPool PDAs, cross-references Convex, can sync missing/mismatched records back
 - **Token management** (`TokenManager.tsx` in AccountScreen Tokens tab): unified panel — launch any SPL token into Space (replaces `SendToSpaceOverlay` flow for wallet tokens) + burn balances + close ATAs to reclaim rent; batch-close empty accounts via `signAllTransactions`
+- **Admin config + progression planner** (`AdminScreen` / `LevelBandEditor`): dev-wallet-gated admin UI persists live game tuning to Convex via `/admin/config` (`ADMIN_API_KEY`). Config includes economy tiers plus ship, bullet, asteroid, pickup, and space-token opportunity tuning. Level Bands are no longer mock-only: persisted policy bands support asteroid count/speed curves, ship/powerup budgets, and per-level max lives. The preview has Table and Chart views with read-only Space Token availability overlays from depositor-authored level ranges.
 - Dev tooling (`DevTools.tsx` in DEV overlay tab): Mint Test Token (deterministic keypair per tokenDir), Mint All, Fast Spawn toggle, Kill Ship, Vault Health Check
 - `devTools.mintTestToken` action: creates Token-2022 with on-chain metadata; same mint address on repeat calls (deterministic SHA256 keypair derivation)
 - **UI overhaul** — all overlay panels redesigned to Orb Explorer flat-row aesthetic: monospace data rows, `border-b` separators, no rounded cards; theme-aware surface/text/border tokens throughout
@@ -66,8 +67,7 @@ updated: 2026-04-26
 ## Known Gaps
 
 - No error boundary or user-facing error UI for failed score submission or mint
-- Pre-existing TypeScript strict mode errors in game entities and UI components (implicit any)
-- Standalone `pnpm exec tsc --noEmit` is currently blocked by TypeScript deprecation config (`ignoreDeprecations` still set for 5.0); Vite production build passes
+- Some older client-side game entity code remains outside the server-authoritative path and may need cleanup before reuse
 - Large bundle (~500KB+) — no code splitting yet
 - `eval` warning from a dependency in the build (rollup/rolldown flagged it)
 - Player who collects a space token but closes browser before claiming → pool slot consumed, vault tokens never paid out (accepted limitation)

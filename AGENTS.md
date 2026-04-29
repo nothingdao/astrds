@@ -29,6 +29,7 @@ Anchor monorepo:
   shared/
     game/protocol.ts                        — ClientToServerMessage / ServerToClientMessage / GameSnapshot types
     game/simulation.ts                      — authoritative game logic (no browser APIs)
+    game/progression.ts                     — level-band policy resolver + preview helpers
 ```
 
 ## Stack
@@ -78,7 +79,8 @@ app/src/config/devWallets.ts             — DEV_WALLETS set + isDevWallet(); co
 app/src/lib/spaceVault.ts               — on-chain tx builders: deposit, claim, game payment, mint_astrds
 app/src/lib/designTokens.ts             — reads CSS vars at runtime for theme-aware canvas rendering
 app/src/screens/game/ServerGameScreen.tsx          — WebSocket client; renders snapshots, sends input
-app/src/screens/admin/AdminScreen.tsx              — admin panel (dev wallets only; ADMIN_API_KEY to save)
+app/src/screens/admin/AdminScreen.tsx              — admin config panel (dev wallets only; ADMIN_API_KEY to save)
+app/src/screens/admin/LevelBandEditor.tsx          — persisted progression planner + chart/table preview
 app/src/components/space/SendToSpaceOverlay.tsx    — deposit flow UI
 app/src/components/tokens/ASTRDSMinting.tsx        — claim UI: prepareMint → wallet tx → mint_astrds
 app/src/components/account/TokenManager.tsx        — launch tokens into Space, burn/close accounts
@@ -96,6 +98,7 @@ server/src/game/emissionTiers.ts         — fetches Meteora pool price, derives
 server/src/convex/client.ts             — ConvexServerClient: session verify, config, setAstrdsEarned
 shared/game/protocol.ts                 — ClientToServerMessage / ServerToClientMessage / GameSnapshot types
 shared/game/simulation.ts               — authoritative physics (no browser/React/Convex deps)
+shared/game/progression.ts              — progression policies: curves, budgets, per-level preview
 ```
 
 ## State Machine
@@ -112,13 +115,13 @@ INITIAL → READY_TO_PLAY → PLAYING ↔ PAUSED
 
 **ASTRDS mint authority**: held by VaultConfig PDA (`6zsWYibNCYYQJikHv8BHXRNynEACgFKsZPNXqWqBPbvv`), not the Convex keypair. `mintTokens` action is dead code — mint only works via on-chain `mint_astrds` + ed25519 auth from `prepareMint`.
 
-**ASTRDS emission is server-authoritative**: tier locked at session start from live Meteora pool price (tier 1–5; 5–100 pills; always 50 ASTRDS max). Game server writes `astrdsEarned` via authenticated HTTP (`ADMIN_API_KEY`) — client cannot influence emission.
+**ASTRDS emission is server-authoritative**: game server refreshes Convex admin config, then locks tier at session start from live Meteora pool price (tier 1–5; 5–100 pills; always 50 ASTRDS max). Game server writes `astrdsEarned` via authenticated HTTP (`ADMIN_API_KEY`) — client cannot influence emission.
 
 **Spawn tickets gate pool access**: `requestSpawnTicket` validates paid session + cooldown before any pool decrement. `collectFromDeposit` is atomic (serialized Convex mutation). Client never touches pool state directly.
 
 **Convex is trusted for game state**: sessions, scores, spawn tickets, collections, claims are all Convex-authoritative. Don't treat Convex as untrusted for these.
 
-**Admin panel**: dev-wallet-gated client-side (OverlayManager); saving config requires `ADMIN_API_KEY` POSTed to `/admin/config`. Press backtick to open. No public `setGameConfig` mutation exists.
+**Admin panel**: dev-wallet-gated client-side (OverlayManager); saving config/progression requires `ADMIN_API_KEY` POSTed to `/admin/config`. Press backtick to open. No public `setGameConfig` mutation exists. Level Bands are live/persisted and consumed by the game server; Space Token ranges shown there are read-only depositor-authored overlays.
 
 **Helius webhook**: watches Space Vault Program ID, not treasury wallet. Three paths: skip authorized claims, activate pending deposits, reconcile on unknown outbound.
 
