@@ -1,10 +1,4 @@
-import { v } from "convex/values";
-import {
-  httpAction,
-  internalMutation,
-  mutation,
-  query,
-} from "./_generated/server";
+import { httpAction, internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import {
   DEFAULT_GAME_CONFIG,
@@ -14,13 +8,7 @@ import {
   normalizeGameConfig,
   parseGameConfigPayload,
 } from "../../shared/game/gameConfigContract";
-
-// Wallets allowed to save config directly via the Convex mutation (no API key needed).
-// The HTTP endpoint is still available for scripted access with ADMIN_API_KEY.
-const DEV_WALLETS = new Set([
-  "jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE", // deployer / upgrade authority
-  "FEb3tauuDVbcErhewnDCFeM2Lt6ddRMwme23UY3ANebg", // astrds player 1
-]);
+import { REQUIRED_GAME_CONFIG_FIELDS } from "./gameConfigValidators";
 
 export const DEFAULT_TIER_BREAKPOINTS = [...DEFAULT_TIER_BREAKPOINTS_USD];
 export { DEFAULT_PILLS_PER_TIER, DEFAULT_ASTRDS_PER_PILL };
@@ -34,55 +22,9 @@ export const getGameConfig = query({
   },
 });
 
-const CONFIG_ARGS = {
-  applyToRunning: v.boolean(),
-  powerupSpawnDelayMs: v.number(),
-  shipPickupSpawnDelayMs: v.number(),
-  maxPowerupsOnScreen: v.number(),
-  powerupDurationMs: v.number(),
-  maxLives: v.number(),
-  startingLives: v.number(),
-  shipRadius: v.number(),
-  shipRotationSpeed: v.number(),
-  shipAcceleration: v.number(),
-  shipInertia: v.number(),
-  shipInvulnerabilityMs: v.number(),
-  normalBulletSpeed: v.number(),
-  rapidBulletSpeed: v.number(),
-  normalFireDelayMs: v.number(),
-  rapidFireDelayMs: v.number(),
-  bulletRadius: v.number(),
-  rapidBulletRadius: v.number(),
-  rapidBulletPower: v.number(),
-  bulletCollisionPadding: v.number(),
-  largeAsteroidRadius: v.number(),
-  mediumAsteroidRadius: v.number(),
-  smallAsteroidRadius: v.number(),
-  asteroidVelocityMin: v.number(),
-  asteroidVelocityMax: v.number(),
-  asteroidScoreLarge: v.number(),
-  asteroidScoreMedium: v.number(),
-  asteroidScoreSmall: v.number(),
-  pillSpawnDelayMs: v.number(),
-  tokenSpawnDelayMs: v.number(),
-  spaceTokenSpawnChance: v.number(),
-  pickupTtlMs: v.number(),
-  pickupRadius: v.number(),
-  shipPickupRadius: v.number(),
-  maxShipPickupsOnScreen: v.number(),
-  progressionBands: v.any(),
-  quarterUsd: v.number(),
-  tierBreakpointsUsd: v.array(v.number()),
-  pillsPerTier: v.array(v.number()),
-  astrdsPerPill: v.array(v.number()),
-};
-
-// Public mutation — wallet address is validated against DEV_WALLETS.
-// Not cryptographically secure (any Convex client can pass any address), but
-// acceptable for a dev tool on devnet. HTTP endpoint is the secure path for prod.
-// Internal version — used by the HTTP endpoint.
+// Internal version — used by the authenticated HTTP endpoint.
 export const setGameConfigInternal = internalMutation({
-  args: CONFIG_ARGS,
+  args: REQUIRED_GAME_CONFIG_FIELDS,
   handler: async (ctx, args) => {
     const existing = await ctx.db.query("gameConfig").first();
     if (existing) {

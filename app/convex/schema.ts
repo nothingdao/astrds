@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { GAME_CONFIG_TABLE_FIELDS } from "./gameConfigValidators";
 
 export default defineSchema({
   verifiedSessions: defineTable({
@@ -147,50 +148,7 @@ export default defineSchema({
 
   // Singleton — at most one document. Version increments on every write so the
   // game server can detect changes and optionally apply them to running sessions.
-  gameConfig: defineTable({
-    version: v.number(),
-    applyToRunning: v.boolean(),
-    powerupSpawnDelayMs: v.number(),
-    shipPickupSpawnDelayMs: v.number(),
-    maxPowerupsOnScreen: v.number(),
-    powerupDurationMs: v.number(),
-    maxLives: v.number(),
-    startingLives: v.optional(v.number()),
-    shipRadius: v.optional(v.number()),
-    shipRotationSpeed: v.optional(v.number()),
-    shipAcceleration: v.optional(v.number()),
-    shipInertia: v.optional(v.number()),
-    shipInvulnerabilityMs: v.optional(v.number()),
-    normalBulletSpeed: v.optional(v.number()),
-    rapidBulletSpeed: v.optional(v.number()),
-    normalFireDelayMs: v.optional(v.number()),
-    rapidFireDelayMs: v.optional(v.number()),
-    bulletRadius: v.optional(v.number()),
-    rapidBulletRadius: v.optional(v.number()),
-    rapidBulletPower: v.optional(v.number()),
-    bulletCollisionPadding: v.optional(v.number()),
-    largeAsteroidRadius: v.optional(v.number()),
-    mediumAsteroidRadius: v.optional(v.number()),
-    smallAsteroidRadius: v.optional(v.number()),
-    asteroidVelocityMin: v.optional(v.number()),
-    asteroidVelocityMax: v.optional(v.number()),
-    asteroidScoreLarge: v.optional(v.number()),
-    asteroidScoreMedium: v.optional(v.number()),
-    asteroidScoreSmall: v.optional(v.number()),
-    pillSpawnDelayMs: v.optional(v.number()),
-    tokenSpawnDelayMs: v.optional(v.number()),
-    spaceTokenSpawnChance: v.optional(v.number()),
-    pickupTtlMs: v.optional(v.number()),
-    pickupRadius: v.optional(v.number()),
-    shipPickupRadius: v.optional(v.number()),
-    maxShipPickupsOnScreen: v.optional(v.number()),
-    progressionBands: v.optional(v.any()),
-    // Economy config — admin-adjustable, read by game server and client display
-    quarterUsd: v.optional(v.number()), // $USD cost per play
-    tierBreakpointsUsd: v.optional(v.array(v.number())), // 4 values: upper-bound of tiers 1–4
-    pillsPerTier: v.optional(v.array(v.number())), // 5 values: pills spawned per tier
-    astrdsPerPill: v.optional(v.array(v.number())), // 5 values: ASTRDS awarded per pill per tier
-  }),
+  gameConfig: defineTable(GAME_CONFIG_TABLE_FIELDS),
 
   economySnapshots: defineTable({
     timestamp: v.number(),

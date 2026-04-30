@@ -13,6 +13,7 @@ import type * as chat from "../chat.js";
 import type * as crons from "../crons.js";
 import type * as devTools from "../devTools.js";
 import type * as economySnapshots from "../economySnapshots.js";
+import type * as gameConfigValidators from "../gameConfigValidators.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as http from "../http.js";
 import type * as players from "../players.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   devTools: typeof devTools;
   economySnapshots: typeof economySnapshots;
+  gameConfigValidators: typeof gameConfigValidators;
   gameSessions: typeof gameSessions;
   http: typeof http;
   players: typeof players;
