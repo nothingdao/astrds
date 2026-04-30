@@ -8,13 +8,14 @@ import { getWalletTokens, WalletToken } from '@/utils/walletTokens'
 import { buildSendToSpaceTransaction } from '@/lib/tokenTransfer'
 import { RPC_ENDPOINT } from '@/lib/solana'
 import { fetchDepositPool, sendSignedTransaction } from '@/lib/spaceVault'
+import { isNativeSolMint } from '@/lib/nativeSol'
 import { Rocket, RefreshCw, ChevronRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 
 // pick → configure → sending (wallet approval + tx) → verifying (waiting for Convex) → done | error
 type Step = 'pick' | 'configure' | 'sending' | 'verifying' | 'done' | 'error'
 
 const toUi = (raw: number, decimals: number) =>
-  (raw / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: 4 })
+  (raw / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: Math.min(decimals, 9) })
 
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className='font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-3 pb-1'>{children}</div>
@@ -90,7 +91,9 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const handleSelectToken = (token: WalletToken) => {
     setSelected(token)
-    setSendAmount(String(Math.floor(token.uiBalance / 2)))
+    const isSol = isNativeSolMint(token.mintAddress)
+    setSendAmount(isSol ? Math.min(token.uiBalance / 2, 0.01).toFixed(3).replace(/\.?(0+)$/, '') : String(Math.floor(token.uiBalance / 2)))
+    setTokensPerPill(isSol ? '0.001' : '100')
     setStep('configure')
   }
 
@@ -214,7 +217,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </div>
               {tokens.map((t) => (
                 <button
-                  key={t.mintAddress}
+                  key={t.accountAddress}
                   onClick={() => handleSelectToken(t)}
                   className='w-full flex items-center py-2 border-b border-border hover:bg-surface-subtle transition-colors text-left'
                 >
@@ -231,7 +234,7 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </div>
                   <div className='flex items-center gap-1.5 shrink-0'>
                     <span className='font-mono text-xs text-tx-secondary w-28 text-right'>
-                      {t.uiBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {t.uiBalance.toLocaleString(undefined, { maximumFractionDigits: isNativeSolMint(t.mintAddress) ? 9 : 2 })}
                     </span>
                     <ChevronRight size={10} className='text-tx-dim' />
                   </div>
@@ -272,13 +275,14 @@ const SendToSpaceOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             value={sendAmount}
             onChange={(e) => setSendAmount(e.target.value)}
             max={selected.uiBalance}
-            min={1}
+            min={isNativeSolMint(selected.mintAddress) ? 0.000000001 : 1}
+            step={isNativeSolMint(selected.mintAddress) ? 0.000000001 : 1}
             className={INPUT}
           />
 
           <FieldLabel>Tokens per pill</FieldLabel>
           <div className='flex gap-1'>
-            {['10', '100', '500', '1000'].map((v) => (
+            {(isNativeSolMint(selected.mintAddress) ? ['0.001', '0.005', '0.01', '0.05'] : ['10', '100', '500', '1000']).map((v) => (
               <PresetBtn key={v} value={v} active={tokensPerPill === v} onClick={() => setTokensPerPill(v)} />
             ))}
             <input

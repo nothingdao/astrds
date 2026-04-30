@@ -5,11 +5,14 @@ import {
   type Wallet as AnchorWallet,
 } from '@coral-xyz/anchor'
 import {
+  ACCOUNT_SIZE,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
+  createInitializeAccountInstruction,
   createSyncNativeInstruction,
   getAssociatedTokenAddressSync,
+  NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
@@ -27,6 +30,7 @@ import {
 } from '@solana/web3.js'
 import idl from '@/lib/idl/space_vault_program.json'
 import type { SpaceVaultProgram } from '@/lib/idl/space_vault_program'
+import { isNativeSolMint } from '@/lib/nativeSol'
 
 export type TokenProgramKind = 'TOKEN' | 'TOKEN_2022'
 
@@ -246,8 +250,9 @@ export const buildSendToSpaceTransaction = async ({
   programId: TokenProgramKind
 }) => {
   const program = getSpaceVaultProgram(connection, depositor)
-  const mint = new PublicKey(mintAddress)
-  const tokenProgram = getTokenProgramId(programId)
+  const isSolDeposit = isNativeSolMint(mintAddress)
+  const mint = isSolDeposit ? NATIVE_MINT : new PublicKey(mintAddress)
+  const tokenProgram = isSolDeposit ? TOKEN_PROGRAM_ID : getTokenProgramId(programId)
   const [depositPool] = findDepositPoolPda(depositor, mint)
   const vaultAta = getAssociatedTokenAddressSync(
     mint,
@@ -256,7 +261,8 @@ export const buildSendToSpaceTransaction = async ({
     tokenProgram,
     ASSOCIATED_TOKEN_PROGRAM_ID
   )
-  const depositorTokenAccount = getAssociatedTokenAddressSync(
+  const tempWsolAccount = isSolDeposit ? Keypair.generate() : null
+  const depositorTokenAccount = tempWsolAccount?.publicKey ?? getAssociatedTokenAddressSync(
     mint,
     depositor,
     false,
@@ -266,6 +272,21 @@ export const buildSendToSpaceTransaction = async ({
 
   const tx = new Transaction()
   const poolAccount = await connection.getAccountInfo(depositPool, 'confirmed')
+
+  if (isSolDeposit && tempWsolAccount) {
+    const rentExemptLamports = await connection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE)
+    tx.add(
+      SystemProgram.createAccount({
+        fromPubkey: depositor,
+        newAccountPubkey: tempWsolAccount.publicKey,
+        lamports: rentExemptLamports + rawAmount,
+        space: ACCOUNT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeAccountInstruction(tempWsolAccount.publicKey, NATIVE_MINT, depositor, TOKEN_PROGRAM_ID),
+      createSyncNativeInstruction(tempWsolAccount.publicKey, TOKEN_PROGRAM_ID)
+    )
+  }
 
   if (!poolAccount) {
     tx.add(
@@ -298,9 +319,14 @@ export const buildSendToSpaceTransaction = async ({
       .instruction()
   )
 
+  if (isSolDeposit && tempWsolAccount) {
+    tx.add(createCloseAccountInstruction(tempWsolAccount.publicKey, depositor, depositor, [], TOKEN_PROGRAM_ID))
+  }
+
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   tx.feePayer = depositor
   tx.recentBlockhash = blockhash
+  if (tempWsolAccount) tx.partialSign(tempWsolAccount)
 
   return {
     transaction: tx,
@@ -320,9 +346,10 @@ export const buildClaimTransaction = async ({
   claim: PreparedClaim
 }) => {
   const program = getSpaceVaultProgram(connection, player)
-  const mint = new PublicKey(claim.mintAddress)
+  const isSolClaim = isNativeSolMint(claim.mintAddress)
+  const mint = isSolClaim ? NATIVE_MINT : new PublicKey(claim.mintAddress)
   const depositPool = new PublicKey(claim.poolAddress)
-  const tokenProgram = getTokenProgramId(claim.programId)
+  const tokenProgram = isSolClaim ? TOKEN_PROGRAM_ID : getTokenProgramId(claim.programId)
   const [vaultConfig] = findVaultConfigPda()
   const [claimRecord] = findClaimRecordPda(Uint8Array.from(claim.claimId))
   const vaultAta = getAssociatedTokenAddressSync(
@@ -339,7 +366,10 @@ export const buildClaimTransaction = async ({
     tokenProgram,
     ASSOCIATED_TOKEN_PROGRAM_ID
   )
-  const vaultConfigAccount = await fetchVaultConfig(connection)
+  const [vaultConfigAccount, existingPlayerTokenAccount] = await Promise.all([
+    fetchVaultConfig(connection),
+    connection.getAccountInfo(playerTokenAccount, 'confirmed'),
+  ])
   const message = buildClaimMessage(
     player,
     depositPool,
@@ -375,6 +405,10 @@ export const buildClaimTransaction = async ({
       } as any)
       .instruction()
   )
+
+  if (isSolClaim && !existingPlayerTokenAccount) {
+    tx.add(createCloseAccountInstruction(playerTokenAccount, player, player, [], TOKEN_PROGRAM_ID))
+  }
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   tx.feePayer = player

@@ -4,6 +4,7 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { RPC_ENDPOINT } from '@/lib/solana'
+import { NATIVE_SOL_MINT, SOL_DECIMALS, SOL_RENT_AND_FEE_RESERVE_LAMPORTS } from '@/lib/nativeSol'
 
 export interface WalletToken {
   accountAddress: string // the ATA pubkey
@@ -63,7 +64,8 @@ export async function getWalletTokens(walletAddress: string, includeEmpty = fals
   const connection = new Connection(RPC_ENDPOINT, 'confirmed')
   const pubkey = new PublicKey(walletAddress)
 
-  const [v1Accounts, v2Accounts] = await Promise.all([
+  const [lamports, v1Accounts, v2Accounts] = await Promise.all([
+    connection.getBalance(pubkey, 'confirmed'),
     connection.getParsedTokenAccountsByOwner(pubkey, { programId: TOKEN_PROGRAM_ID }),
     connection.getParsedTokenAccountsByOwner(pubkey, { programId: TOKEN_2022_PROGRAM_ID }),
   ])
@@ -86,7 +88,7 @@ export async function getWalletTokens(walletAddress: string, includeEmpty = fals
   const mintAddresses = filtered.map((e) => e.info.mint as string)
   const dasMetadata = await fetchDasMetadata(mintAddresses)
 
-  return filtered.map((e) => {
+  const splTokens = filtered.map((e) => {
     const mint = e.info.mint as string
     const tokenAmount = e.info.tokenAmount
     const meta = dasMetadata.get(mint)
@@ -102,4 +104,18 @@ export async function getWalletTokens(walletAddress: string, includeEmpty = fals
       logoUri: meta?.logoUri,
     }
   })
+
+  const spendableLamports = Math.max(0, lamports - SOL_RENT_AND_FEE_RESERVE_LAMPORTS)
+  const solToken: WalletToken = {
+    accountAddress: walletAddress,
+    mintAddress: NATIVE_SOL_MINT,
+    programId: 'TOKEN',
+    balance: spendableLamports,
+    decimals: SOL_DECIMALS,
+    uiBalance: spendableLamports / 10 ** SOL_DECIMALS,
+    symbol: 'SOL',
+    name: 'Solana',
+  }
+
+  return (includeEmpty || spendableLamports > 0) ? [solToken, ...splTokens] : splTokens
 }

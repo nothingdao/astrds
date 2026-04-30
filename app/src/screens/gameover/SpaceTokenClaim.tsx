@@ -10,6 +10,7 @@ import { Connection } from '@solana/web3.js'
 import { CheckCircle2, AlertCircle, Rocket } from 'lucide-react'
 import { RPC_ENDPOINT } from '@/lib/solana'
 import { buildClaimTransaction, sendSignedTransaction } from '@/lib/spaceVault'
+import { isNativeSolMint } from '@/lib/nativeSol'
 
 type ClaimState = 'idle' | 'claiming' | 'done' | 'error'
 
@@ -117,11 +118,12 @@ const SpaceTokenClaim: React.FC = () => {
               const uiAmount = g.totalAmount / 10 ** g.decimals
               const pillCount = Math.round(g.totalAmount / g.tokensPerPill)
               const perPillUi = g.tokensPerPill / 10 ** g.decimals
+              const maxDecimals = isNativeSolMint(g.mintAddress) ? 9 : Math.min(g.decimals, 6)
               return (
                 <div key={g.mintAddress} className='flex justify-between font-mono text-xs'>
                   <span className='text-tx-secondary'>{g.symbol}</span>
                   <span className='text-[var(--entity-shield)]'>
-                    {pillCount} collected × {perPillUi.toLocaleString()} = {uiAmount.toLocaleString()}
+                    {pillCount} collected × {perPillUi.toLocaleString(undefined, { maximumFractionDigits: maxDecimals })} = {uiAmount.toLocaleString(undefined, { maximumFractionDigits: maxDecimals })}
                   </span>
                 </div>
               )
@@ -149,7 +151,7 @@ const SpaceTokenClaim: React.FC = () => {
           <div className='space-y-0.5'>
             {results.length > 0 ? results.map((r) => (
               <p key={r.symbol} className='font-mono text-xs text-tx-secondary'>
-                {(r.totalClaimed / 10 ** r.decimals).toLocaleString()} {r.symbol} sent to your wallet
+                {(r.totalClaimed / 10 ** r.decimals).toLocaleString(undefined, { maximumFractionDigits: r.symbol === 'SOL' ? 9 : Math.min(r.decimals, 6) })} {r.symbol} sent to your wallet
               </p>
             )) : (
               <p className='font-mono text-xs text-tx-secondary'>Nothing to claim right now.</p>

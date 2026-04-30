@@ -15,6 +15,7 @@ import { getWalletTokens, type WalletToken } from '@/utils/walletTokens'
 import { buildSendToSpaceTransaction } from '@/lib/tokenTransfer'
 import { RPC_ENDPOINT } from '@/lib/solana'
 import { fetchDepositPool, sendSignedTransaction } from '@/lib/spaceVault'
+import { isNativeSolMint } from '@/lib/nativeSol'
 import { Rocket, Flame, ExternalLink, RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 type View = 'list' | 'configure' | 'launching' | 'launched' | 'launch-error'
@@ -119,7 +120,7 @@ const TokenManager: React.FC = () => {
   // ── Batch-close all zero-balance accounts ─────────────────────────────────
   const closeAllEmpty = async () => {
     if (!publicKey || (!signAllTransactions && !signTransaction)) return
-    const emptyTokens = tokens.filter(t => t.balance === 0)
+    const emptyTokens = tokens.filter(t => t.balance === 0 && !isNativeSolMint(t.mintAddress))
     if (emptyTokens.length === 0) return
     const addrs = emptyTokens.map(t => t.accountAddress)
     setProcessing(prev => new Set([...prev, ...addrs]))
@@ -154,7 +155,9 @@ const TokenManager: React.FC = () => {
   // ── Start Space launch for a token ────────────────────────────────────────
   const startLaunch = (token: WalletToken) => {
     setLaunchToken(token)
-    setSendAmount(String(Math.floor(token.uiBalance / 2)))
+    const isSol = isNativeSolMint(token.mintAddress)
+    setSendAmount(isSol ? Math.min(token.uiBalance / 2, 0.01).toFixed(3).replace(/\.?(0+)$/, '') : String(Math.floor(token.uiBalance / 2)))
+    setTokensPerPill(isSol ? '0.001' : '100')
     setView('configure')
   }
 
@@ -227,7 +230,7 @@ const TokenManager: React.FC = () => {
     )
   }
 
-  const emptyCount = tokens.filter(t => t.balance === 0).length
+  const emptyCount = tokens.filter(t => t.balance === 0 && !isNativeSolMint(t.mintAddress)).length
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -286,6 +289,7 @@ const TokenManager: React.FC = () => {
                 const isProcessing = processing.has(addr)
                 const isBurnPending = pendingBurn === addr
                 const isEmpty = token.balance === 0
+                const isSol = isNativeSolMint(token.mintAddress)
 
                 return (
                   <div key={addr} className='flex items-center py-1.5 border-b border-border min-h-[32px]'>
@@ -305,7 +309,7 @@ const TokenManager: React.FC = () => {
                     {/* Balance */}
                     {!isBurnPending && !isProcessing && (
                       <span className={`font-mono text-xs w-24 text-right mr-2 ${isEmpty ? 'text-tx-dim' : 'text-tx-secondary'}`}>
-                        {isEmpty ? 'empty' : token.uiBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                        {isEmpty ? 'empty' : token.uiBalance.toLocaleString(undefined, { maximumFractionDigits: isSol ? 9 : 4 })}
                       </span>
                     )}
 
@@ -349,13 +353,15 @@ const TokenManager: React.FC = () => {
                             <Rocket size={11} />
                           </button>
                         )}
-                        <button
-                          onClick={() => isEmpty ? executeBurnClose(token) : setPendingBurn(addr)}
-                          title={isEmpty ? 'Close account · reclaim rent' : 'Burn balance & close account'}
-                          className='p-1.5 text-destructive/35 hover:text-destructive transition-colors'
-                        >
-                          <Flame size={11} />
-                        </button>
+                        {!isSol && (
+                          <button
+                            onClick={() => isEmpty ? executeBurnClose(token) : setPendingBurn(addr)}
+                            title={isEmpty ? 'Close account · reclaim rent' : 'Burn balance & close account'}
+                            className='p-1.5 text-destructive/35 hover:text-destructive transition-colors'
+                          >
+                            <Flame size={11} />
+                          </button>
+                        )}
                         <a
                           href={ORB(token.mintAddress)}
                           target='_blank'
@@ -398,11 +404,12 @@ const TokenManager: React.FC = () => {
 
           <FieldLabel>Amount to send</FieldLabel>
           <input type='number' value={sendAmount} onChange={e => setSendAmount(e.target.value)}
-            max={launchToken.uiBalance} min={1} className={INPUT} />
+            max={launchToken.uiBalance} min={isNativeSolMint(launchToken.mintAddress) ? 0.000000001 : 1}
+            step={isNativeSolMint(launchToken.mintAddress) ? 0.000000001 : 1} className={INPUT} />
 
           <FieldLabel>Tokens per pill</FieldLabel>
           <div className='flex gap-1'>
-            {['10', '100', '500', '1000'].map(v => (
+            {(isNativeSolMint(launchToken.mintAddress) ? ['0.001', '0.005', '0.01', '0.05'] : ['10', '100', '500', '1000']).map(v => (
               <PresetBtn key={v} value={v} active={tokensPerPill === v} onClick={() => setTokensPerPill(v)} />
             ))}
             <input type='number' value={tokensPerPill} onChange={e => setTokensPerPill(e.target.value)}
