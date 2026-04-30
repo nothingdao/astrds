@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { PaidGameIntake } from "./PaidGameIntake.js";
 
-function client({ verified = true, consumed = true } = {}) {
+function client({ active = true } = {}) {
   return {
-    isVerifiedSession: vi.fn(async () => verified),
-    consumeSession: vi.fn(async () => consumed),
+    isActiveGameSession: vi.fn(async () => active),
   };
 }
 
@@ -19,12 +18,21 @@ describe("PaidGameIntake", () => {
       ok: false,
       error: "No active session. Please insert a quarter.",
     });
-    expect(convex.isVerifiedSession).not.toHaveBeenCalled();
-    expect(convex.consumeSession).not.toHaveBeenCalled();
+    expect(convex.isActiveGameSession).not.toHaveBeenCalled();
   });
 
-  it("rejects an unverified session without consuming it", async () => {
-    const convex = client({ verified: false });
+  it("rejects missing game session without touching Convex", async () => {
+    const convex = client();
+    const intake = new PaidGameIntake(convex);
+
+    const result = await intake.consume({ walletAddress: "wallet-1" });
+
+    expect(result.ok).toBe(false);
+    expect(convex.isActiveGameSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects an inactive or mismatched game session", async () => {
+    const convex = client({ active: false });
     const intake = new PaidGameIntake(convex);
 
     const result = await intake.consume({
@@ -33,28 +41,13 @@ describe("PaidGameIntake", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(convex.isVerifiedSession).toHaveBeenCalledWith({
-      walletAddress: "wallet-1",
-    });
-    expect(convex.consumeSession).not.toHaveBeenCalled();
-  });
-
-  it("rejects when consumption fails", async () => {
-    const convex = client({ verified: true, consumed: false });
-    const intake = new PaidGameIntake(convex);
-
-    const result = await intake.consume({
-      walletAddress: "wallet-1",
-      gameSessionId: "game-1",
-    });
-
-    expect(result.ok).toBe(false);
-    expect(convex.consumeSession).toHaveBeenCalledWith({
+    expect(convex.isActiveGameSession).toHaveBeenCalledWith({
+      sessionId: "game-1",
       walletAddress: "wallet-1",
     });
   });
 
-  it("returns a normalized binding after verification and consumption", async () => {
+  it("returns a normalized binding for an active paid game session", async () => {
     const convex = client();
     const intake = new PaidGameIntake(convex);
 

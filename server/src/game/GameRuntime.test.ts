@@ -20,6 +20,7 @@ import type { SpaceTokenPool } from "../../../shared/game/protocol.js";
 
 function createConvexStub(overrides: Partial<ConvexServerClient> = {}) {
   const stub = {
+    isActiveGameSession: vi.fn(async () => true),
     isVerifiedSession: vi.fn(async () => true),
     consumeSession: vi.fn(async () => true),
     getGameConfig: vi.fn(async () => DEFAULT_GAME_CONFIG),
@@ -47,12 +48,12 @@ describe("GameRuntime", () => {
     expect(result.ok).toBe(false);
     expect(result.error).toBe("No active session. Please insert a quarter.");
     expect(runtime.ready).toBe(false);
-    expect(convex.isVerifiedSession).not.toHaveBeenCalled();
+    expect(convex.isActiveGameSession).not.toHaveBeenCalled();
   });
 
-  it("rejects hello when the paid session is not verified", async () => {
+  it("rejects hello when the game session is not active for the wallet", async () => {
     const convex = createConvexStub({
-      isVerifiedSession: vi.fn(async () => false),
+      isActiveGameSession: vi.fn(async () => false),
     });
     const runtime = new GameRuntime("runtime-test", convex);
 
@@ -63,10 +64,10 @@ describe("GameRuntime", () => {
 
     expect(result.ok).toBe(false);
     expect(runtime.ready).toBe(false);
-    expect(convex.isVerifiedSession).toHaveBeenCalledWith({
+    expect(convex.isActiveGameSession).toHaveBeenCalledWith({
+      sessionId: "game-1",
       walletAddress: "wallet-1",
     });
-    expect(convex.consumeSession).not.toHaveBeenCalled();
   });
 
   it("consumes a verified session and returns an initialized snapshot", async () => {
@@ -82,10 +83,8 @@ describe("GameRuntime", () => {
     expect(runtime.ready).toBe(true);
     expect(result.snapshot?.screen).toEqual({ width: 800, height: 600 });
     expect(result.snapshot?.status).toBe("playing");
-    expect(convex.isVerifiedSession).toHaveBeenCalledWith({
-      walletAddress: "wallet-1",
-    });
-    expect(convex.consumeSession).toHaveBeenCalledWith({
+    expect(convex.isActiveGameSession).toHaveBeenCalledWith({
+      sessionId: "game-1",
       walletAddress: "wallet-1",
     });
     expect(convex.getGameConfig).toHaveBeenCalled();
@@ -107,7 +106,7 @@ describe("GameRuntime", () => {
 
     expect(second.ok).toBe(true);
     expect(second.snapshot?.screen).toEqual({ width: 1024, height: 768 });
-    expect(convex.consumeSession).toHaveBeenCalledTimes(1);
+    expect(convex.isActiveGameSession).toHaveBeenCalledTimes(1);
   });
 
   it("ticks the simulation and returns a snapshot", async () => {

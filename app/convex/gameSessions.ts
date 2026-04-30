@@ -12,6 +12,22 @@ import { Id } from "./_generated/dataModel";
 export const create = mutation({
   args: { walletAddress: v.string() },
   handler: async (ctx, { walletAddress }) => {
+    const verifiedSession = await ctx.db
+      .query("verifiedSessions")
+      .withIndex("by_wallet", (q) => q.eq("walletAddress", walletAddress))
+      .order("desc")
+      .first();
+
+    if (
+      !verifiedSession ||
+      verifiedSession.expiresAt <= Date.now() ||
+      verifiedSession.consumed === true
+    ) {
+      throw new Error("No active paid session. Please insert a quarter.");
+    }
+
+    await ctx.db.patch(verifiedSession._id, { consumed: true });
+
     return await ctx.db.insert("gameSessions", {
       walletAddress,
       score: 0,
@@ -151,6 +167,18 @@ export const incrementPillsCollected = mutation({
 export const get = query({
   args: { sessionId: v.id("gameSessions") },
   handler: async (ctx, { sessionId }) => ctx.db.get(sessionId),
+});
+
+export const isActiveForWallet = query({
+  args: { sessionId: v.id("gameSessions"), walletAddress: v.string() },
+  handler: async (ctx, { sessionId, walletAddress }) => {
+    const session = await ctx.db.get(sessionId);
+    return Boolean(
+      session &&
+        session.walletAddress === walletAddress &&
+        session.status === "active"
+    );
+  },
 });
 
 export const getInternal = internalQuery({

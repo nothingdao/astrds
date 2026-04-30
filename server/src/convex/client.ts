@@ -7,6 +7,7 @@ const GAME_SESSIONS_UPDATE = "gameSessions:update";
 const SET_ASTRDS_EARNED_PATH = "/game-server/set-astrds-earned";
 const CONSUME_SESSION_PATH = "/game-server/consume-session";
 const GAME_SESSIONS_INCREMENT_PILLS = "gameSessions:incrementPillsCollected";
+const GAME_SESSIONS_IS_ACTIVE_FOR_WALLET = "gameSessions:isActiveForWallet";
 const SPACE_DEPOSITS_COLLECT = "spaceDeposits:collectFromDeposit";
 const SPACE_DEPOSITS_GET_ACTIVE_POOLS = "spaceDeposits:getActivePoolsForLevel";
 const SPACE_DEPOSITS_REQUEST_SPAWN_TICKET = "spaceDeposits:requestSpawnTicket";
@@ -22,7 +23,8 @@ type ConvexFunctionName =
 type ConvexQueryName =
   | typeof SPACE_DEPOSITS_GET_ACTIVE_POOLS
   | typeof SESSIONS_IS_VERIFIED
-  | typeof ADMIN_GET_GAME_CONFIG;
+  | typeof ADMIN_GET_GAME_CONFIG
+  | typeof GAME_SESSIONS_IS_ACTIVE_FOR_WALLET;
 
 export class ConvexServerClient {
   private readonly client: ConvexHttpClient | null;
@@ -78,6 +80,14 @@ export class ConvexServerClient {
       const text = await resp.text();
       throw new Error(`setAstrdsEarned failed: ${resp.status} ${text}`);
     }
+  }
+
+  async isActiveGameSession(args: {
+    sessionId: string;
+    walletAddress: string;
+  }): Promise<boolean> {
+    const result = await this.query(GAME_SESSIONS_IS_ACTIVE_FOR_WALLET, args);
+    return result === true;
   }
 
   async consumeSession(args: { walletAddress: string }): Promise<boolean> {
