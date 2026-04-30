@@ -1,45 +1,38 @@
-import { v } from 'convex/values'
-import { httpAction, internalMutation, mutation, query } from './_generated/server'
-import { internal } from './_generated/api'
-import { DEFAULT_SIMULATION_CONFIG } from '../../shared/game/simulation'
+import { v } from "convex/values";
+import {
+  httpAction,
+  internalMutation,
+  mutation,
+  query,
+} from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  DEFAULT_GAME_CONFIG,
+  DEFAULT_TIER_BREAKPOINTS_USD,
+  DEFAULT_PILLS_PER_TIER,
+  DEFAULT_ASTRDS_PER_PILL,
+  normalizeGameConfig,
+  parseGameConfigPayload,
+} from "../../shared/game/gameConfigContract";
 
 // Wallets allowed to save config directly via the Convex mutation (no API key needed).
 // The HTTP endpoint is still available for scripted access with ADMIN_API_KEY.
 const DEV_WALLETS = new Set([
-  'jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE', // deployer / upgrade authority
-  'FEb3tauuDVbcErhewnDCFeM2Lt6ddRMwme23UY3ANebg', // astrds player 1
-])
+  "jrXCZwP8bxDnGs7ChD4F77We1K4J89R53SAVk5HsSoE", // deployer / upgrade authority
+  "FEb3tauuDVbcErhewnDCFeM2Lt6ddRMwme23UY3ANebg", // astrds player 1
+]);
 
-export const DEFAULT_TIER_BREAKPOINTS = [0.0024, 0.01, 0.05, 0.1]
-export const DEFAULT_PILLS_PER_TIER   = [5, 10, 25, 50, 100]
-export const DEFAULT_ASTRDS_PER_PILL  = [10, 5, 2, 1, 0.5]
-
-export const DEFAULT_CONFIG = {
-  version: 1,
-  applyToRunning: false,
-  ...DEFAULT_SIMULATION_CONFIG,
-  quarterUsd: 0.25,
-  tierBreakpointsUsd: DEFAULT_TIER_BREAKPOINTS,
-  pillsPerTier: DEFAULT_PILLS_PER_TIER,
-  astrdsPerPill: DEFAULT_ASTRDS_PER_PILL,
-}
+export const DEFAULT_TIER_BREAKPOINTS = [...DEFAULT_TIER_BREAKPOINTS_USD];
+export { DEFAULT_PILLS_PER_TIER, DEFAULT_ASTRDS_PER_PILL };
+export const DEFAULT_CONFIG = DEFAULT_GAME_CONFIG;
 
 export const getGameConfig = query({
   args: {},
   handler: async (ctx) => {
-    const doc = await ctx.db.query('gameConfig').first()
-    if (!doc) return DEFAULT_CONFIG
-    return {
-      ...DEFAULT_CONFIG,
-      ...doc,
-      // Ensure array fields fall back to defaults if missing
-      tierBreakpointsUsd: doc.tierBreakpointsUsd ?? DEFAULT_TIER_BREAKPOINTS,
-      pillsPerTier: doc.pillsPerTier ?? DEFAULT_PILLS_PER_TIER,
-      astrdsPerPill: doc.astrdsPerPill ?? DEFAULT_ASTRDS_PER_PILL,
-      quarterUsd: doc.quarterUsd ?? 0.25,
-    }
+    const doc = await ctx.db.query("gameConfig").first();
+    return normalizeGameConfig(doc);
   },
-})
+});
 
 const CONFIG_ARGS = {
   applyToRunning: v.boolean(),
@@ -82,7 +75,7 @@ const CONFIG_ARGS = {
   tierBreakpointsUsd: v.array(v.number()),
   pillsPerTier: v.array(v.number()),
   astrdsPerPill: v.array(v.number()),
-}
+};
 
 // Public mutation — wallet address is validated against DEV_WALLETS.
 // Not cryptographically secure (any Convex client can pass any address), but
@@ -91,82 +84,62 @@ const CONFIG_ARGS = {
 export const setGameConfigInternal = internalMutation({
   args: CONFIG_ARGS,
   handler: async (ctx, args) => {
-    const existing = await ctx.db.query('gameConfig').first()
+    const existing = await ctx.db.query("gameConfig").first();
     if (existing) {
-      await ctx.db.patch(existing._id, { ...args, version: existing.version + 1 })
+      await ctx.db.patch(existing._id, {
+        ...args,
+        version: existing.version + 1,
+      });
     } else {
-      await ctx.db.insert('gameConfig', { ...args, version: 1 })
+      await ctx.db.insert("gameConfig", { ...args, version: 1 });
     }
   },
-})
+});
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
 
 export const updateConfigHttp = httpAction(async (ctx, request) => {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS })
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
-  const apiKey = process.env.ADMIN_API_KEY
+  const apiKey = process.env.ADMIN_API_KEY;
   if (!apiKey) {
-    return new Response('Admin API not configured', { status: 503, headers: CORS_HEADERS })
+    return new Response("Admin API not configured", {
+      status: 503,
+      headers: CORS_HEADERS,
+    });
   }
 
-  const authHeader = request.headers.get('Authorization')
+  const authHeader = request.headers.get("Authorization");
   if (authHeader !== `Bearer ${apiKey}`) {
-    return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS })
+    return new Response("Unauthorized", { status: 401, headers: CORS_HEADERS });
   }
 
-  let body: unknown
+  let body: unknown;
   try {
-    body = await request.json()
+    body = await request.json();
   } catch {
-    return new Response('Invalid JSON', { status: 400, headers: CORS_HEADERS })
+    return new Response("Invalid JSON", { status: 400, headers: CORS_HEADERS });
   }
 
-  const c = body as Record<string, unknown>
-
-  const requiredNumbers = [
-    'powerupSpawnDelayMs', 'shipPickupSpawnDelayMs', 'maxPowerupsOnScreen',
-    'powerupDurationMs', 'maxLives', 'startingLives', 'quarterUsd',
-    'shipRadius', 'shipRotationSpeed', 'shipAcceleration', 'shipInertia', 'shipInvulnerabilityMs',
-    'normalBulletSpeed', 'rapidBulletSpeed', 'normalFireDelayMs', 'rapidFireDelayMs',
-    'bulletRadius', 'rapidBulletRadius', 'rapidBulletPower', 'bulletCollisionPadding',
-    'largeAsteroidRadius', 'mediumAsteroidRadius', 'smallAsteroidRadius',
-    'asteroidVelocityMin', 'asteroidVelocityMax', 'asteroidScoreLarge', 'asteroidScoreMedium', 'asteroidScoreSmall',
-    'pillSpawnDelayMs', 'tokenSpawnDelayMs', 'spaceTokenSpawnChance', 'pickupTtlMs',
-    'pickupRadius', 'shipPickupRadius', 'maxShipPickupsOnScreen',
-  ]
-  for (const key of requiredNumbers) {
-    if (typeof c[key] !== 'number' || isNaN(c[key] as number)) {
-      return new Response(`Missing or invalid field: ${key}`, { status: 400, headers: CORS_HEADERS })
-    }
+  const parsed = parseGameConfigPayload(body);
+  if (!parsed.ok) {
+    return new Response(parsed.errors[0] ?? "Invalid config", {
+      status: 400,
+      headers: CORS_HEADERS,
+    });
   }
 
-  const requiredArrays = ['tierBreakpointsUsd', 'pillsPerTier', 'astrdsPerPill', 'progressionBands']
-  for (const key of requiredArrays) {
-    if (!Array.isArray(c[key])) {
-      return new Response(`Missing or invalid field: ${key}`, { status: 400, headers: CORS_HEADERS })
-    }
-  }
-
-  const payload = {
-    applyToRunning: Boolean(c.applyToRunning),
-    ...Object.fromEntries(requiredNumbers.map((key) => [key, c[key] as number])),
-    tierBreakpointsUsd: c.tierBreakpointsUsd as number[],
-    pillsPerTier: c.pillsPerTier as number[],
-    astrdsPerPill: c.astrdsPerPill as number[],
-    progressionBands: c.progressionBands as unknown,
-  } as any
-
-  await ctx.runMutation(internal.admin.setGameConfigInternal, payload)
+  const { version: _, ...payload } = parsed.config;
+  await ctx.runMutation(internal.admin.setGameConfigInternal, payload);
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  })
-})
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+});
