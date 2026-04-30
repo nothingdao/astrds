@@ -1,18 +1,18 @@
-import { create } from 'zustand'
-import { ChatStore } from '@/types/chat'
-import { convex } from '@/lib/convex'
-import { api } from '../../convex/_generated/api'
+import { create } from "zustand";
+import { ChatStore } from "@/types/chat";
+import { convex } from "@/lib/convex";
+import { api } from "../../convex/_generated/api";
 
 // Message list is NOT stored here — components use useQuery(api.chat.getMessages)
 // This store holds UI state and the send action only.
 
 const initialState = {
   overlayVisible: false,
-  chatMode: null as ChatStore['chatMode'],
+  chatMode: null as ChatStore["chatMode"],
   isPaused: false,
-  error: null as ChatStore['error'],
+  error: null as ChatStore["error"],
   isLoading: false,
-}
+};
 
 export const useChatStore = create<ChatStore>((set) => ({
   ...initialState,
@@ -20,15 +20,15 @@ export const useChatStore = create<ChatStore>((set) => ({
   toggleOverlay: () => {
     set((state) => ({
       overlayVisible: !state.overlayVisible,
-      chatMode: state.chatMode === 'overlay' ? null : 'overlay',
-    }))
+      chatMode: state.chatMode === "overlay" ? null : "overlay",
+    }));
   },
 
   toggleFullChat: () => {
     set((state) => ({
-      chatMode: state.chatMode === 'full' ? null : 'full',
+      chatMode: state.chatMode === "full" ? null : "full",
       overlayVisible: false,
-    }))
+    }));
   },
 
   closeChat: () => set({ chatMode: null, overlayVisible: false }),
@@ -39,11 +39,14 @@ export const useChatStore = create<ChatStore>((set) => ({
 
   sendMessage: async (walletAddress: string, message: string) => {
     try {
-      await convex.mutation(api.chat.sendMessage, { walletAddress, message })
-      return true
+      await convex.mutation(api.chat.sendMessage, { walletAddress, message });
+      return true;
     } catch (error) {
-      set({ error: error instanceof Error ? error : new Error('Failed to send message') })
-      return false
+      set({
+        error:
+          error instanceof Error ? error : new Error("Failed to send message"),
+      });
+      return false;
     }
   },
-}))
+}));

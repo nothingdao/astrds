@@ -1,58 +1,58 @@
 // src/game/entities/Asteroid.ts
-import { asteroidVertices, randomNumBetween } from '@/utils/helpers'
-import { useGameData } from '../../stores/gameData'
-import { useEngineStore } from '../../stores/engineStore'
-import { particleSystem } from '../systems/ParticleSystem'
-import { audioService } from '../../services/audio/AudioService'
+import { asteroidVertices, randomNumBetween } from "@/utils/helpers";
+import { useGameData } from "../../stores/gameData";
+import { useEngineStore } from "../../stores/engineStore";
+import { particleSystem } from "../systems/ParticleSystem";
+import { audioService } from "../../services/audio/AudioService";
 import {
   AsteroidConfig,
   AsteroidState,
   AsteroidMethods,
-} from '@/types/entities/asteroid'
-import { ScreenBounds, Vector2D } from '@/types/core'
-import { getCanvasTokens } from '@/lib/designTokens'
+} from "@/types/entities/asteroid";
+import { ScreenBounds, Vector2D } from "@/types/core";
+import { getCanvasTokens } from "@/lib/designTokens";
 
 export default class Asteroid implements AsteroidState, AsteroidMethods {
-  public id: string
-  public position: Vector2D
-  public velocity: Vector2D
-  public rotation: number
-  public rotationSpeed: number
-  public radius: number
-  public score: number
-  public vertices: Vector2D[]
-  public delete: boolean
+  public id: string;
+  public position: Vector2D;
+  public velocity: Vector2D;
+  public rotation: number;
+  public rotationSpeed: number;
+  public radius: number;
+  public score: number;
+  public vertices: Vector2D[];
+  public delete: boolean;
 
   constructor(args: AsteroidConfig) {
-    this.id = `asteroid-${Date.now()}-${Math.random()}`
-    this.position = args.position
+    this.id = `asteroid-${Date.now()}-${Math.random()}`;
+    this.position = args.position;
     this.velocity = {
       x: randomNumBetween(-1.5, 1.5),
       y: randomNumBetween(-1.5, 1.5),
-    }
-    this.rotation = 0
-    this.rotationSpeed = randomNumBetween(-1, 1)
-    this.radius = args.size
-    this.score = Math.floor((80 / Math.max(1, this.radius)) * 5)
-    this.vertices = asteroidVertices(8, args.size)
-    this.delete = false
+    };
+    this.rotation = 0;
+    this.rotationSpeed = randomNumBetween(-1, 1);
+    this.radius = args.size;
+    this.score = Math.floor((80 / Math.max(1, this.radius)) * 5);
+    this.vertices = asteroidVertices(8, args.size);
+    this.delete = false;
   }
 
   destroy(): void {
-    this.delete = true
-    audioService.playSound('explosion')
+    this.delete = true;
+    audioService.playSound("explosion");
 
     // Add points using the store
-    const gameStore = useGameData.getState()
-    const scoreToAdd = Math.max(0, Math.floor(this.score))
-    gameStore.addToScore(scoreToAdd)
+    const gameStore = useGameData.getState();
+    const scoreToAdd = Math.max(0, Math.floor(this.score));
+    gameStore.addToScore(scoreToAdd);
 
     // Use particleSystem instead of directly creating particles
     particleSystem.createExplosion(
       this.position,
       this.radius,
       Math.floor(this.radius) // Particle count scales with asteroid size
-    )
+    );
 
     // Break into smaller asteroids
     if (this.radius > 10) {
@@ -63,49 +63,47 @@ export default class Asteroid implements AsteroidState, AsteroidMethods {
             x: randomNumBetween(-10, 20) + this.position.x,
             y: randomNumBetween(-10, 20) + this.position.y,
           },
-        })
-        useEngineStore.getState().addEntity(newAsteroid, 'asteroids')
+        });
+        useEngineStore.getState().addEntity(newAsteroid, "asteroids");
       }
     }
   }
 
   update(_dt: number, screen: ScreenBounds): void {
-    this.position.x += this.velocity.x
-    this.position.y += this.velocity.y
+    this.position.x += this.velocity.x;
+    this.position.y += this.velocity.y;
 
-    this.rotation += this.rotationSpeed
-    const { width, height } = screen
+    this.rotation += this.rotationSpeed;
+    const { width, height } = screen;
 
     if (this.rotation >= 360) {
-      this.rotation -= 360
+      this.rotation -= 360;
     }
     if (this.rotation < 0) {
-      this.rotation += 360
+      this.rotation += 360;
     }
 
-    if (this.position.x > width + this.radius)
-      this.position.x = -this.radius
+    if (this.position.x > width + this.radius) this.position.x = -this.radius;
     else if (this.position.x < -this.radius)
-      this.position.x = width + this.radius
-    if (this.position.y > height + this.radius)
-      this.position.y = -this.radius
+      this.position.x = width + this.radius;
+    if (this.position.y > height + this.radius) this.position.y = -this.radius;
     else if (this.position.y < -this.radius)
-      this.position.y = height + this.radius
+      this.position.y = height + this.radius;
   }
 
   render(context: CanvasRenderingContext2D): void {
-    context.save()
-    context.translate(this.position.x, this.position.y)
-    context.rotate((this.rotation * Math.PI) / 180)
-    context.strokeStyle = getCanvasTokens().asteroidStroke
-    context.lineWidth = 0.4
-    context.beginPath()
-    context.moveTo(0, -this.radius)
+    context.save();
+    context.translate(this.position.x, this.position.y);
+    context.rotate((this.rotation * Math.PI) / 180);
+    context.strokeStyle = getCanvasTokens().asteroidStroke;
+    context.lineWidth = 0.4;
+    context.beginPath();
+    context.moveTo(0, -this.radius);
     for (let i = 1; i < this.vertices.length; i++) {
-      context.lineTo(this.vertices[i].x, this.vertices[i].y)
+      context.lineTo(this.vertices[i].x, this.vertices[i].y);
     }
-    context.closePath()
-    context.stroke()
-    context.restore()
+    context.closePath();
+    context.stroke();
+    context.restore();
   }
 }

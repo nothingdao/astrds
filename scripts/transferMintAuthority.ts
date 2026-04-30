@@ -9,29 +9,44 @@
  * Run: PROGRAM_AUTHORITY_PRIVATE_KEY='[...]' npx ts-node scripts/transferMintAuthority.ts
  */
 
-import { web3 } from '@coral-xyz/anchor'
+import { web3 } from "@coral-xyz/anchor";
 import {
   createSetAuthorityInstruction,
   AuthorityType,
   TOKEN_2022_PROGRAM_ID,
-} from '@solana/spl-token'
+} from "@solana/spl-token";
 
-const PROGRAM_ID = new web3.PublicKey('4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB')
-const ASTRDS_MINT = new web3.PublicKey('5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB')
-const VAULT_CONFIG_SEED = Buffer.from('vault-config')
+const PROGRAM_ID = new web3.PublicKey(
+  "4bRZK8XfziVhLCgvtRdFJyTgN6tXGSPJT8xfbtt1AxBB"
+);
+const ASTRDS_MINT = new web3.PublicKey(
+  "5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB"
+);
+const VAULT_CONFIG_SEED = Buffer.from("vault-config");
 
-const [vaultConfigPda] = web3.PublicKey.findProgramAddressSync([VAULT_CONFIG_SEED], PROGRAM_ID)
+const [vaultConfigPda] = web3.PublicKey.findProgramAddressSync(
+  [VAULT_CONFIG_SEED],
+  PROGRAM_ID
+);
 
 async function main() {
-  const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY
-  if (!raw) throw new Error('PROGRAM_AUTHORITY_PRIVATE_KEY not set')
-  const convexKeypair = web3.Keypair.fromSecretKey(new Uint8Array(JSON.parse(raw)))
+  const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY;
+  if (!raw) throw new Error("PROGRAM_AUTHORITY_PRIVATE_KEY not set");
+  const convexKeypair = web3.Keypair.fromSecretKey(
+    new Uint8Array(JSON.parse(raw))
+  );
 
-  const connection = new web3.Connection('https://api.devnet.solana.com', 'confirmed')
+  const connection = new web3.Connection(
+    "https://api.devnet.solana.com",
+    "confirmed"
+  );
 
-  console.log('VaultConfig PDA:', vaultConfigPda.toBase58())
-  console.log('Current authority (Convex keypair):', convexKeypair.publicKey.toBase58())
-  console.log('Transferring ASTRDS mint authority...')
+  console.log("VaultConfig PDA:", vaultConfigPda.toBase58());
+  console.log(
+    "Current authority (Convex keypair):",
+    convexKeypair.publicKey.toBase58()
+  );
+  console.log("Transferring ASTRDS mint authority...");
 
   const ix = createSetAuthorityInstruction(
     ASTRDS_MINT,
@@ -40,18 +55,25 @@ async function main() {
     vaultConfigPda,
     [],
     TOKEN_2022_PROGRAM_ID
-  )
+  );
 
-  const tx = new web3.Transaction().add(ix)
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-  tx.feePayer = convexKeypair.publicKey
-  tx.recentBlockhash = blockhash
+  const tx = new web3.Transaction().add(ix);
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash("confirmed");
+  tx.feePayer = convexKeypair.publicKey;
+  tx.recentBlockhash = blockhash;
 
-  const sig = await connection.sendTransaction(tx, [convexKeypair])
-  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+  const sig = await connection.sendTransaction(tx, [convexKeypair]);
+  await connection.confirmTransaction(
+    { signature: sig, blockhash, lastValidBlockHeight },
+    "confirmed"
+  );
 
-  console.log('Done. Mint authority transferred to VaultConfig PDA.')
-  console.log('Transaction:', sig)
+  console.log("Done. Mint authority transferred to VaultConfig PDA.");
+  console.log("Transaction:", sig);
 }
 
-main().catch((err) => { console.error(err); process.exit(1) })
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

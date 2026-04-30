@@ -1,16 +1,16 @@
 // src/types/stores/overlay.ts
-import { Overlay } from '../overlay'
+import { Overlay } from "../overlay";
 
 export interface OverlayState {
-  activeOverlay: Overlay | null
-  previousOverlay: Overlay | null
-  wasGamePaused: boolean
+  activeOverlay: Overlay | null;
+  previousOverlay: Overlay | null;
+  wasGamePaused: boolean;
 }
 
 export interface OverlayActions {
-  openOverlay: (overlay: Overlay) => void
-  closeOverlay: () => void
-  isOverlayActive: (overlay: Overlay) => boolean
+  openOverlay: (overlay: Overlay) => void;
+  closeOverlay: () => void;
+  isOverlayActive: (overlay: Overlay) => boolean;
 }
 
-export type OverlayStore = OverlayState & OverlayActions
+export type OverlayStore = OverlayState & OverlayActions;

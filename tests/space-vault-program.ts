@@ -15,16 +15,25 @@ import {
 const { Keypair, PublicKey, SystemProgram, Ed25519Program, LAMPORTS_PER_SOL } =
   web3;
 
-const ASTRDS_MINT = new PublicKey("5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB");
+const ASTRDS_MINT = new PublicKey(
+  "5sqKSHDKZr4KbNzj972PSfmEhtR9eLeBvv1nBRbeQAnB"
+);
 const ASTRDS_SUPPLY_CAP_RAW = BigInt("21000000000000000");
-const METEORA_POOL = new PublicKey("EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG");
-const METEORA_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
-const METEORA_POOL_AUTHORITY = new PublicKey("HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC");
+const METEORA_POOL = new PublicKey(
+  "EQPzzbREwvEkZeJ7bvcasrz3tAsADtGAJxzTtcxiTCQG"
+);
+const METEORA_PROGRAM_ID = new PublicKey(
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+);
+const METEORA_POOL_AUTHORITY = new PublicKey(
+  "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC"
+);
 const METEORA_POSITION_TOKEN_PROGRAM_ID = TOKEN_2022_PROGRAM_ID;
 const POOL_ACCOUNT_DISCRIMINATOR_SIZE = 8;
 const POOL_FEES_STRUCT_SIZE = 160;
 const PUBLIC_KEY_SIZE = 32;
-const TOKEN_A_MINT_OFFSET = POOL_ACCOUNT_DISCRIMINATOR_SIZE + POOL_FEES_STRUCT_SIZE;
+const TOKEN_A_MINT_OFFSET =
+  POOL_ACCOUNT_DISCRIMINATOR_SIZE + POOL_FEES_STRUCT_SIZE;
 const TOKEN_B_MINT_OFFSET = TOKEN_A_MINT_OFFSET + PUBLIC_KEY_SIZE;
 const TOKEN_A_VAULT_OFFSET = TOKEN_B_MINT_OFFSET + PUBLIC_KEY_SIZE;
 const TOKEN_B_VAULT_OFFSET = TOKEN_A_VAULT_OFFSET + PUBLIC_KEY_SIZE;
@@ -178,9 +187,12 @@ describe("space-vault-program", () => {
     }
   };
 
-  const supplyCapTestsEnabled = () => process.env.RUN_ASTRDS_SUPPLY_CAP_TESTS === "1";
+  const supplyCapTestsEnabled = () =>
+    process.env.RUN_ASTRDS_SUPPLY_CAP_TESTS === "1";
 
-  const requireAstrdsMintForSupplyCapTest = async function (this: Mocha.Context) {
+  const requireAstrdsMintForSupplyCapTest = async function (
+    this: Mocha.Context
+  ) {
     if (!supplyCapTestsEnabled()) {
       this.skip();
     }
@@ -192,7 +204,9 @@ describe("space-vault-program", () => {
 
   const mintAstrdsForTest = async (amount: bigint, sessionLabel: string) => {
     const sessionId = Buffer.alloc(32);
-    sessionId.set(Buffer.from(`${sessionLabel}-${supplyCapTestCounter++}`).subarray(0, 32));
+    sessionId.set(
+      Buffer.from(`${sessionLabel}-${supplyCapTestCounter++}`).subarray(0, 32)
+    );
     const sessionIdArray = Array.from(sessionId);
     const expiry = new BN(Math.floor(Date.now() / 1000) + 60);
     const amountBn = new BN(amount.toString());
@@ -238,19 +252,15 @@ describe("space-vault-program", () => {
 
   before(async () => {
     await Promise.all(
-      [
-        operationalWallet,
-        operatorWallet,
-        depositor,
-        player,
-        outsider,
-      ].map(async (kp) => {
-        const sig = await provider.connection.requestAirdrop(
-          kp.publicKey,
-          2 * LAMPORTS_PER_SOL
-        );
-        await provider.connection.confirmTransaction(sig, "confirmed");
-      })
+      [operationalWallet, operatorWallet, depositor, player, outsider].map(
+        async (kp) => {
+          const sig = await provider.connection.requestAirdrop(
+            kp.publicKey,
+            2 * LAMPORTS_PER_SOL
+          );
+          await provider.connection.confirmTransaction(sig, "confirmed");
+        }
+      )
     );
 
     mint = await createMint(
@@ -513,10 +523,10 @@ describe("space-vault-program", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        })
-        .preInstructions([ed25519Ix])
-        .signers([player])
-        .rpc();
+      })
+      .preInstructions([ed25519Ix])
+      .signers([player])
+      .rpc();
 
     const playerAccount = await getAccount(provider.connection, playerAta);
     const pool = await accounts.depositPool.fetch(depositPoolPda);
@@ -676,38 +686,45 @@ describe("space-vault-program", () => {
 
   it("mints ASTRDS below the 21M cap", async function () {
     await requireAstrdsMintForSupplyCapTest.call(this);
-    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    const supply = BigInt(
+      (await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount
+    );
     if (supply >= ASTRDS_SUPPLY_CAP_RAW) this.skip();
 
     await mintAstrdsForTest(1n, "below-cap");
 
-    const afterSupply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    const afterSupply = BigInt(
+      (await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount
+    );
     expect(afterSupply).to.eq(supply + 1n);
   });
 
   it("mints ASTRDS exactly up to the 21M cap", async function () {
     await requireAstrdsMintForSupplyCapTest.call(this);
-    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    const supply = BigInt(
+      (await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount
+    );
     if (supply >= ASTRDS_SUPPLY_CAP_RAW) this.skip();
 
     const remaining = ASTRDS_SUPPLY_CAP_RAW - supply;
     await mintAstrdsForTest(remaining, "exact-cap");
 
-    const afterSupply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    const afterSupply = BigInt(
+      (await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount
+    );
     expect(afterSupply).to.eq(ASTRDS_SUPPLY_CAP_RAW);
   });
 
   it("rejects minting ASTRDS one raw unit over the 21M cap", async function () {
     await requireAstrdsMintForSupplyCapTest.call(this);
-    const supply = BigInt((await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount);
+    const supply = BigInt(
+      (await provider.connection.getTokenSupply(ASTRDS_MINT)).value.amount
+    );
     if (supply < ASTRDS_SUPPLY_CAP_RAW) {
       await mintAstrdsForTest(ASTRDS_SUPPLY_CAP_RAW - supply, "fill-cap");
     }
 
-    await expectFailure(
-      mintAstrdsForTest(1n, "over-cap"),
-      "SupplyCapExceeded"
-    );
+    await expectFailure(mintAstrdsForTest(1n, "over-cap"), "SupplyCapExceeded");
   });
 
   it("routes the pool leg into Meteora via the configured pool", async function () {

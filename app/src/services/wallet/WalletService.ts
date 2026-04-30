@@ -1,54 +1,54 @@
 // src/services/wallet/WalletService.ts
 class WalletService {
-  disconnectCallback: (() => void) | null
+  disconnectCallback: (() => void) | null;
 
   constructor() {
-    this.disconnectCallback = null
+    this.disconnectCallback = null;
   }
 
   getProvider(): any {
-    const w = window as any
-    if ('phantom' in w && w.phantom?.solana) {
-      return w.phantom.solana
+    const w = window as any;
+    if ("phantom" in w && w.phantom?.solana) {
+      return w.phantom.solana;
     }
-    return null
+    return null;
   }
 
   async attemptAutoConnect() {
     try {
-      const provider = this.getProvider()
-      if (!provider) return false
+      const provider = this.getProvider();
+      if (!provider) return false;
 
-      const resp = await provider.connect({ onlyIfTrusted: true })
-      console.log('Auto-connected to wallet:', resp.publicKey.toString())
+      const resp = await provider.connect({ onlyIfTrusted: true });
+      console.log("Auto-connected to wallet:", resp.publicKey.toString());
 
-      this.setupDisconnectListener()
-      return true
+      this.setupDisconnectListener();
+      return true;
     } catch (err) {
       if ((err as any).code !== 4001) {
-        console.error('Auto-connect error:', err)
+        console.error("Auto-connect error:", err);
       }
-      return false
+      return false;
     }
   }
 
   setupDisconnectListener() {
-    const provider = this.getProvider()
-    if (!provider) return
+    const provider = this.getProvider();
+    if (!provider) return;
 
-    provider.removeAllListeners('disconnect')
+    provider.removeAllListeners("disconnect");
 
-    provider.on('disconnect', () => {
-      console.log('Wallet disconnected')
+    provider.on("disconnect", () => {
+      console.log("Wallet disconnected");
       if (this.disconnectCallback) {
-        this.disconnectCallback()
+        this.disconnectCallback();
       }
-    })
+    });
   }
 
   onDisconnect(callback: () => void) {
-    this.disconnectCallback = callback
+    this.disconnectCallback = callback;
   }
 }
 
-export const walletService = new WalletService()
+export const walletService = new WalletService();

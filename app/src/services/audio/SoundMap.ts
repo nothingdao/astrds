@@ -7,55 +7,55 @@
 
 export type ScreenMusicEntry = {
   /** Music track id to start (null = keep whatever is currently playing) */
-  music: string | null
+  music: string | null;
   /** One-shot sound effect to fire when entering this state */
-  enter: string | null
-}
+  enter: string | null;
+};
 
 export type LevelBand = {
-  from: number
-  to: number
-  playlist: string[]
-}
+  from: number;
+  to: number;
+  playlist: string[];
+};
 
 export type StingerDuckConfig = {
-  targetVolume: number
-  duckMs: number
-  holdMs: number
-  restoreMs: number
-}
+  targetVolume: number;
+  duckMs: number;
+  holdMs: number;
+  restoreMs: number;
+};
 
 export type SfxBucketId =
-  | 'asteroidDestroyLarge'
-  | 'asteroidDestroyMedium'
-  | 'asteroidDestroySmall'
-  | 'spaceTokenCollect'
-  | 'personalBest'
-  | 'newTopScore'
-  | 'streak'
+  | "asteroidDestroyLarge"
+  | "asteroidDestroyMedium"
+  | "asteroidDestroySmall"
+  | "spaceTokenCollect"
+  | "personalBest"
+  | "newTopScore"
+  | "streak";
 
 export type StingerPlaylistId =
-  | 'levelAdvance'
-  | 'streak'
-  | 'personalBest'
-  | 'newTopScore'
+  | "levelAdvance"
+  | "streak"
+  | "personalBest"
+  | "newTopScore";
 
 export type SoundMapConfig = {
-  screens: Record<string, ScreenMusicEntry>
-  levelBands: LevelBand[]
-  sfxBuckets: Record<SfxBucketId, string[]>
-  stingerPlaylists: Record<StingerPlaylistId, string[]>
-  stingerDuck: StingerDuckConfig
-}
+  screens: Record<string, ScreenMusicEntry>;
+  levelBands: LevelBand[];
+  sfxBuckets: Record<SfxBucketId, string[]>;
+  stingerPlaylists: Record<StingerPlaylistId, string[]>;
+  stingerDuck: StingerDuckConfig;
+};
 
 export const SOUND_MAP: SoundMapConfig = {
   screens: {
     INITIAL: {
-      music: 'titleMusic',
+      music: "titleMusic",
       enter: null,
     },
     READY_TO_PLAY: {
-      music: 'readyMusic',
+      music: "readyMusic",
       enter: null,
     },
     PLAYING: {
@@ -69,8 +69,8 @@ export const SOUND_MAP: SoundMapConfig = {
       enter: null,
     },
     GAME_OVER: {
-      music: 'gameOverMusic',
-      enter: 'gameOver',
+      music: "gameOverMusic",
+      enter: "gameOver",
     },
   },
 
@@ -78,30 +78,23 @@ export const SOUND_MAP: SoundMapConfig = {
   // Evaluated in order — first matching band wins.
   // Single-track playlists loop that track. Multi-track playlists rotate through
   // a shuffled order and reshuffle after each full rotation.
-  levelBands: [
-    { from: 1, to: 999, playlist: ['gameMusic'] },
-  ],
+  levelBands: [{ from: 1, to: 999, playlist: ["gameMusic"] }],
 
   // SFX buckets use shuffle-without-replacement. Duplicate ids are acceptable
   // placeholders until more variant assets exist.
   sfxBuckets: {
-    asteroidDestroyLarge: ['explosion'],
-    asteroidDestroyMedium: ['explosion'],
-    asteroidDestroySmall: ['explosion'],
-    spaceTokenCollect: ['collect', 'spaceWind'],
-    personalBest: ['gameOver'],
-    newTopScore: ['gameOver'],
+    asteroidDestroyLarge: ["explosion"],
+    asteroidDestroyMedium: ["explosion"],
+    asteroidDestroySmall: ["explosion"],
+    spaceTokenCollect: ["collect", "spaceWind"],
+    personalBest: ["gameOver"],
+    newTopScore: ["gameOver"],
     streak: [],
   },
 
   // Stingers play over music on the stingers channel and duck music.
   stingerPlaylists: {
-    levelAdvance: [
-      'joi-lets-fly',
-      'joi-whoa',
-      'joi-space',
-      'joi-helmet',
-    ],
+    levelAdvance: ["joi-lets-fly", "joi-whoa", "joi-space", "joi-helmet"],
     streak: [],
     personalBest: [],
     newTopScore: [],
@@ -113,4 +106,4 @@ export const SOUND_MAP: SoundMapConfig = {
     holdMs: 0,
     restoreMs: 800,
   },
-}
+};

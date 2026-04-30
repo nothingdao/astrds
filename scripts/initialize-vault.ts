@@ -26,8 +26,8 @@ const CONVEX_AUTHORITY = new web3.PublicKey(
 // payment_weights must sum to 10,000 bps (100%)
 const WEIGHTS = {
   operationalBps: 5000, // 50%
-  operatorBps: 3000,    // 30%
-  buybackBps: 2000,     // 20%
+  operatorBps: 3000, // 30%
+  buybackBps: 2000, // 20%
 };
 const BUYBACK_RATE = 0; // not used yet
 
@@ -67,7 +67,9 @@ async function main() {
   const existing = await connection.getAccountInfo(vaultConfigPda);
   if (existing) {
     console.log("VaultConfig already exists — nothing to do.");
-    const config = await (program.account as any).vaultConfig.fetch(vaultConfigPda);
+    const config = await (program.account as any).vaultConfig.fetch(
+      vaultConfigPda
+    );
     console.log("Current config:", JSON.stringify(config, null, 2));
     return;
   }
@@ -79,7 +81,7 @@ async function main() {
       CONVEX_AUTHORITY,
       deployer.publicKey, // operational_wallet (devnet placeholder)
       deployer.publicKey, // operator_wallet
-      deployer.publicKey  // buyback_wallet
+      deployer.publicKey // buyback_wallet
     )
     .accounts({
       authority: deployer.publicKey,

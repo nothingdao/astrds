@@ -1,5 +1,5 @@
 // src/stores/audioStore.ts
-import { create } from 'zustand'
+import { create } from "zustand";
 
 export const useAudioStore = create((set) => ({
   isSettingsPanelOpen: false,
@@ -10,4 +10,4 @@ export const useAudioStore = create((set) => ({
     set((state) => ({
       isSettingsPanelOpen: !state.isSettingsPanelOpen,
     })),
-}))
+}));

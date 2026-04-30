@@ -1,7 +1,7 @@
-import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite-plus'
-import react from '@vitejs/plugin-react'
-import { visualizer } from 'rollup-plugin-visualizer'
+import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite-plus";
+import react from "@vitejs/plugin-react";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   plugins: [react(), visualizer()],
@@ -9,17 +9,17 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/.netlify/functions': {
-        target: 'http://localhost:8888',
+      "/.netlify/functions": {
+        target: "http://localhost:8888",
         changeOrigin: true,
       },
     },
   },
 
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     sourcemap: true,
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
@@ -29,15 +29,15 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': '/src',
-      '@shared': fileURLToPath(new URL('../shared', import.meta.url)),
+      "@": "/src",
+      "@shared": fileURLToPath(new URL("../shared", import.meta.url)),
     },
   },
 
-  publicDir: 'public',
+  publicDir: "public",
 
   lint: {
-    ignorePatterns: ['dist/**', 'netlify/**'],
+    ignorePatterns: ["dist/**", "netlify/**"],
     options: {
       typeAware: true,
       typeCheck: true,
@@ -45,16 +45,16 @@ export default defineConfig({
   },
 
   fmt: {
-    ignorePatterns: ['dist/**', 'netlify/**'],
+    ignorePatterns: ["dist/**", "netlify/**"],
     singleQuote: true,
     semi: false,
     sortPackageJson: true,
   },
 
   test: {
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     coverage: {
-      reporter: ['text', 'html'],
+      reporter: ["text", "html"],
     },
   },
 
@@ -62,17 +62,17 @@ export default defineConfig({
     enablePrePostScripts: true,
     tasks: {
       build: {
-        command: 'vp build',
-        input: ['src/**', 'public/**', 'index.html', 'vite.config.ts'],
+        command: "vp build",
+        input: ["src/**", "public/**", "index.html", "vite.config.ts"],
       },
       check: {
-        command: 'vp check',
-        input: ['src/**'],
+        command: "vp check",
+        input: ["src/**"],
       },
     },
   },
 
   staged: {
-    '*.{ts,tsx}': 'vp check --fix',
+    "*.{ts,tsx}": "vp check --fix",
   },
-})
+});

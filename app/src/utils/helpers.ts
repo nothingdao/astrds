@@ -6,8 +6,11 @@
  * @param  {Number} rad     Maximal radius of polygon
  * @return {Array}        Array of vertices: {x: Number, y: Number}
  */
-export function asteroidVertices(count: number, rad: number): { x: number; y: number }[] {
-  let p: { x: number; y: number }[] = []
+export function asteroidVertices(
+  count: number,
+  rad: number
+): { x: number; y: number }[] {
+  let p: { x: number; y: number }[] = [];
   for (let i = 0; i < count; i++) {
     p[i] = {
       x:
@@ -18,9 +21,9 @@ export function asteroidVertices(count: number, rad: number): { x: number; y: nu
         (-Math.cos(((360 / count) * i * Math.PI) / 180) +
           (Math.round(Math.random() * 2 - 1) * Math.random()) / 3) *
         rad,
-    }
+    };
   }
-  return p
+  return p;
 }
 
 /**
@@ -29,7 +32,11 @@ export function asteroidVertices(count: number, rad: number): { x: number; y: nu
  * @param {Object} center   {x: Number, y: Number}
  * @param {Number} angle    Angle in radians
  */
-export function rotatePoint(p: { x: number; y: number }, center: { x: number; y: number }, angle: number) {
+export function rotatePoint(
+  p: { x: number; y: number },
+  center: { x: number; y: number },
+  angle: number
+) {
   return {
     x:
       (p.x - center.x) * Math.cos(angle) -
@@ -39,23 +46,28 @@ export function rotatePoint(p: { x: number; y: number }, center: { x: number; y:
       (p.x - center.x) * Math.sin(angle) +
       (p.y - center.y) * Math.cos(angle) +
       center.y,
-  }
+  };
 }
 
 /**
  * Random Number between 2 numbers
  */
 export function randomNumBetween(min: number, max: number) {
-  return Math.random() * (max - min + 1) + min
+  return Math.random() * (max - min + 1) + min;
 }
 
 /**
  * Random Number between 2 numbers excluding a certain range
  */
-export function randomNumBetweenExcluding(min: number, max: number, exMin: number, exMax: number) {
-  let random = randomNumBetween(min, max)
+export function randomNumBetweenExcluding(
+  min: number,
+  max: number,
+  exMin: number,
+  exMax: number
+) {
+  let random = randomNumBetween(min, max);
   while (random > exMin && random < exMax) {
-    random = Math.random() * (max - min + 1) + min
+    random = Math.random() * (max - min + 1) + min;
   }
-  return random
+  return random;
 }

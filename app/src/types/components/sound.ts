@@ -1,67 +1,67 @@
 // src/types/components/sound.ts
 export interface SoundSettingsProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export interface VolumeSliderProps {
-  value: number
-  onChange: (value: number) => void
-  label?: string
-  channel?: string
-  showLabel?: boolean
-  showIcon?: boolean
-  className?: string
+  value: number;
+  onChange: (value: number) => void;
+  label?: string;
+  channel?: string;
+  showLabel?: boolean;
+  showIcon?: boolean;
+  className?: string;
 }
 
 export interface EffectToggleProps {
-  value: string
-  onChange: (effectType: string, setting: string) => void
-  label: string
-  effectType: string
-  className?: string
+  value: string;
+  onChange: (effectType: string, setting: string) => void;
+  label: string;
+  effectType: string;
+  className?: string;
 }
 
 export interface EffectGroupProps {
-  groupName: string
-  effects: string[]
+  groupName: string;
+  effects: string[];
 }
 
 // Sound effect types
 export type EffectType =
-  | 'shoot'
-  | 'thrust'
-  | 'explosion'
-  | 'collect'
-  | 'quarterInsert'
-  | 'countdownPing'
-  | 'gameOver'
-  | 'spaceWind'
-  | 'joi-lets-fly'
-  | 'joi-whoa'
-  | 'joi-space'
-  | 'joi-helmet'
+  | "shoot"
+  | "thrust"
+  | "explosion"
+  | "collect"
+  | "quarterInsert"
+  | "countdownPing"
+  | "gameOver"
+  | "spaceWind"
+  | "joi-lets-fly"
+  | "joi-whoa"
+  | "joi-space"
+  | "joi-helmet";
 
 // Effect groups and labels
 export const EFFECT_GROUPS: Record<string, EffectType[]> = {
-  'Weapon Sounds': ['shoot'],
-  'Ship Sounds': ['thrust', 'explosion'],
-  'Game Events': ['collect', 'quarterInsert', 'countdownPing', 'gameOver'],
-  Ambient: ['spaceWind'],
-  Stingers: ['joi-lets-fly', 'joi-whoa', 'joi-space', 'joi-helmet'],
-}
+  "Weapon Sounds": ["shoot"],
+  "Ship Sounds": ["thrust", "explosion"],
+  "Game Events": ["collect", "quarterInsert", "countdownPing", "gameOver"],
+  Ambient: ["spaceWind"],
+  Stingers: ["joi-lets-fly", "joi-whoa", "joi-space", "joi-helmet"],
+};
 
 export const EFFECT_LABELS: Record<EffectType, string> = {
-  shoot: 'Weapon Fire',
-  thrust: 'Engine Thrust',
-  explosion: 'Explosions',
-  collect: 'Item Collect',
-  quarterInsert: 'Quarter Insert',
-  countdownPing: 'Countdown',
-  gameOver: 'Game Over',
-  spaceWind: 'Space Wind',
-  'joi-lets-fly': 'JOI — Let’s Fly',
-  'joi-whoa': 'JOI — Whoa',
-  'joi-space': 'JOI — We Are Space',
-  'joi-helmet': 'JOI — Helmet',
-}
+  shoot: "Weapon Fire",
+  thrust: "Engine Thrust",
+  explosion: "Explosions",
+  collect: "Item Collect",
+  quarterInsert: "Quarter Insert",
+  countdownPing: "Countdown",
+  gameOver: "Game Over",
+  spaceWind: "Space Wind",
+  "joi-lets-fly": "JOI — Let’s Fly",
+  "joi-whoa": "JOI — Whoa",
+  "joi-space": "JOI — We Are Space",
+  "joi-helmet": "JOI — Helmet",
+};

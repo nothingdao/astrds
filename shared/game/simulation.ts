@@ -12,62 +12,62 @@ import type {
   SpaceTokenPool,
   ShipSnapshot,
   Vector2D,
-} from './protocol.js'
+} from "./protocol.js";
 import {
   DEFAULT_PROGRESSION_BANDS,
   resolveLevelConfig,
   type LevelBandPolicy,
-} from './progression.js'
+} from "./progression.js";
 
-const SHIP_RADIUS = 20
-const SHIP_ROTATION_SPEED = 6
-const SHIP_ACCELERATION = 0.25
-const SHIP_INERTIA = 0.99
-const SHIP_INVULNERABILITY_MS = 3000
-const PILL_SPAWN_DELAY_MS = 3000
-const TOKEN_SPAWN_DELAY_MS = 5000
-const SPACE_TOKEN_SPAWN_CHANCE = 0.25
-export const ASTRDS_PILL_COLOR = '#FF642D'
-export const COMBO_POWERUP_COLOR = '#4dc1f9'
-export const SHIELD_PICKUP_COLOR = '#c084fc'
-export const RAPID_FIRE_PICKUP_COLOR = '#fbbf24'
+const SHIP_RADIUS = 20;
+const SHIP_ROTATION_SPEED = 6;
+const SHIP_ACCELERATION = 0.25;
+const SHIP_INERTIA = 0.99;
+const SHIP_INVULNERABILITY_MS = 3000;
+const PILL_SPAWN_DELAY_MS = 3000;
+const TOKEN_SPAWN_DELAY_MS = 5000;
+const SPACE_TOKEN_SPAWN_CHANCE = 0.25;
+export const ASTRDS_PILL_COLOR = "#FF642D";
+export const COMBO_POWERUP_COLOR = "#4dc1f9";
+export const SHIELD_PICKUP_COLOR = "#c084fc";
+export const RAPID_FIRE_PICKUP_COLOR = "#fbbf24";
 
 export interface SimulationConfig {
-  powerupSpawnDelayMs: number
-  shipPickupSpawnDelayMs: number
-  maxPowerupsOnScreen: number
-  powerupDurationMs: number
-  maxLives: number
-  startingLives: number
-  shipRadius: number
-  shipRotationSpeed: number
-  shipAcceleration: number
-  shipInertia: number
-  shipInvulnerabilityMs: number
-  normalBulletSpeed: number
-  rapidBulletSpeed: number
-  normalFireDelayMs: number
-  rapidFireDelayMs: number
-  bulletRadius: number
-  rapidBulletRadius: number
-  rapidBulletPower: number
-  bulletCollisionPadding: number
-  largeAsteroidRadius: number
-  mediumAsteroidRadius: number
-  smallAsteroidRadius: number
-  asteroidVelocityMin: number
-  asteroidVelocityMax: number
-  asteroidScoreLarge: number
-  asteroidScoreMedium: number
-  asteroidScoreSmall: number
-  pillSpawnDelayMs: number
-  tokenSpawnDelayMs: number
-  spaceTokenSpawnChance: number
-  pickupTtlMs: number
-  pickupRadius: number
-  shipPickupRadius: number
-  maxShipPickupsOnScreen: number
-  progressionBands: LevelBandPolicy[]
+  powerupSpawnDelayMs: number;
+  shipPickupSpawnDelayMs: number;
+  maxPowerupsOnScreen: number;
+  powerupDurationMs: number;
+  maxLives: number;
+  startingLives: number;
+  shipRadius: number;
+  shipRotationSpeed: number;
+  shipAcceleration: number;
+  shipInertia: number;
+  shipInvulnerabilityMs: number;
+  normalBulletSpeed: number;
+  rapidBulletSpeed: number;
+  normalFireDelayMs: number;
+  rapidFireDelayMs: number;
+  bulletRadius: number;
+  rapidBulletRadius: number;
+  rapidBulletPower: number;
+  bulletCollisionPadding: number;
+  largeAsteroidRadius: number;
+  mediumAsteroidRadius: number;
+  smallAsteroidRadius: number;
+  asteroidVelocityMin: number;
+  asteroidVelocityMax: number;
+  asteroidScoreLarge: number;
+  asteroidScoreMedium: number;
+  asteroidScoreSmall: number;
+  pillSpawnDelayMs: number;
+  tokenSpawnDelayMs: number;
+  spaceTokenSpawnChance: number;
+  pickupTtlMs: number;
+  pickupRadius: number;
+  shipPickupRadius: number;
+  maxShipPickupsOnScreen: number;
+  progressionBands: LevelBandPolicy[];
 }
 
 export const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
@@ -106,84 +106,84 @@ export const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
   shipPickupRadius: 20,
   maxShipPickupsOnScreen: 1,
   progressionBands: DEFAULT_PROGRESSION_BANDS,
-}
+};
 const DEFAULT_EMISSION_TIER: EmissionTier = {
   tier: 2,
   pillsPerGame: 10,
   astrdsPerPill: 5,
-}
+};
 
 interface MutableShip extends ShipSnapshot {
-  invulnerableUntil: number
-  lastShotAt: number
+  invulnerableUntil: number;
+  lastShotAt: number;
 }
 
 interface MutableAsteroid extends AsteroidSnapshot {}
 
 interface MutableBullet extends BulletSnapshot {
-  previousPosition: Vector2D
-  createdAt: number
+  previousPosition: Vector2D;
+  createdAt: number;
 }
 
 interface MutablePickup extends PickupSnapshot {
-  expiresAt: number
+  expiresAt: number;
 }
 
 interface MutableTokenPickup extends MutablePickup {
-  source: 'space'
-  spawnId?: string
-  depositId?: string
-  mintAddress?: string
+  source: "space";
+  spawnId?: string;
+  depositId?: string;
+  mintAddress?: string;
 }
 
 export interface SimulationState {
-  sessionId: string
-  tick: number
-  status: 'playing' | 'gameOver'
-  screen: ScreenBounds
-  input: InputState
-  config: SimulationConfig
-  score: number
-  level: number
-  lives: number
-  pillsCollected: number
-  tokensCollected: number
-  asteroidCount: number
-  ship: MutableShip | null
-  asteroids: MutableAsteroid[]
-  bullets: MutableBullet[]
-  pills: MutablePickup[]
-  tokens: MutableTokenPickup[]
-  shipPickups: MutablePickup[]
-  spaceTokenPools: SpaceTokenPool[]
-  emissionTier: EmissionTier
-  pillsPerGameCap: number
-  pillsSpawned: number
-  events: SimulationEvent[]
+  sessionId: string;
+  tick: number;
+  status: "playing" | "gameOver";
+  screen: ScreenBounds;
+  input: InputState;
+  config: SimulationConfig;
+  score: number;
+  level: number;
+  lives: number;
+  pillsCollected: number;
+  tokensCollected: number;
+  asteroidCount: number;
+  ship: MutableShip | null;
+  asteroids: MutableAsteroid[];
+  bullets: MutableBullet[];
+  pills: MutablePickup[];
+  tokens: MutableTokenPickup[];
+  shipPickups: MutablePickup[];
+  spaceTokenPools: SpaceTokenPool[];
+  emissionTier: EmissionTier;
+  pillsPerGameCap: number;
+  pillsSpawned: number;
+  events: SimulationEvent[];
   powerups: {
-    invincible: boolean
-    rapidFire: boolean
-    expiresAt: number | null
-  }
-  powerupPickups: MutablePickup[]
-  lastPillSpawnAt: number
-  lastTokenSpawnAt: number
-  lastShipPickupSpawnAt: number
-  lastPowerupSpawnAt: number
-  shipPickupSpawnedLevels: number[]
-  powerupsSpawnedByLevel: Record<number, number>
+    invincible: boolean;
+    rapidFire: boolean;
+    expiresAt: number | null;
+  };
+  powerupPickups: MutablePickup[];
+  lastPillSpawnAt: number;
+  lastTokenSpawnAt: number;
+  lastShipPickupSpawnAt: number;
+  lastPowerupSpawnAt: number;
+  shipPickupSpawnedLevels: number[];
+  powerupsSpawnedByLevel: Record<number, number>;
 }
 
 function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function randomNumBetween(min: number, max: number): number {
-  return Math.random() * (max - min + 1) + min
+  return Math.random() * (max - min + 1) + min;
 }
 
 function asteroidVertices(count: number, radius: number): Vector2D[] {
-  const vertices: Vector2D[] = []
+  const vertices: Vector2D[] = [];
   for (let i = 0; i < count; i += 1) {
     vertices.push({
       x:
@@ -194,12 +194,16 @@ function asteroidVertices(count: number, radius: number): Vector2D[] {
         (-Math.cos(((360 / count) * i * Math.PI) / 180) +
           (Math.round(Math.random() * 2 - 1) * Math.random()) / 3) *
         radius,
-    })
+    });
   }
-  return vertices
+  return vertices;
 }
 
-function rotatePoint(point: Vector2D, center: Vector2D, angle: number): Vector2D {
+function rotatePoint(
+  point: Vector2D,
+  center: Vector2D,
+  angle: number
+): Vector2D {
   return {
     x:
       (point.x - center.x) * Math.cos(angle) -
@@ -209,24 +213,28 @@ function rotatePoint(point: Vector2D, center: Vector2D, angle: number): Vector2D
       (point.x - center.x) * Math.sin(angle) +
       (point.y - center.y) * Math.cos(angle) +
       center.y,
-  }
+  };
 }
 
-function wrapPosition(position: Vector2D, screen: ScreenBounds, radius = 0): void {
-  if (position.x > screen.width + radius) position.x = -radius
-  else if (position.x < -radius) position.x = screen.width + radius
+function wrapPosition(
+  position: Vector2D,
+  screen: ScreenBounds,
+  radius = 0
+): void {
+  if (position.x > screen.width + radius) position.x = -radius;
+  else if (position.x < -radius) position.x = screen.width + radius;
 
-  if (position.y > screen.height + radius) position.y = -radius
-  else if (position.y < -radius) position.y = screen.height + radius
+  if (position.y > screen.height + radius) position.y = -radius;
+  else if (position.y < -radius) position.y = screen.height + radius;
 }
 
 export function checkCollision(
   a: { position: Vector2D; radius: number },
   b: { position: Vector2D; radius: number }
 ): boolean {
-  const dx = a.position.x - b.position.x
-  const dy = a.position.y - b.position.y
-  return Math.sqrt(dx * dx + dy * dy) < a.radius + b.radius
+  const dx = a.position.x - b.position.x;
+  const dy = a.position.y - b.position.y;
+  return Math.sqrt(dx * dx + dy * dy) < a.radius + b.radius;
 }
 
 function segmentCircleCollision(
@@ -234,40 +242,56 @@ function segmentCircleCollision(
   end: Vector2D,
   circle: { position: Vector2D; radius: number }
 ): boolean {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  const lenSq = dx * dx + dy * dy
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lenSq = dx * dx + dy * dy;
   if (lenSq === 0) {
-    const sx = start.x - circle.position.x
-    const sy = start.y - circle.position.y
-    return sx * sx + sy * sy <= circle.radius * circle.radius
+    const sx = start.x - circle.position.x;
+    const sy = start.y - circle.position.y;
+    return sx * sx + sy * sy <= circle.radius * circle.radius;
   }
 
   const t = Math.max(
     0,
-    Math.min(1, ((circle.position.x - start.x) * dx + (circle.position.y - start.y) * dy) / lenSq)
-  )
-  const closestX = start.x + dx * t
-  const closestY = start.y + dy * t
-  const cx = closestX - circle.position.x
-  const cy = closestY - circle.position.y
-  return cx * cx + cy * cy <= circle.radius * circle.radius
+    Math.min(
+      1,
+      ((circle.position.x - start.x) * dx +
+        (circle.position.y - start.y) * dy) /
+        lenSq
+    )
+  );
+  const closestX = start.x + dx * t;
+  const closestY = start.y + dy * t;
+  const cx = closestX - circle.position.x;
+  const cy = closestY - circle.position.y;
+  return cx * cx + cy * cy <= circle.radius * circle.radius;
 }
 
-function bulletHitsAsteroid(state: SimulationState, bullet: MutableBullet, asteroid: MutableAsteroid): boolean {
+function bulletHitsAsteroid(
+  state: SimulationState,
+  bullet: MutableBullet,
+  asteroid: MutableAsteroid
+): boolean {
   // Asteroid vertices intentionally jitter beyond the nominal radius. Use a swept
   // circle test with a little forgiveness so fast bullets don't tunnel through
   // and hits match what the player sees on the irregular outline.
-  const visualRadius = asteroid.radius * 1.25 + bullet.radius + state.config.bulletCollisionPadding
+  const visualRadius =
+    asteroid.radius * 1.25 +
+    bullet.radius +
+    state.config.bulletCollisionPadding;
   return segmentCircleCollision(bullet.previousPosition, bullet.position, {
     position: asteroid.position,
     radius: visualRadius,
-  })
+  });
 }
 
-function createShip(screen: ScreenBounds, now: number, config = DEFAULT_SIMULATION_CONFIG): MutableShip {
+function createShip(
+  screen: ScreenBounds,
+  now: number,
+  config = DEFAULT_SIMULATION_CONFIG
+): MutableShip {
   return {
-    id: createId('ship'),
+    id: createId("ship"),
     position: { x: screen.width / 2, y: screen.height / 2 },
     velocity: { x: 0, y: 0 },
     rotation: 0,
@@ -276,47 +300,63 @@ function createShip(screen: ScreenBounds, now: number, config = DEFAULT_SIMULATI
     isThrusting: false,
     invulnerableUntil: 0,
     lastShotAt: 0,
-  }
+  };
 }
 
-function createAsteroid(position: Vector2D, size: number, config = DEFAULT_SIMULATION_CONFIG): MutableAsteroid {
-  const score = size >= config.largeAsteroidRadius
-    ? config.asteroidScoreLarge
-    : size > config.smallAsteroidRadius
+function createAsteroid(
+  position: Vector2D,
+  size: number,
+  config = DEFAULT_SIMULATION_CONFIG
+): MutableAsteroid {
+  const score =
+    size >= config.largeAsteroidRadius
+      ? config.asteroidScoreLarge
+      : size > config.smallAsteroidRadius
       ? config.asteroidScoreMedium
-      : config.asteroidScoreSmall
+      : config.asteroidScoreSmall;
   return {
-    id: createId('asteroid'),
+    id: createId("asteroid"),
     position: { ...position },
     velocity: {
-      x: randomNumBetween(config.asteroidVelocityMin, config.asteroidVelocityMax),
-      y: randomNumBetween(config.asteroidVelocityMin, config.asteroidVelocityMax),
+      x: randomNumBetween(
+        config.asteroidVelocityMin,
+        config.asteroidVelocityMax
+      ),
+      y: randomNumBetween(
+        config.asteroidVelocityMin,
+        config.asteroidVelocityMax
+      ),
     },
     rotation: 0,
     radius: size,
     score,
     vertices: asteroidVertices(8, size),
-  }
+  };
 }
 
-function createBullet(ship: MutableShip, rapidFire: boolean, now: number, config: SimulationConfig): MutableBullet {
-  const speed = rapidFire ? config.rapidBulletSpeed : config.normalBulletSpeed
-  const power = rapidFire ? config.rapidBulletPower : 1
-  const radius = rapidFire ? config.rapidBulletRadius : config.bulletRadius
-  const color = '#fff'
+function createBullet(
+  ship: MutableShip,
+  rapidFire: boolean,
+  now: number,
+  config: SimulationConfig
+): MutableBullet {
+  const speed = rapidFire ? config.rapidBulletSpeed : config.normalBulletSpeed;
+  const power = rapidFire ? config.rapidBulletPower : 1;
+  const radius = rapidFire ? config.rapidBulletRadius : config.bulletRadius;
+  const color = "#fff";
   const posDelta = rotatePoint(
     { x: 0, y: -20 },
     { x: 0, y: 0 },
     (ship.rotation * Math.PI) / 180
-  )
+  );
 
   const position = {
     x: ship.position.x + posDelta.x,
     y: ship.position.y + posDelta.y,
-  }
+  };
 
   return {
-    id: createId('bullet'),
+    id: createId("bullet"),
     position,
     previousPosition: { ...position },
     velocity: {
@@ -328,7 +368,7 @@ function createBullet(ship: MutableShip, rapidFire: boolean, now: number, config
     power,
     color,
     createdAt: now,
-  }
+  };
 }
 
 function createEdgePickup(
@@ -338,23 +378,24 @@ function createEdgePickup(
   now: number,
   config = DEFAULT_SIMULATION_CONFIG
 ): MutablePickup {
-  const radius = kind === 'shipPickup' ? config.shipPickupRadius : config.pickupRadius
-  const edge = Math.floor(Math.random() * 4)
-  let position: Vector2D = { x: 0, y: 0 }
+  const radius =
+    kind === "shipPickup" ? config.shipPickupRadius : config.pickupRadius;
+  const edge = Math.floor(Math.random() * 4);
+  let position: Vector2D = { x: 0, y: 0 };
 
   switch (edge) {
     case 0:
-      position = { x: Math.random() * screen.width, y: -radius }
-      break
+      position = { x: Math.random() * screen.width, y: -radius };
+      break;
     case 1:
-      position = { x: screen.width + radius, y: Math.random() * screen.height }
-      break
+      position = { x: screen.width + radius, y: Math.random() * screen.height };
+      break;
     case 2:
-      position = { x: Math.random() * screen.width, y: screen.height + radius }
-      break
+      position = { x: Math.random() * screen.width, y: screen.height + radius };
+      break;
     default:
-      position = { x: -radius, y: Math.random() * screen.height }
-      break
+      position = { x: -radius, y: Math.random() * screen.height };
+      break;
   }
 
   return {
@@ -362,57 +403,78 @@ function createEdgePickup(
     kind,
     position,
     velocity:
-      kind === 'shipPickup'
+      kind === "shipPickup"
         ? { x: 0, y: 0 }
         : { x: randomNumBetween(-1.5, 1.5), y: randomNumBetween(-1.5, 1.5) },
     rotation: 0,
     radius,
     color,
     expiresAt: now + config.pickupTtlMs,
-  }
+  };
 }
 
 function createTokenPickup(
   screen: ScreenBounds,
   now: number,
   color: string,
-  metadata: Pick<MutableTokenPickup, 'spawnId' | 'depositId' | 'mintAddress'>
+  metadata: Pick<MutableTokenPickup, "spawnId" | "depositId" | "mintAddress">
 ): MutableTokenPickup {
   return {
-    ...createEdgePickup('token', screen, color, now),
-    source: 'space',
+    ...createEdgePickup("token", screen, color, now),
+    source: "space",
     ...metadata,
-  }
+  };
 }
 
 function chooseWeightedPool(pools: SpaceTokenPool[]): SpaceTokenPool | null {
-  const totalWeight = pools.reduce((sum, pool) => sum + Math.max(0, pool.remainingAmount), 0)
-  if (totalWeight <= 0) return null
+  const totalWeight = pools.reduce(
+    (sum, pool) => sum + Math.max(0, pool.remainingAmount),
+    0
+  );
+  if (totalWeight <= 0) return null;
 
-  let roll = Math.random() * totalWeight
+  let roll = Math.random() * totalWeight;
   for (const pool of pools) {
-    roll -= Math.max(0, pool.remainingAmount)
-    if (roll <= 0) return pool
+    roll -= Math.max(0, pool.remainingAmount);
+    if (roll <= 0) return pool;
   }
 
-  return pools[pools.length - 1] ?? null
+  return pools[pools.length - 1] ?? null;
 }
 
-function spawnAsteroids(screen: ScreenBounds, count: number, ship: MutableShip, config = DEFAULT_SIMULATION_CONFIG, level = 1, sessionId = 'preview'): MutableAsteroid[] {
-  const levelConfig = resolveLevelConfig(config.progressionBands, level, sessionId)
-  const asteroids: MutableAsteroid[] = []
+function spawnAsteroids(
+  screen: ScreenBounds,
+  count: number,
+  ship: MutableShip,
+  config = DEFAULT_SIMULATION_CONFIG,
+  level = 1,
+  sessionId = "preview"
+): MutableAsteroid[] {
+  const levelConfig = resolveLevelConfig(
+    config.progressionBands,
+    level,
+    sessionId
+  );
+  const asteroids: MutableAsteroid[] = [];
   while (asteroids.length < count) {
-    const x = randomNumBetween(0, screen.width)
-    const y = randomNumBetween(0, screen.height)
-    if (Math.abs(x - ship.position.x) < 100 && Math.abs(y - ship.position.y) < 100) {
-      continue
+    const x = randomNumBetween(0, screen.width);
+    const y = randomNumBetween(0, screen.height);
+    if (
+      Math.abs(x - ship.position.x) < 100 &&
+      Math.abs(y - ship.position.y) < 100
+    ) {
+      continue;
     }
-    const asteroid = createAsteroid({ x, y }, config.largeAsteroidRadius, config)
-    asteroid.velocity.x *= levelConfig.asteroidSpeedMultiplier
-    asteroid.velocity.y *= levelConfig.asteroidSpeedMultiplier
-    asteroids.push(asteroid)
+    const asteroid = createAsteroid(
+      { x, y },
+      config.largeAsteroidRadius,
+      config
+    );
+    asteroid.velocity.x *= levelConfig.asteroidSpeedMultiplier;
+    asteroid.velocity.y *= levelConfig.asteroidSpeedMultiplier;
+    asteroids.push(asteroid);
   }
-  return asteroids
+  return asteroids;
 }
 
 export function createInitialSimulationState(
@@ -420,25 +482,39 @@ export function createInitialSimulationState(
   screen: ScreenBounds,
   now = Date.now()
 ): SimulationState {
-  const ship = createShip(screen, now)
-  const levelConfig = resolveLevelConfig(DEFAULT_SIMULATION_CONFIG.progressionBands, 1, sessionId)
-  const asteroidCount = levelConfig.asteroidCount
+  const ship = createShip(screen, now);
+  const levelConfig = resolveLevelConfig(
+    DEFAULT_SIMULATION_CONFIG.progressionBands,
+    1,
+    sessionId
+  );
+  const asteroidCount = levelConfig.asteroidCount;
 
   return {
     sessionId,
     tick: 0,
-    status: 'playing',
+    status: "playing",
     screen: { ...screen },
     input: { left: false, right: false, up: false, space: false },
     config: { ...DEFAULT_SIMULATION_CONFIG },
     score: 0,
     level: 1,
-    lives: Math.min(DEFAULT_SIMULATION_CONFIG.startingLives, levelConfig.maxLives),
+    lives: Math.min(
+      DEFAULT_SIMULATION_CONFIG.startingLives,
+      levelConfig.maxLives
+    ),
     pillsCollected: 0,
     tokensCollected: 0,
     asteroidCount,
     ship,
-    asteroids: spawnAsteroids(screen, asteroidCount, ship, DEFAULT_SIMULATION_CONFIG, 1, sessionId),
+    asteroids: spawnAsteroids(
+      screen,
+      asteroidCount,
+      ship,
+      DEFAULT_SIMULATION_CONFIG,
+      1,
+      sessionId
+    ),
     bullets: [],
     pills: [],
     tokens: [],
@@ -460,74 +536,84 @@ export function createInitialSimulationState(
     lastPowerupSpawnAt: now,
     shipPickupSpawnedLevels: [],
     powerupsSpawnedByLevel: {},
-  }
+  };
 }
 
 function updatePowerups(state: SimulationState, now: number): void {
   if (state.powerups.expiresAt && now >= state.powerups.expiresAt) {
-    state.powerups = { invincible: false, rapidFire: false, expiresAt: null }
+    state.powerups = { invincible: false, rapidFire: false, expiresAt: null };
   }
 }
 
 function updateShip(state: SimulationState, dt: number, now: number): void {
-  const ship = state.ship
-  if (!ship) return
+  const ship = state.ship;
+  if (!ship) return;
 
   if (ship.invulnerableUntil > now) {
-    ship.isInvulnerable = true
+    ship.isInvulnerable = true;
   } else {
-    ship.isInvulnerable = false
+    ship.isInvulnerable = false;
   }
 
-  if (state.input.left) ship.rotation -= state.config.shipRotationSpeed * dt
-  if (state.input.right) ship.rotation += state.config.shipRotationSpeed * dt
-  ship.isThrusting = state.input.up
+  if (state.input.left) ship.rotation -= state.config.shipRotationSpeed * dt;
+  if (state.input.right) ship.rotation += state.config.shipRotationSpeed * dt;
+  ship.isThrusting = state.input.up;
   if (state.input.up) {
-    ship.velocity.x -= Math.sin((-ship.rotation * Math.PI) / 180) * state.config.shipAcceleration * dt
-    ship.velocity.y -= Math.cos((-ship.rotation * Math.PI) / 180) * state.config.shipAcceleration * dt
+    ship.velocity.x -=
+      Math.sin((-ship.rotation * Math.PI) / 180) *
+      state.config.shipAcceleration *
+      dt;
+    ship.velocity.y -=
+      Math.cos((-ship.rotation * Math.PI) / 180) *
+      state.config.shipAcceleration *
+      dt;
   }
 
-  ship.position.x += ship.velocity.x * dt
-  ship.position.y += ship.velocity.y * dt
-  ship.velocity.x *= state.config.shipInertia
-  ship.velocity.y *= state.config.shipInertia
+  ship.position.x += ship.velocity.x * dt;
+  ship.position.y += ship.velocity.y * dt;
+  ship.velocity.x *= state.config.shipInertia;
+  ship.velocity.y *= state.config.shipInertia;
 
-  if (ship.rotation >= 360) ship.rotation -= 360
-  if (ship.rotation < 0) ship.rotation += 360
+  if (ship.rotation >= 360) ship.rotation -= 360;
+  if (ship.rotation < 0) ship.rotation += 360;
 
-  if (ship.position.x > state.screen.width) ship.position.x = 0
-  else if (ship.position.x < 0) ship.position.x = state.screen.width
-  if (ship.position.y > state.screen.height) ship.position.y = 0
-  else if (ship.position.y < 0) ship.position.y = state.screen.height
+  if (ship.position.x > state.screen.width) ship.position.x = 0;
+  else if (ship.position.x < 0) ship.position.x = state.screen.width;
+  if (ship.position.y > state.screen.height) ship.position.y = 0;
+  else if (ship.position.y < 0) ship.position.y = state.screen.height;
 }
 
 function maybeShootBullet(state: SimulationState, now: number): void {
-  const ship = state.ship
-  if (!ship || !state.input.space) return
+  const ship = state.ship;
+  if (!ship || !state.input.space) return;
 
-  const shootDelay = state.powerups.rapidFire ? state.config.rapidFireDelayMs : state.config.normalFireDelayMs
-  if (now - ship.lastShotAt < shootDelay) return
+  const shootDelay = state.powerups.rapidFire
+    ? state.config.rapidFireDelayMs
+    : state.config.normalFireDelayMs;
+  if (now - ship.lastShotAt < shootDelay) return;
 
-  ship.lastShotAt = now
-  state.bullets.push(createBullet(ship, state.powerups.rapidFire, now, state.config))
+  ship.lastShotAt = now;
+  state.bullets.push(
+    createBullet(ship, state.powerups.rapidFire, now, state.config)
+  );
 }
 
 function updateAsteroids(state: SimulationState, dt: number): void {
   state.asteroids.forEach((asteroid) => {
-    asteroid.position.x += asteroid.velocity.x * dt
-    asteroid.position.y += asteroid.velocity.y * dt
-    asteroid.rotation += randomNumBetween(-1, 1) * dt
-    if (asteroid.rotation >= 360) asteroid.rotation -= 360
-    if (asteroid.rotation < 0) asteroid.rotation += 360
-    wrapPosition(asteroid.position, state.screen, asteroid.radius)
-  })
+    asteroid.position.x += asteroid.velocity.x * dt;
+    asteroid.position.y += asteroid.velocity.y * dt;
+    asteroid.rotation += randomNumBetween(-1, 1) * dt;
+    if (asteroid.rotation >= 360) asteroid.rotation -= 360;
+    if (asteroid.rotation < 0) asteroid.rotation += 360;
+    wrapPosition(asteroid.position, state.screen, asteroid.radius);
+  });
 }
 
 function updateBullets(state: SimulationState, dt: number, _now: number): void {
   state.bullets = state.bullets.filter((bullet) => {
-    bullet.previousPosition = { ...bullet.position }
-    bullet.position.x += bullet.velocity.x * dt
-    bullet.position.y += bullet.velocity.y * dt
+    bullet.previousPosition = { ...bullet.position };
+    bullet.position.x += bullet.velocity.x * dt;
+    bullet.position.y += bullet.velocity.y * dt;
 
     if (
       bullet.position.x < 0 ||
@@ -535,19 +621,24 @@ function updateBullets(state: SimulationState, dt: number, _now: number): void {
       bullet.position.x > state.screen.width ||
       bullet.position.y > state.screen.height
     ) {
-      return false
+      return false;
     }
-    return true
-  })
+    return true;
+  });
 }
 
-function updatePickups(pickups: MutablePickup[], screen: ScreenBounds, dt: number, now: number): MutablePickup[] {
+function updatePickups(
+  pickups: MutablePickup[],
+  screen: ScreenBounds,
+  dt: number,
+  now: number
+): MutablePickup[] {
   return pickups.filter((pickup) => {
-    pickup.position.x += pickup.velocity.x * dt
-    pickup.position.y += pickup.velocity.y * dt
-    wrapPosition(pickup.position, screen, pickup.radius)
-    return pickup.expiresAt > now
-  })
+    pickup.position.x += pickup.velocity.x * dt;
+    pickup.position.y += pickup.velocity.y * dt;
+    wrapPosition(pickup.position, screen, pickup.radius);
+    return pickup.expiresAt > now;
+  });
 }
 
 function updateTokenPickups(
@@ -556,28 +647,29 @@ function updateTokenPickups(
   dt: number,
   now: number
 ): MutableTokenPickup[] {
-  return updatePickups(pickups, screen, dt, now) as MutableTokenPickup[]
+  return updatePickups(pickups, screen, dt, now) as MutableTokenPickup[];
 }
 
 function resolveBulletAsteroidCollisions(state: SimulationState): void {
-  const nextBullets: MutableBullet[] = []
-  const destroyedAsteroids = new Set<string>()
+  const nextBullets: MutableBullet[] = [];
+  const destroyedAsteroids = new Set<string>();
 
   state.bullets.forEach((bullet) => {
-    let hit = false
+    let hit = false;
 
     state.asteroids.forEach((asteroid) => {
-      if (hit || destroyedAsteroids.has(asteroid.id)) return
-      if (!bulletHitsAsteroid(state, bullet, asteroid)) return
+      if (hit || destroyedAsteroids.has(asteroid.id)) return;
+      if (!bulletHitsAsteroid(state, bullet, asteroid)) return;
 
-      hit = true
-      destroyedAsteroids.add(asteroid.id)
-      state.score += Math.max(0, Math.floor(asteroid.score))
+      hit = true;
+      destroyedAsteroids.add(asteroid.id);
+      state.score += Math.max(0, Math.floor(asteroid.score));
 
       if (asteroid.radius > state.config.smallAsteroidRadius) {
-        const nextSize = asteroid.radius >= state.config.largeAsteroidRadius
-          ? state.config.mediumAsteroidRadius
-          : state.config.smallAsteroidRadius
+        const nextSize =
+          asteroid.radius >= state.config.largeAsteroidRadius
+            ? state.config.mediumAsteroidRadius
+            : state.config.smallAsteroidRadius;
         state.asteroids.push(
           createAsteroid(
             {
@@ -595,15 +687,17 @@ function resolveBulletAsteroidCollisions(state: SimulationState): void {
             nextSize,
             state.config
           )
-        )
+        );
       }
-    })
+    });
 
-    if (!hit) nextBullets.push(bullet)
-  })
+    if (!hit) nextBullets.push(bullet);
+  });
 
-  state.bullets = nextBullets
-  state.asteroids = state.asteroids.filter((asteroid) => !destroyedAsteroids.has(asteroid.id))
+  state.bullets = nextBullets;
+  state.asteroids = state.asteroids.filter(
+    (asteroid) => !destroyedAsteroids.has(asteroid.id)
+  );
 }
 
 function resolveShipPickupCollision(
@@ -611,65 +705,70 @@ function resolveShipPickupCollision(
   pickups: MutablePickup[],
   onCollect: () => void
 ): MutablePickup[] {
-  if (!state.ship) return pickups
+  if (!state.ship) return pickups;
 
   return pickups.filter((pickup) => {
     if (checkCollision(state.ship!, pickup)) {
-      onCollect()
-      return false
+      onCollect();
+      return false;
     }
-    return true
-  })
+    return true;
+  });
 }
 
-function resolveShipTokenCollision(state: SimulationState): MutableTokenPickup[] {
-  if (!state.ship) return state.tokens
+function resolveShipTokenCollision(
+  state: SimulationState
+): MutableTokenPickup[] {
+  if (!state.ship) return state.tokens;
 
   return state.tokens.filter((pickup) => {
     if (!checkCollision(state.ship!, pickup)) {
-      return true
+      return true;
     }
 
-    state.tokensCollected += 1
+    state.tokensCollected += 1;
     state.events.push({
-      type: 'tokenCollected',
+      type: "tokenCollected",
       source: pickup.source,
       spawnId: pickup.spawnId,
       depositId: pickup.depositId,
       mintAddress: pickup.mintAddress,
-    })
-    return false
-  })
+    });
+    return false;
+  });
 }
 
-function handleShipAsteroidCollisions(state: SimulationState, now: number): void {
-  if (!state.ship) return
+function handleShipAsteroidCollisions(
+  state: SimulationState,
+  now: number
+): void {
+  if (!state.ship) return;
 
-  const remainingAsteroids: MutableAsteroid[] = []
-  let collided = false
+  const remainingAsteroids: MutableAsteroid[] = [];
+  let collided = false;
 
   state.asteroids.forEach((asteroid) => {
     if (checkCollision(state.ship!, asteroid)) {
-      collided = true
-      return
+      collided = true;
+      return;
     }
-    remainingAsteroids.push(asteroid)
-  })
+    remainingAsteroids.push(asteroid);
+  });
 
-  if (!collided) return
+  if (!collided) return;
 
-  state.asteroids = remainingAsteroids
+  state.asteroids = remainingAsteroids;
 
   if (state.ship.isInvulnerable || state.powerups.invincible) {
-    return
+    return;
   }
 
-  state.lives -= 1
+  state.lives -= 1;
   if (state.lives <= 0) {
-    state.lives = 0
-    state.ship = null
-    state.status = 'gameOver'
-    return
+    state.lives = 0;
+    state.ship = null;
+    state.status = "gameOver";
+    return;
   }
 
   state.ship = {
@@ -678,148 +777,218 @@ function handleShipAsteroidCollisions(state: SimulationState, now: number): void
     isInvulnerable: true,
     invulnerableUntil: now + state.config.shipInvulnerabilityMs,
     lastShotAt: state.ship.lastShotAt,
-  }
+  };
 }
 
 function maybeAdvanceLevel(state: SimulationState): void {
-  if (state.asteroids.length > 0 || !state.ship) return
+  if (state.asteroids.length > 0 || !state.ship) return;
 
-  state.level += 1
-  const levelConfig = resolveLevelConfig(state.config.progressionBands, state.level, state.sessionId)
-  state.asteroidCount = levelConfig.asteroidCount
-  state.config.maxLives = levelConfig.maxLives
-  state.bullets = []
-  state.pills = []
-  state.tokens = []
-  state.shipPickups = []
-  state.powerupPickups = []
-  state.asteroids = spawnAsteroids(state.screen, state.asteroidCount, state.ship, state.config, state.level, state.sessionId)
+  state.level += 1;
+  const levelConfig = resolveLevelConfig(
+    state.config.progressionBands,
+    state.level,
+    state.sessionId
+  );
+  state.asteroidCount = levelConfig.asteroidCount;
+  state.config.maxLives = levelConfig.maxLives;
+  state.bullets = [];
+  state.pills = [];
+  state.tokens = [];
+  state.shipPickups = [];
+  state.powerupPickups = [];
+  state.asteroids = spawnAsteroids(
+    state.screen,
+    state.asteroidCount,
+    state.ship,
+    state.config,
+    state.level,
+    state.sessionId
+  );
 }
 
 function maybeSpawnPickups(state: SimulationState, now: number): void {
-  const cfg = state.config
+  const cfg = state.config;
 
-  if (state.pillsSpawned < state.pillsPerGameCap && now - state.lastPillSpawnAt >= cfg.pillSpawnDelayMs) {
-    state.pills.push(createEdgePickup('pill', state.screen, ASTRDS_PILL_COLOR, now, cfg))
-    state.lastPillSpawnAt = now
-    state.pillsSpawned += 1
+  if (
+    state.pillsSpawned < state.pillsPerGameCap &&
+    now - state.lastPillSpawnAt >= cfg.pillSpawnDelayMs
+  ) {
+    state.pills.push(
+      createEdgePickup("pill", state.screen, ASTRDS_PILL_COLOR, now, cfg)
+    );
+    state.lastPillSpawnAt = now;
+    state.pillsSpawned += 1;
   }
 
   if (now - state.lastTokenSpawnAt >= cfg.tokenSpawnDelayMs) {
-    const pool = chooseWeightedPool(state.spaceTokenPools)
-    const shouldRequestSpaceToken = Boolean(pool) && Math.random() < cfg.spaceTokenSpawnChance
+    const pool = chooseWeightedPool(state.spaceTokenPools);
+    const shouldRequestSpaceToken =
+      Boolean(pool) && Math.random() < cfg.spaceTokenSpawnChance;
 
     if (pool && shouldRequestSpaceToken) {
       state.events.push({
-        type: 'spaceTokenSpawnRequested',
+        type: "spaceTokenSpawnRequested",
         pool,
-      })
+      });
     }
-    state.lastTokenSpawnAt = now
+    state.lastTokenSpawnAt = now;
   }
 
-  const levelConfig = resolveLevelConfig(cfg.progressionBands, state.level, state.sessionId)
-  const shipAlreadySpawned = state.shipPickupSpawnedLevels.includes(state.level)
+  const levelConfig = resolveLevelConfig(
+    cfg.progressionBands,
+    state.level,
+    state.sessionId
+  );
+  const shipAlreadySpawned = state.shipPickupSpawnedLevels.includes(
+    state.level
+  );
   if (
     levelConfig.shipPickupAllowed &&
     !shipAlreadySpawned &&
     state.shipPickups.length < cfg.maxShipPickupsOnScreen &&
     now - state.lastShipPickupSpawnAt >= cfg.shipPickupSpawnDelayMs
   ) {
-    state.shipPickups.push(createEdgePickup('shipPickup', state.screen, '#87CEEB', now, cfg))
-    state.shipPickupSpawnedLevels.push(state.level)
-    state.lastShipPickupSpawnAt = now
+    state.shipPickups.push(
+      createEdgePickup("shipPickup", state.screen, "#87CEEB", now, cfg)
+    );
+    state.shipPickupSpawnedLevels.push(state.level);
+    state.lastShipPickupSpawnAt = now;
   }
 
-  const powerupsSpawned = state.powerupsSpawnedByLevel[state.level] ?? 0
+  const powerupsSpawned = state.powerupsSpawnedByLevel[state.level] ?? 0;
   if (
     powerupsSpawned < levelConfig.powerupBudget &&
     state.powerupPickups.length < cfg.maxPowerupsOnScreen &&
     now - state.lastPowerupSpawnAt >= cfg.powerupSpawnDelayMs
   ) {
-    state.powerupPickups.push(createEdgePickup('powerup', state.screen, COMBO_POWERUP_COLOR, now, cfg))
-    state.powerupsSpawnedByLevel[state.level] = powerupsSpawned + 1
-    state.lastPowerupSpawnAt = now
+    state.powerupPickups.push(
+      createEdgePickup("powerup", state.screen, COMBO_POWERUP_COLOR, now, cfg)
+    );
+    state.powerupsSpawnedByLevel[state.level] = powerupsSpawned + 1;
+    state.lastPowerupSpawnAt = now;
   }
 }
 
-export function updateSimulation(state: SimulationState, dt: number, now = Date.now()): void {
-  if (state.status === 'gameOver') return
+export function updateSimulation(
+  state: SimulationState,
+  dt: number,
+  now = Date.now()
+): void {
+  if (state.status === "gameOver") return;
 
-  state.tick += 1
-  state.events = []
-  updatePowerups(state, now)
-  updateShip(state, dt, now)
-  updateAsteroids(state, dt)
-  updateBullets(state, dt, now)
-  state.pills = updatePickups(state.pills, state.screen, dt, now)
-  state.tokens = updateTokenPickups(state.tokens, state.screen, dt, now)
-  state.shipPickups = updatePickups(state.shipPickups, state.screen, dt, now)
-  state.powerupPickups = updatePickups(state.powerupPickups, state.screen, dt, now)
+  state.tick += 1;
+  state.events = [];
+  updatePowerups(state, now);
+  updateShip(state, dt, now);
+  updateAsteroids(state, dt);
+  updateBullets(state, dt, now);
+  state.pills = updatePickups(state.pills, state.screen, dt, now);
+  state.tokens = updateTokenPickups(state.tokens, state.screen, dt, now);
+  state.shipPickups = updatePickups(state.shipPickups, state.screen, dt, now);
+  state.powerupPickups = updatePickups(
+    state.powerupPickups,
+    state.screen,
+    dt,
+    now
+  );
 
-  maybeShootBullet(state, now)
-  resolveBulletAsteroidCollisions(state)
+  maybeShootBullet(state, now);
+  resolveBulletAsteroidCollisions(state);
 
   state.pills = resolveShipPickupCollision(state, state.pills, () => {
-    state.pillsCollected += 1
-    state.events.push({ type: 'pillCollected' })
-  })
+    state.pillsCollected += 1;
+    state.events.push({ type: "pillCollected" });
+  });
 
   if (state.ship) {
     state.powerupPickups = state.powerupPickups.filter((pickup) => {
-      if (!checkCollision(state.ship!, pickup)) return true
+      if (!checkCollision(state.ship!, pickup)) return true;
       if (pickup.color === SHIELD_PICKUP_COLOR) {
-        state.powerups = { ...state.powerups, invincible: true, expiresAt: now + state.config.powerupDurationMs }
+        state.powerups = {
+          ...state.powerups,
+          invincible: true,
+          expiresAt: now + state.config.powerupDurationMs,
+        };
       } else if (pickup.color === RAPID_FIRE_PICKUP_COLOR) {
-        state.powerups = { ...state.powerups, rapidFire: true, expiresAt: now + state.config.powerupDurationMs }
+        state.powerups = {
+          ...state.powerups,
+          rapidFire: true,
+          expiresAt: now + state.config.powerupDurationMs,
+        };
       } else {
-        state.powerups = { invincible: true, rapidFire: true, expiresAt: now + state.config.powerupDurationMs }
+        state.powerups = {
+          invincible: true,
+          rapidFire: true,
+          expiresAt: now + state.config.powerupDurationMs,
+        };
       }
-      return false
-    })
+      return false;
+    });
   }
 
-  state.tokens = resolveShipTokenCollision(state)
+  state.tokens = resolveShipTokenCollision(state);
 
-  state.shipPickups = resolveShipPickupCollision(state, state.shipPickups, () => {
-    state.lives = Math.min(state.config.maxLives, state.lives + 1)
-    state.events.push({ type: 'shipPickupCollected' })
-  })
+  state.shipPickups = resolveShipPickupCollision(
+    state,
+    state.shipPickups,
+    () => {
+      state.lives = Math.min(state.config.maxLives, state.lives + 1);
+      state.events.push({ type: "shipPickupCollected" });
+    }
+  );
 
-  handleShipAsteroidCollisions(state, now)
-  maybeAdvanceLevel(state)
-  maybeSpawnPickups(state, now)
+  handleShipAsteroidCollisions(state, now);
+  maybeAdvanceLevel(state);
+  maybeSpawnPickups(state, now);
 }
 
-export function resizeSimulation(state: SimulationState, screen: ScreenBounds): void {
-  state.screen = { ...screen }
+export function resizeSimulation(
+  state: SimulationState,
+  screen: ScreenBounds
+): void {
+  state.screen = { ...screen };
   if (state.ship) {
-    state.ship.position.x = Math.min(state.ship.position.x, screen.width)
-    state.ship.position.y = Math.min(state.ship.position.y, screen.height)
+    state.ship.position.x = Math.min(state.ship.position.x, screen.width);
+    state.ship.position.y = Math.min(state.ship.position.y, screen.height);
   }
 }
 
-export function drainSimulationEvents(state: SimulationState): SimulationEvent[] {
-  const events = state.events
-  state.events = []
-  return events
+export function drainSimulationEvents(
+  state: SimulationState
+): SimulationEvent[] {
+  const events = state.events;
+  state.events = [];
+  return events;
 }
 
-export function setSpaceTokenPools(state: SimulationState, pools: SpaceTokenPool[]): void {
-  state.spaceTokenPools = pools.map((pool) => ({ ...pool }))
+export function setSpaceTokenPools(
+  state: SimulationState,
+  pools: SpaceTokenPool[]
+): void {
+  state.spaceTokenPools = pools.map((pool) => ({ ...pool }));
 }
 
-export function setEmissionTier(state: SimulationState, tier: EmissionTier): void {
-  state.emissionTier = { ...tier }
-  state.pillsPerGameCap = tier.pillsPerGame
+export function setEmissionTier(
+  state: SimulationState,
+  tier: EmissionTier
+): void {
+  state.emissionTier = { ...tier };
+  state.pillsPerGameCap = tier.pillsPerGame;
 }
 
-export function applySimulationConfig(state: SimulationState, config: SimulationConfig): void {
-  state.config = { ...DEFAULT_SIMULATION_CONFIG, ...config }
-  const levelConfig = resolveLevelConfig(state.config.progressionBands, state.level, state.sessionId)
-  state.config.maxLives = levelConfig.maxLives
-  state.lives = Math.min(state.lives, state.config.maxLives)
-  if (state.ship) state.ship.radius = state.config.shipRadius
+export function applySimulationConfig(
+  state: SimulationState,
+  config: SimulationConfig
+): void {
+  state.config = { ...DEFAULT_SIMULATION_CONFIG, ...config };
+  const levelConfig = resolveLevelConfig(
+    state.config.progressionBands,
+    state.level,
+    state.sessionId
+  );
+  state.config.maxLives = levelConfig.maxLives;
+  state.lives = Math.min(state.lives, state.config.maxLives);
+  if (state.ship) state.ship.radius = state.config.shipRadius;
 }
 
 export function injectAuthorizedSpaceToken(
@@ -833,7 +1002,7 @@ export function injectAuthorizedSpaceToken(
       depositId: spawn.depositId,
       mintAddress: spawn.mintAddress,
     })
-  )
+  );
 }
 
 export function simulationToSnapshot(state: SimulationState): GameSnapshot {
@@ -917,5 +1086,5 @@ export function simulationToSnapshot(state: SimulationState): GameSnapshot {
     })),
     emissionTier: { ...state.emissionTier },
     powerups: { ...state.powerups },
-  }
+  };
 }

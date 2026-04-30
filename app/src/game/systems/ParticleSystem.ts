@@ -3,60 +3,60 @@ import {
   ParticleSystem,
   ParticleConfig,
   ParticleSystemConfig,
-} from '@/types/entities/particle'
-import { ScreenBounds, Vector2D } from '@/types/core'
-import { randomNumBetween } from '@/utils/helpers'
-import Particle from '../entities/Particle'
+} from "@/types/entities/particle";
+import { ScreenBounds, Vector2D } from "@/types/core";
+import { randomNumBetween } from "@/utils/helpers";
+import Particle from "../entities/Particle";
 
 export class ParticleSystemImpl implements ParticleSystem {
-  private maxParticles: number
-  private particles: Particle[]
-  private context: CanvasRenderingContext2D | null = null
+  private maxParticles: number;
+  private particles: Particle[];
+  private context: CanvasRenderingContext2D | null = null;
 
   constructor(config: ParticleSystemConfig = {}) {
-    this.maxParticles = config.maxParticles || 100
-    this.particles = []
+    this.maxParticles = config.maxParticles || 100;
+    this.particles = [];
   }
 
   setContext(context: CanvasRenderingContext2D) {
-    this.context = context
+    this.context = context;
   }
 
   createParticle(args: ParticleConfig): Particle | null {
     if (this.particles.length >= this.maxParticles) {
       // Replace oldest particle
-      const oldestParticle = this.particles[0]
-      oldestParticle.init(args)
-      this.particles.push(this.particles.shift()!)
-      return oldestParticle
+      const oldestParticle = this.particles[0];
+      oldestParticle.init(args);
+      this.particles.push(this.particles.shift()!);
+      return oldestParticle;
     }
 
-    const particle = new Particle(args)
-    this.particles.push(particle)
-    return particle
+    const particle = new Particle(args);
+    this.particles.push(particle);
+    return particle;
   }
 
   update(dt = 1, screen: ScreenBounds = { width: 0, height: 0 }) {
     this.particles = this.particles.filter((particle) => {
-      if (particle.delete) return false
-      particle.update(dt, screen)
-      return true
-    })
+      if (particle.delete) return false;
+      particle.update(dt, screen);
+      return true;
+    });
   }
 
   render(context?: CanvasRenderingContext2D | null) {
-    const targetContext = context ?? this.context
-    if (!targetContext) return
+    const targetContext = context ?? this.context;
+    if (!targetContext) return;
 
     this.particles.forEach((particle) => {
       if (!particle.delete) {
-        particle.render(targetContext)
+        particle.render(targetContext);
       }
-    })
+    });
   }
 
   createExplosion(position: Vector2D, radius: number, count: number): void {
-    const particleCount = Math.min(count, 8)
+    const particleCount = Math.min(count, 8);
 
     for (let i = 0; i < particleCount; i++) {
       this.createParticle({
@@ -70,7 +70,7 @@ export class ParticleSystemImpl implements ParticleSystem {
           y: randomNumBetween(-1.5, 1.5),
         },
         lifeSpan: randomNumBetween(15, 25),
-      })
+      });
     }
   }
 
@@ -86,12 +86,12 @@ export class ParticleSystemImpl implements ParticleSystem {
         y: posDelta.y / randomNumBetween(3, 5),
       },
       lifeSpan: randomNumBetween(15, 30),
-    })
+    });
   }
 
   releaseParticle(particle: Particle): void {
-    this.particles = this.particles.filter((p) => p !== particle)
+    this.particles = this.particles.filter((p) => p !== particle);
   }
 }
 
-export const particleSystem = new ParticleSystemImpl({ maxParticles: 30 }) // Reduced max particles
+export const particleSystem = new ParticleSystemImpl({ maxParticles: 30 }); // Reduced max particles

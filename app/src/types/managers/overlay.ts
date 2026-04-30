@@ -1,29 +1,29 @@
 // src/types/managers/overlay.ts
-import { Overlay } from '../core'
+import { Overlay } from "../core";
 
 export interface OverlayManagerProps {
-  children?: React.ReactNode
+  children?: React.ReactNode;
 }
 
 export interface OverlayState {
-  activeOverlay: Overlay | null
-  wasGamePaused: boolean
-  isBlurred: boolean
+  activeOverlay: Overlay | null;
+  wasGamePaused: boolean;
+  isBlurred: boolean;
 }
 
 export interface OverlayActions {
-  openOverlay: (overlay: Overlay) => void
-  closeOverlay: () => void
-  isOverlayActive: (overlay: Overlay) => boolean
+  openOverlay: (overlay: Overlay) => void;
+  closeOverlay: () => void;
+  isOverlayActive: (overlay: Overlay) => boolean;
 }
 
 export interface OverlayStore extends OverlayState, OverlayActions {}
 
 export interface OverlayBehavior {
-  blur: boolean
-  shouldPause: boolean
+  blur: boolean;
+  shouldPause: boolean;
 }
 
 export interface OverlayConfig {
-  [key: string]: OverlayBehavior
+  [key: string]: OverlayBehavior;
 }

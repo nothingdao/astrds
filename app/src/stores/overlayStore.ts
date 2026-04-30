@@ -1,9 +1,9 @@
 // src/stores/overlayStore.ts
-import { create } from 'zustand'
-import { Overlay } from '@/types/overlay'
-import { MachineState } from '@/types/machine'
-import { OverlayStore } from '@/types/stores/overlay' // Move types to own file
-import { useStateMachine } from './stateMachine'
+import { create } from "zustand";
+import { Overlay } from "@/types/overlay";
+import { MachineState } from "@/types/machine";
+import { OverlayStore } from "@/types/stores/overlay"; // Move types to own file
+import { useStateMachine } from "./stateMachine";
 
 export const useOverlayStore = create<OverlayStore>((set, get) => ({
   activeOverlay: null,
@@ -11,42 +11,42 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
   wasGamePaused: false,
 
   openOverlay: (overlay: Overlay) => {
-    const stateMachine = useStateMachine.getState()
-    const wasPlaying = stateMachine.currentState === MachineState.PLAYING
-    const currentOverlay = get().activeOverlay
+    const stateMachine = useStateMachine.getState();
+    const wasPlaying = stateMachine.currentState === MachineState.PLAYING;
+    const currentOverlay = get().activeOverlay;
 
     if (currentOverlay === overlay) {
-      get().closeOverlay()
-      return
+      get().closeOverlay();
+      return;
     }
 
     if (wasPlaying && !stateMachine.isPaused) {
-      stateMachine.setPause(true)
+      stateMachine.setPause(true);
     }
 
     set({
       previousOverlay: currentOverlay,
       activeOverlay: overlay,
       wasGamePaused: wasPlaying,
-    })
+    });
   },
 
   closeOverlay: () => {
-    const { wasGamePaused } = get()
-    const stateMachine = useStateMachine.getState()
+    const { wasGamePaused } = get();
+    const stateMachine = useStateMachine.getState();
 
     if (wasGamePaused && stateMachine.currentState === MachineState.PAUSED) {
-      stateMachine.setPause(false)
+      stateMachine.setPause(false);
     }
 
     set({
       previousOverlay: get().activeOverlay,
       activeOverlay: null,
       wasGamePaused: false,
-    })
+    });
   },
 
   isOverlayActive: (overlay: Overlay): boolean => {
-    return get().activeOverlay === overlay
+    return get().activeOverlay === overlay;
   },
-}))
+}));

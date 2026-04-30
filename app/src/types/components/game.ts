@@ -1,10 +1,10 @@
 // src/types/components/game.ts
 
 export interface LevelDisplayProps {
-  className?: string
+  className?: string;
 }
 
 export interface LevelTransitionProps {
-  duration?: number
-  onComplete?: () => void
+  duration?: number;
+  onComplete?: () => void;
 }
