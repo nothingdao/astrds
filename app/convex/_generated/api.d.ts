@@ -22,6 +22,7 @@ import type * as scores from "../scores.js";
 import type * as sessions from "../sessions.js";
 import type * as spaceDeposits from "../spaceDeposits.js";
 import type * as spaceDepositsActions from "../spaceDepositsActions.js";
+import type * as spaceTokenLedger from "../spaceTokenLedger.js";
 import type * as tokens from "../tokens.js";
 import type * as vaultHealth from "../vaultHealth.js";
 import type * as verifyPayment from "../verifyPayment.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   sessions: typeof sessions;
   spaceDeposits: typeof spaceDeposits;
   spaceDepositsActions: typeof spaceDepositsActions;
+  spaceTokenLedger: typeof spaceTokenLedger;
   tokens: typeof tokens;
   vaultHealth: typeof vaultHealth;
   verifyPayment: typeof verifyPayment;

@@ -8,9 +8,18 @@ import {
   query,
 } from "./_generated/server";
 import { v } from "convex/values";
-
-const SPAWN_TICKET_TTL_MS = 60_000; // tickets expire after 60s if uncollected
-const MIN_SPAWN_INTERVAL_S = 5; // floor for escalating mode (seconds)
+import {
+  SPAWN_TICKET_TTL_MS,
+  canIssueSpawnTicket,
+  canPoolSpawnOrCollect,
+  canReserveCollection,
+  canRevertClaimingCollection,
+  canUseSpawnTicket,
+  remainingAfterCollection,
+  statusForRemaining,
+  validateDepositAmounts,
+  waveWindowStart,
+} from "./spaceTokenLedger";
 
 // ── Public queries ────────────────────────────────────────────────────────────
 
@@ -296,19 +305,17 @@ export const confirmDepositFromChain = mutation({
     }
 
     // Sanity-check amounts — can't claim more than deposited or negative values.
-    if (
-      remainingAmount < 0 ||
-      tokensPerPill <= 0 ||
-      remainingAmount > args.totalAmount
-    ) {
-      throw new Error("Invalid deposit amounts");
-    }
+    validateDepositAmounts({
+      totalAmount: args.totalAmount,
+      remainingAmount,
+      tokensPerPill,
+    });
 
     await ctx.db.patch(depositId, {
       ...fields,
       remainingAmount,
       tokensPerPill,
-      status: remainingAmount < tokensPerPill ? "depleted" : "active",
+      status: statusForRemaining(remainingAmount, tokensPerPill),
     });
   },
 });
@@ -341,61 +348,43 @@ export const requestSpawnTicket = mutation({
 
     // Validate pool: must have tokens left to give.
     const deposit = await ctx.db.get(depositId);
-    if (!deposit || deposit.status === "cancelled") return { spawnId: null };
-    if (deposit.remainingAmount < deposit.tokensPerPill)
-      return { spawnId: null };
+    if (!canPoolSpawnOrCollect(deposit)) return { spawnId: null };
 
     const now = Date.now();
-    const spawnMode = deposit.spawnMode ?? "steady";
-    const spawnInterval = deposit.spawnInterval ?? 30;
-
-    if (spawnMode === "steady") {
-      const last = await ctx.db
-        .query("spawnTickets")
-        .withIndex("by_wallet_deposit_time", (q) =>
-          q
-            .eq("playerWalletAddress", playerWalletAddress)
-            .eq("depositId", depositId)
-        )
-        .order("desc")
-        .first();
-      if (last && now - last.issuedAt < spawnInterval * 1000)
-        return { spawnId: null };
+    const last = await ctx.db
+      .query("spawnTickets")
+      .withIndex("by_wallet_deposit_time", (q) =>
+        q
+          .eq("playerWalletAddress", playerWalletAddress)
+          .eq("depositId", depositId)
+      )
+      .order("desc")
+      .first();
+    let ticketsInWindow = 0;
+    if ((deposit.spawnMode ?? "steady") === "wave") {
+      ticketsInWindow = (
+        await ctx.db
+          .query("spawnTickets")
+          .withIndex("by_wallet_deposit_time", (q) =>
+            q
+              .eq("playerWalletAddress", playerWalletAddress)
+              .eq("depositId", depositId)
+              .gte("issuedAt", waveWindowStart(now, deposit))
+          )
+          .collect()
+      ).length;
     }
 
-    if (spawnMode === "escalating") {
-      const rate = deposit.escalationRate ?? 0.1;
-      const level = Math.max(1, session.levelReached ?? 1);
-      const effectiveInterval =
-        Math.max(MIN_SPAWN_INTERVAL_S, spawnInterval / (1 + rate * level)) *
-        1000;
-      const last = await ctx.db
-        .query("spawnTickets")
-        .withIndex("by_wallet_deposit_time", (q) =>
-          q
-            .eq("playerWalletAddress", playerWalletAddress)
-            .eq("depositId", depositId)
-        )
-        .order("desc")
-        .first();
-      if (last && now - last.issuedAt < effectiveInterval)
-        return { spawnId: null };
-    }
-
-    if (spawnMode === "wave") {
-      const waveSize = deposit.waveSize ?? 3;
-      const waveCooldown = deposit.waveCooldown ?? 60;
-      const windowStart = now - waveCooldown * 1000;
-      const ticketsInWindow = await ctx.db
-        .query("spawnTickets")
-        .withIndex("by_wallet_deposit_time", (q) =>
-          q
-            .eq("playerWalletAddress", playerWalletAddress)
-            .eq("depositId", depositId)
-            .gte("issuedAt", windowStart)
-        )
-        .collect();
-      if (ticketsInWindow.length >= waveSize) return { spawnId: null };
+    if (
+      !canIssueSpawnTicket({
+        policy: deposit,
+        now,
+        level: session.levelReached ?? 1,
+        lastIssuedAt: last?.issuedAt,
+        ticketsInWindow,
+      })
+    ) {
+      return { spawnId: null };
     }
 
     const spawnId = await ctx.db.insert("spawnTickets", {
@@ -424,27 +413,25 @@ export const collectFromDeposit = mutation({
   handler: async (ctx, { spawnId, playerWalletAddress, gameSessionId }) => {
     // Validate ticket: must be unused, not expired, and belong to this player+session.
     const ticket = await ctx.db.get(spawnId);
-    if (!ticket) return { success: false };
-    if (ticket.used) return { success: false };
-    if (ticket.expiresAt < Date.now()) return { success: false };
-    if (ticket.playerWalletAddress !== playerWalletAddress)
+    if (
+      !canUseSpawnTicket(ticket, {
+        playerWalletAddress,
+        gameSessionId,
+        now: Date.now(),
+      })
+    ) {
       return { success: false };
-    if (ticket.gameSessionId !== gameSessionId) return { success: false };
+    }
 
     // Mark ticket used immediately — prevents any race on double-collect.
     await ctx.db.patch(spawnId, { used: true });
 
     // Decrement pool.
     const deposit = await ctx.db.get(ticket.depositId);
-    if (!deposit || deposit.status === "cancelled") return { success: false };
-    if (deposit.remainingAmount < deposit.tokensPerPill)
-      return { success: false };
+    if (!canPoolSpawnOrCollect(deposit)) return { success: false };
 
-    const newRemaining = deposit.remainingAmount - deposit.tokensPerPill;
-    await ctx.db.patch(ticket.depositId, {
-      remainingAmount: newRemaining,
-      status: newRemaining < deposit.tokensPerPill ? "depleted" : "active",
-    });
+    const nextPoolState = remainingAfterCollection(deposit);
+    await ctx.db.patch(ticket.depositId, nextPoolState);
 
     // Write persistent collection record — survives browser close.
     await ctx.db.insert("collections", {
@@ -503,7 +490,7 @@ export const confirmDeposit = internalMutation({
       totalAmount,
       remainingAmount: totalAmount,
       depositedAt,
-      status: "active",
+      status: statusForRemaining(totalAmount, deposit.tokensPerPill),
     });
   },
 });
@@ -551,7 +538,7 @@ export const reconcilePoolBalance = internalMutation({
     if (deposit.remainingAmount <= onChainBalance) return;
     await ctx.db.patch(depositId, {
       remainingAmount: onChainBalance,
-      status: onChainBalance < deposit.tokensPerPill ? "depleted" : "active",
+      status: statusForRemaining(onChainBalance, deposit.tokensPerPill),
     });
   },
 });
@@ -577,7 +564,7 @@ export const markCollectionClaiming = internalMutation({
   args: { id: v.id("collections") },
   handler: async (ctx, { id }) => {
     const col = await ctx.db.get(id);
-    if (!col || col.status !== "pending") return false;
+    if (!col || !canReserveCollection(col.status)) return false;
     await ctx.db.patch(id, { status: "claiming" });
     return true;
   },
@@ -592,7 +579,7 @@ export const revertClaimingCollections = mutation({
     for (const id of collectionIds) {
       const col = await ctx.db.get(id);
       if (!col || col.playerWalletAddress !== playerWalletAddress) continue;
-      if (col.status === "claiming")
+      if (canRevertClaimingCollection(col.status))
         await ctx.db.patch(id, { status: "pending" });
     }
   },
@@ -688,8 +675,7 @@ export const upsertRecoveredDeposit = internalMutation({
       )
       .first();
 
-    const status =
-      args.remainingAmount >= args.tokensPerPill ? "active" : "depleted";
+    const status = statusForRemaining(args.remainingAmount, args.tokensPerPill);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -730,7 +716,7 @@ export const decrementDeposit = internalMutation({
     const newRemaining = Math.max(0, deposit.remainingAmount - amount);
     await ctx.db.patch(depositId, {
       remainingAmount: newRemaining,
-      status: newRemaining < deposit.tokensPerPill ? "depleted" : "active",
+      status: statusForRemaining(newRemaining, deposit.tokensPerPill),
     });
   },
 });
