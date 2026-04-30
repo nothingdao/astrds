@@ -135,3 +135,33 @@ export function canReserveCollection(status: CollectionStatus): boolean {
 export function canRevertClaimingCollection(status: CollectionStatus): boolean {
   return status === "claiming";
 }
+
+export interface ClaimableCollectionLike {
+  depositId: unknown;
+  amount: number;
+}
+
+export function groupCollectionsByDeposit<T extends ClaimableCollectionLike>(
+  collections: T[]
+): Map<string, T[]> {
+  const byDeposit = new Map<string, T[]>();
+  for (const collection of collections) {
+    const key = String(collection.depositId);
+    const group = byDeposit.get(key);
+    if (group) group.push(collection);
+    else byDeposit.set(key, [collection]);
+  }
+  return byDeposit;
+}
+
+export function sumCollectionAmounts(
+  collections: ClaimableCollectionLike[]
+): number {
+  return collections.reduce((sum, collection) => sum + collection.amount, 0);
+}
+
+export function hasClaimableAmount(
+  collections: ClaimableCollectionLike[]
+): boolean {
+  return sumCollectionAmounts(collections) > 0;
+}

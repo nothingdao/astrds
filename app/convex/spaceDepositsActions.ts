@@ -15,6 +15,11 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import nacl from "tweetnacl";
+import {
+  groupCollectionsByDeposit,
+  hasClaimableAmount,
+  sumCollectionAmounts,
+} from "./spaceTokenLedger";
 
 const loadAuthority = (): Keypair => {
   const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY;
@@ -234,13 +239,7 @@ export const prepareClaims = action({
     );
     if (pending.length === 0) return { success: true, claims: [] };
 
-    // Group collection records by depositId.
-    const byDeposit = new Map<string, typeof pending>();
-    for (const col of pending) {
-      const key = col.depositId as string;
-      if (!byDeposit.has(key)) byDeposit.set(key, []);
-      byDeposit.get(key)!.push(col);
-    }
+    const byDeposit = groupCollectionsByDeposit(pending);
 
     const authority = loadAuthority();
     const playerPubkey = new PublicKey(playerWalletAddress);
@@ -273,11 +272,7 @@ export const prepareClaims = action({
       }
       if (!deposit || !deposit.poolAddress) continue;
 
-      const totalAmount = cols.reduce(
-        (sum: number, c: { amount: number }) => sum + c.amount,
-        0
-      );
-      if (totalAmount <= 0) continue;
+      if (!hasClaimableAmount(cols)) continue;
 
       const reservedCols: typeof cols = [];
       for (const col of cols) {
@@ -288,10 +283,7 @@ export const prepareClaims = action({
         if (reserved) reservedCols.push(col);
       }
       if (reservedCols.length === 0) continue;
-      const reservedTotalAmount = reservedCols.reduce(
-        (sum: number, c: { amount: number }) => sum + c.amount,
-        0
-      );
+      const reservedTotalAmount = sumCollectionAmounts(reservedCols);
       if (reservedTotalAmount <= 0) continue;
 
       const claimId = randomBytes(32);

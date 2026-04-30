@@ -5,8 +5,11 @@ import {
   canReserveCollection,
   canRevertClaimingCollection,
   canUseSpawnTicket,
+  groupCollectionsByDeposit,
+  hasClaimableAmount,
   remainingAfterCollection,
   statusForRemaining,
+  sumCollectionAmounts,
   validateDepositAmounts,
   waveWindowStart,
 } from "../../convex/spaceTokenLedger";
@@ -186,5 +189,27 @@ describe("spaceTokenLedger", () => {
     expect(canReserveCollection("claiming")).toBe(false);
     expect(canRevertClaimingCollection("claiming")).toBe(true);
     expect(canRevertClaimingCollection("claimed")).toBe(false);
+  });
+
+  it("groups and totals claimable collections", () => {
+    const collections = [
+      { depositId: "deposit-1", amount: 10, id: "a" },
+      { depositId: "deposit-2", amount: 5, id: "b" },
+      { depositId: "deposit-1", amount: 7, id: "c" },
+    ];
+
+    const grouped = groupCollectionsByDeposit(collections);
+
+    expect(
+      grouped.get("deposit-1")?.map((collection) => collection.id)
+    ).toEqual(["a", "c"]);
+    expect(
+      grouped.get("deposit-2")?.map((collection) => collection.id)
+    ).toEqual(["b"]);
+    expect(sumCollectionAmounts(grouped.get("deposit-1") ?? [])).toBe(17);
+    expect(hasClaimableAmount(grouped.get("deposit-2") ?? [])).toBe(true);
+    expect(hasClaimableAmount([{ depositId: "deposit-3", amount: 0 }])).toBe(
+      false
+    );
   });
 });
