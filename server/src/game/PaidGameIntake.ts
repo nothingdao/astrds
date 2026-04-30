@@ -1,0 +1,55 @@
+import type { SessionBinding } from "../../../shared/game/protocol.js";
+
+export interface PaidGameIntakeClient {
+  isVerifiedSession(args: { walletAddress: string }): Promise<boolean>;
+  consumeSession(args: { walletAddress: string }): Promise<boolean>;
+}
+
+export interface PaidGameIntakeResult {
+  ok: boolean;
+  binding?: SessionBinding;
+  error?: string;
+}
+
+const NO_ACTIVE_SESSION = "No active session. Please insert a quarter.";
+
+export class PaidGameIntake {
+  private readonly client: PaidGameIntakeClient;
+
+  constructor(client: PaidGameIntakeClient) {
+    this.client = client;
+  }
+
+  async consume(
+    binding: SessionBinding | undefined
+  ): Promise<PaidGameIntakeResult> {
+    const walletAddress = binding?.walletAddress;
+    if (!walletAddress) {
+      return { ok: false, error: NO_ACTIVE_SESSION };
+    }
+
+    let isVerified = false;
+    try {
+      isVerified = await this.client.isVerifiedSession({ walletAddress });
+      if (isVerified) {
+        isVerified = await this.client.consumeSession({ walletAddress });
+      }
+    } catch (error) {
+      console.error("Paid game intake failed", {
+        error,
+        walletAddress,
+        gameSessionId: binding?.gameSessionId,
+      });
+      return { ok: false, error: NO_ACTIVE_SESSION };
+    }
+
+    if (!isVerified) {
+      return { ok: false, error: NO_ACTIVE_SESSION };
+    }
+
+    return {
+      ok: true,
+      binding: { ...binding, walletAddress },
+    };
+  }
+}

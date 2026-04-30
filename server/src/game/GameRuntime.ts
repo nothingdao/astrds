@@ -2,6 +2,7 @@ import { ConvexServerClient } from "../convex/client.js";
 import { fetchEmissionTier, getFallbackEmissionTier } from "./emissionTiers.js";
 import { DEFAULT_GAME_CONFIG, type GameConfig } from "./gameConfig.js";
 import { GameSession } from "./GameSession.js";
+import { PaidGameIntake } from "./PaidGameIntake.js";
 import type {
   AuthorizedSpaceTokenSpawn,
   GameSnapshot,
@@ -92,41 +93,18 @@ export class GameRuntime {
       return { ok: true, snapshot: this.session.resize(screen) };
     }
 
-    const walletAddress = session?.walletAddress;
-    if (!walletAddress) {
-      return {
-        ok: false,
-        error: "No active session. Please insert a quarter.",
-      };
-    }
-
     this.helloVerifying = true;
-    let isVerified = false;
-
-    try {
-      isVerified = await this.convex.isVerifiedSession({ walletAddress });
-      if (isVerified) {
-        isVerified = await this.convex.consumeSession({ walletAddress });
-      }
-    } catch (error) {
-      console.error("Session verification failed; rejecting connection", {
-        error,
-        sessionId: this.session.id,
-        walletAddress,
-      });
-    } finally {
+    const intake = new PaidGameIntake(this.convex);
+    const intakeResult = await intake.consume(session).finally(() => {
       this.helloVerifying = false;
-    }
+    });
 
-    if (!isVerified) {
-      return {
-        ok: false,
-        error: "No active session. Please insert a quarter.",
-      };
+    if (!intakeResult.ok || !intakeResult.binding) {
+      return { ok: false, error: intakeResult.error };
     }
 
     this.helloHandled = true;
-    this.binding = { ...session, walletAddress };
+    this.binding = intakeResult.binding;
     await this.refreshGameConfig();
     this.session.applyConfig(this.gameConfig);
     this.session.reset(screen);
