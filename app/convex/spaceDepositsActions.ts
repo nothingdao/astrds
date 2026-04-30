@@ -20,6 +20,7 @@ import {
   hasClaimableAmount,
   sumCollectionAmounts,
 } from "./spaceTokenLedger";
+import { buildClaimAuthorizationMessage } from "../../shared/vault/messages";
 
 const loadAuthority = (): Keypair => {
   const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY;
@@ -198,33 +199,6 @@ export const reconcileAllPools = internalAction({
   },
 });
 
-const toU64LeBytes = (value: number): Buffer => {
-  const bytes = Buffer.alloc(8);
-  bytes.writeBigUInt64LE(BigInt(value));
-  return bytes;
-};
-
-const toI64LeBytes = (value: number): Buffer => {
-  const bytes = Buffer.alloc(8);
-  bytes.writeBigInt64LE(BigInt(value));
-  return bytes;
-};
-
-const buildClaimMessage = (
-  player: PublicKey,
-  pool: PublicKey,
-  amount: number,
-  claimId: Uint8Array,
-  expiry: number
-): Buffer =>
-  Buffer.concat([
-    player.toBuffer(),
-    pool.toBuffer(),
-    toU64LeBytes(amount),
-    Buffer.from(claimId),
-    toI64LeBytes(expiry),
-  ]);
-
 // ── prepareClaims ─────────────────────────────────────────────────────────────
 // Convex remains the reservation system. It signs claim messages for the
 // frontend, which then submits ed25519 + claim instructions on-chain.
@@ -288,13 +262,13 @@ export const prepareClaims = action({
 
       const claimId = randomBytes(32);
       const poolPubkey = new PublicKey(deposit.poolAddress);
-      const message = buildClaimMessage(
-        playerPubkey,
-        poolPubkey,
-        reservedTotalAmount,
+      const message = buildClaimAuthorizationMessage({
+        player: playerPubkey,
+        pool: poolPubkey,
+        amount: reservedTotalAmount,
         claimId,
-        expiry
-      );
+        expiry,
+      });
       const signature = nacl.sign.detached(message, authority.secretKey);
 
       claims.push({

@@ -31,6 +31,10 @@ import {
 import idl from "@/lib/idl/space_vault_program.json";
 import type { SpaceVaultProgram } from "@/lib/idl/space_vault_program";
 import { isNativeSolMint } from "@/lib/nativeSol";
+import {
+  buildClaimAuthorizationMessage,
+  buildMintAstrdsAuthorizationMessage,
+} from "@shared/vault/messages";
 
 export type TokenProgramKind = "TOKEN" | "TOKEN_2022";
 
@@ -264,16 +268,14 @@ export const buildClaimMessage = (
   amount: number,
   claimId: Uint8Array,
   expiry: number
-) => {
-  const message = new Uint8Array(112);
-  const view = new DataView(message.buffer);
-  message.set(player.toBytes(), 0);
-  message.set(pool.toBytes(), 32);
-  view.setBigUint64(64, BigInt(amount), true);
-  message.set(claimId, 72);
-  view.setBigInt64(104, BigInt(expiry), true);
-  return message;
-};
+) =>
+  buildClaimAuthorizationMessage({
+    player,
+    pool,
+    amount,
+    claimId,
+    expiry,
+  });
 
 export const buildSendToSpaceTransaction = async ({
   connection,
@@ -799,16 +801,13 @@ export const buildMintAstrdsMessage = (
   amount: bigint,
   sessionId: Uint8Array,
   expiry: number
-) => {
-  // player(32) || amount(8) || session_id(32) || expiry(8) = 80 bytes
-  const message = new Uint8Array(80);
-  const view = new DataView(message.buffer);
-  message.set(player.toBytes(), 0);
-  view.setBigUint64(32, amount, true);
-  message.set(sessionId, 40);
-  view.setBigInt64(72, BigInt(expiry), true);
-  return message;
-};
+) =>
+  buildMintAstrdsAuthorizationMessage({
+    player,
+    amount,
+    sessionId,
+    expiry,
+  });
 
 export const buildMintAstrdsTransaction = async ({
   connection,

@@ -5,36 +5,15 @@ import { v } from "convex/values";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
 import { internal } from "./_generated/api";
+import {
+  buildMintAstrdsAuthorizationMessage,
+  sessionIdToBytes,
+} from "../../shared/vault/messages";
 
 const TOKEN_DECIMALS = 9;
 // Max ASTRDS any emission tier can award per game (100 pills × 0.5 = 50 at tier 5).
 // Checked server-side before minting.
 const MAX_ASTRDS_PER_GAME = 50;
-
-const toU64LeBytes = (value: bigint): Buffer => {
-  const bytes = Buffer.alloc(8);
-  bytes.writeBigUInt64LE(value);
-  return bytes;
-};
-
-const toI64LeBytes = (value: bigint): Buffer => {
-  const bytes = Buffer.alloc(8);
-  bytes.writeBigInt64LE(value);
-  return bytes;
-};
-
-const buildMintMessage = (
-  player: PublicKey,
-  amount: bigint,
-  sessionId: Uint8Array,
-  expiry: number
-): Buffer =>
-  Buffer.concat([
-    player.toBuffer(),
-    toU64LeBytes(amount),
-    Buffer.from(sessionId),
-    toI64LeBytes(BigInt(expiry)),
-  ]);
 
 const loadAuthority = (): Keypair => {
   const raw = process.env.PROGRAM_AUTHORITY_PRIVATE_KEY;
@@ -113,16 +92,13 @@ export const prepareMint = action({
 
     // Encode game session ID as 32-byte identifier (UTF-8, zero-padded).
     // The on-chain MintRecord PDA uses this for replay protection.
-    const sessionIdBytes = new Uint8Array(32);
-    const encoded = Buffer.from(gameSessionId, "utf8");
-    sessionIdBytes.set(encoded.subarray(0, 32));
-
-    const message = buildMintMessage(
-      playerPubkey,
-      rawAmount,
-      sessionIdBytes,
-      expiry
-    );
+    const sessionIdBytes = sessionIdToBytes(gameSessionId);
+    const message = buildMintAstrdsAuthorizationMessage({
+      player: playerPubkey,
+      amount: rawAmount,
+      sessionId: sessionIdBytes,
+      expiry,
+    });
     const signature = nacl.sign.detached(message, authority.secretKey);
 
     return {
